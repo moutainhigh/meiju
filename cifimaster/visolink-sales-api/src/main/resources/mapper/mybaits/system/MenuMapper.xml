@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.visolink.system.menus.dao.MenuMapper">
+
+    <!--添加-->
+    <insert id="addMenu" parameterType="java.util.Map">
+    INSERT INTO `s_menus`(`ID`, `PID`, `MenuName`, `Url`, `ImageUrl`, `IsHomePage`, `IsShow`, `Levels`,
+ `Creator`, `CreateTime`, `Editor`, `EditTime`, `Status`, `IsDel`, `MenuSysName`, `menusType`,  `redirect`, `component`, `alwaysShow`,ListIndex,IsLast) VALUES
+(uuid(),#{pid}, #{MenuName}, #{Url}, #{ImageUrl}, 0, #{IsShow},  #{level},
+ #{userId}, now(), #{userId},
+now(), #{Status}, 0, #{MenuSysName}, #{menusType}, #{redirect}, #{component}, 1,#{ids},#{isLast});
+    </insert>
+
+
+    <update id="updateMenu" parameterType="java.util.Map">
+       update s_menus set MenuName=#{MenuName},Url=#{Url},ImageUrl=#{ImageUrl},Status= #{Status},MenuSysName= #{MenuSysName},menusType=#{menusType},
+       redirect= #{redirect},component= #{component},ListIndex=#{ids} where ID=#{ID}
+    </update>
+
+    <update id="updateMenuStatus" parameterType="java.util.Map">
+        update s_menus set IsDel=1 where ID=#{ID}
+    </update>
+
+    <select id="getChildMenu" parameterType="java.util.Map" resultType="cn.visolink.system.menus.model.Menus">
+        SELECT *FROM s_menus where pid=#{id} AND isDel=0 order by ListIndex
+    </select>
+</mapper>

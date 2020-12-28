@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.system.statistics.dao.StatisticsReportMapper">
+
+	<select id="getUserName" resultType="java.util.Map" parameterType="java.util.Map">
+
+		select userName from b_account where id=#{UserId}
+
+	</select>
+<select id="getStatisticsReportMenus" resultType="java.util.Map" parameterType="java.util.Map">
+  select *from (select
+menu.title,
+menu.id,
+menu.pid,
+menu.url,
+menu.levels,
+su.id as suID,
+menu.orderIndex
+from s_jobsuserrel josr
+INNER JOIN s_jobs job on josr.JobID=job.ID
+INNER JOIN s_commonjobs con on con.ID=job.CommonJobID
+INNER JOIN s_jobsreportrel  jom on jom.JobID=job.ID
+INNER JOIN mm_report_menu menu on menu.ID=jom.ReportID and menu.isdel=0
+INNER JOIN b_account ac on ac.ID=josr.AccountID
+	LEFT  JOIN  s_use_menunumber su on su.menuID=menu.id  and su.userID=josr.AccountID
+WHERE
+	josr.AccountID = #{UserId} and menu.isdel=0
+union ALL
+select
+menu.title,
+menu.id,
+menu.pid,
+menu.url,
+menu.levels,
+su.id as suID,
+menu.orderIndex
+from s_jobsuserrel josr
+INNER JOIN s_jobs job on josr.JobID=job.ID
+INNER JOIN s_commonjobs con on con.ID=job.CommonJobID
+INNER JOIN  s_commonjobsreportmenurel cc on con.id=cc.jobid
+INNER JOIN mm_report_menu menu on menu.ID=cc.MenuID and menu.isdel=0
+INNER JOIN b_account ac on ac.ID=josr.AccountID
+	LEFT  JOIN  s_use_menunumber su on su.menuID=menu.id  and su.userID=josr.AccountID
+WHERE josr.AccountID=#{UserId}) t
+GROUP BY t.id
+ORDER BY t.orderIndex
+</select>
+	<select id="getComomUserReportMenus" resultType="java.util.Map" parameterType="java.util.Map">
+
+select
+    m.title,
+	m.id,
+	m.pid,
+	m.url,
+	m.levels,
+	su.id as suID,
+	IFNULL(su.num,0) as num
+	FROM
+	mm_report_menu m
+	LEFT  JOIN  s_use_menunumber su on su.menuID=m.id
+WHERE
+	su.userID= #{UserId} AND num!=0 and m.isdel=0 and m.ID in (
+
+
+
+	select *from (select
+  menu.id
+from s_jobsuserrel josr
+INNER JOIN s_jobs job on josr.JobID=job.ID
+INNER JOIN s_commonjobs con on con.ID=job.CommonJobID
+INNER JOIN s_jobsreportrel  jom on jom.JobID=job.ID
+INNER JOIN mm_report_menu menu on menu.ID=jom.ReportID
+INNER JOIN b_account ac on ac.ID=josr.AccountID
+	LEFT  JOIN  s_use_menunumber su on su.menuID=menu.id  and su.userID=josr.AccountID
+WHERE
+	josr.AccountID = #{UserId} and menu.isdel=0
+	UNION ALL
+select
+menu.id
+from s_jobsuserrel josr
+INNER JOIN s_jobs job on josr.JobID=job.ID
+INNER JOIN s_commonjobs con on con.ID=job.CommonJobID
+INNER JOIN  s_commonjobsreportmenurel cc on con.id=cc.jobid
+INNER JOIN mm_report_menu menu on menu.ID=cc.MenuID
+INNER JOIN b_account ac on ac.ID=josr.AccountID
+	LEFT  JOIN  s_use_menunumber su on su.menuID=menu.id  and su.userID=josr.AccountID
+WHERE josr.AccountID=#{UserId}) t
+GROUP BY t.id
+)
+	group by m.id
+	ORDER BY num desc,su.create_time asc
+	limit 6;
+</select>
+	<delete id="deleteUseReport" parameterType="java.util.Map">
+		delete  from s_use_menunumber where userid=#{UserId}
+
+
+	</delete>
+
+	<update id="addCommomUserReportMenus"  parameterType="java.util.Map">
+    update s_use_menunumber set num=num+1 where id=#{suID}
+</update>
+
+	<insert id="insertCommomUserReportMenus" parameterType="java.util.Map">
+		insert into s_use_menunumber values(UUID(),#{userID},#{menuID},1,now());
+	</insert>
+
+
+
+</mapper>

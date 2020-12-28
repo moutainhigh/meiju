@@ -1,0 +1,3653 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.riskcontrolmanager.dao.RiskContolDao">
+
+    <update id="updateRiskControl" parameterType="java.util.Map">
+        INSERT INTO
+        mm_risk_control_info (
+        id,
+        businessUnit,
+
+        project_id,
+
+        project_name,
+
+        client_id,
+
+        client_name,
+
+        freshcard_time,
+
+        counselor_name,
+
+        create_time,
+
+        firstphoto_time,
+
+        id_number,
+
+        system_risk,
+
+        risk_approve_status,
+
+        risk_approve_remark,
+
+        risk_approve_time,
+
+        reject_time,
+
+        reject_content,
+
+        remark,
+
+        report_time,
+
+        import_time,
+
+        agent,
+
+        channel,
+
+        state,
+
+        risk_time,
+
+        opening_time,
+
+        risk_reason,
+
+        update_time
+        )
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+
+            ( uuid(),#{item.businessUnit},
+
+            #{item.thirdPrjId},
+
+            #{item.prjName},
+
+            #{item.customerId},
+
+            #{item.custName},
+
+            #{item.freshCardTime},
+
+            #{item.sales},
+
+            #{item.createTime},
+
+            #{item.firstPhotoTime},
+
+            #{item.idNumber},
+
+            #{item.sysRisk},
+
+            #{item.riskApproveStatus},
+
+            #{item.riskApproveRemark},
+
+            #{item.riskApproveTime},
+
+            #{item.rejectTime},
+
+            #{item.rejectContent},
+
+            #{item.remark},
+
+            #{item.reportTime},
+
+            #{item.importTime},
+
+            #{item.agent},
+
+            #{item.channel},
+
+            #{item.state},
+
+            #{item.riskTime},
+
+            #{item.openingTime},
+
+
+            #{item.riskReason},
+
+            #{item.syncTime}
+            )
+        </foreach>
+
+
+    </update>
+
+    <select id="createTimeSelect" resultType="java.lang.String">
+SELECT  DATE_FORMAT (DATE_ADD(create_time,INTERVAL 1 DAY),'%Y-%m-%d')  create_time FROM mm_risk_control_info ORDER BY create_time DESC LIMIT 0,1
+</select>
+
+
+
+    <update id="insertBuyer" parameterType="java.util.Map">
+        INSERT  INTO  vs_Buyer (
+        Address,
+        SaleGUID,
+        CardID,
+        CstName,
+        BuyerGUID,
+
+
+        CstGUID
+
+        )
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.Address},
+            #{item.SaleGUID},
+            #{item.CardID},
+            #{item.CstName},
+            #{item.BuyerGUID},
+
+
+            #{item.CstGUID}
+
+            )
+        </foreach>
+
+    </update>
+    <!--找到所有的BUSINESSID-->
+    <select id="selectUnitId" resultType="java.lang.String">
+      SELECT projectID FROM `t_mm_project` GROUP BY projectID
+
+    </select>
+
+    <!--风控外面的概表查询-->
+    <!--   <select id="selectRiskInfor" parameterType="java.util.Map" resultType="java.util.Map">
+               SELECT
+           o.projectCode project_code, &#45;&#45; 项目CODE
+           o.ywgsDate  belonging_time, &#45;&#45; 业务归属时间
+           trader.trader, &#45;&#45;  操盘手
+           info.channel, &#45;&#45;  渠道公司
+           info.opening_time, &#45;&#45;  启用时间
+           unit.business_unit_id area_id, &#45;&#45; 项目的区域ID
+           info.project_id, &#45;&#45; 项目ID
+           info.businessUnit area_name, &#45;&#45; 区域名
+           info.project_name, &#45;&#45; 项目名
+           IFNULL(channelSum.channelSumAll,0) deal_total, &#45;&#45; 成交量合计
+           IFNULL(yetRiskTotal.yetRiskTotalCOUNT,0) risk_risk_total,&#45;&#45; 系统提示风险的合计
+           IFNULL( ROUND ( IFNULL( yetRiskTotal.yetRiskTotalCOUNT,0)/IFNULL(channelSum.channelSumAll,0) *100,2),0) risk_rate, &#45;&#45; 系统提示风险占比
+           IFNULL( ROUND (  IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0)/(
+           IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0) +
+           IFNULL(yetRiskDanger.yetRiskDangerCOUNT,0) +
+           IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0)) *100,2),0)  risk_check_rate,  &#45;&#45; 系统提示风险人工复核为正常占比
+
+           IFNULL( ROUND ( ( IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0)+IFNULL(yetNormalUnkonwn.yetNormalUnkonwnCOUNT,0))/
+           ((IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0) +
+           IFNULL(yetRiskDanger.yetRiskDangerCOUNT,0) +
+           IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0))+ (
+           IFNULL(yetNormalNature.yetNormalNatureCOUNT,0) +
+           IFNULL( yetNormalRisk.yetNormalRiskCOUNT,0) +
+           IFNULL(yetNormalUnkonwn.yetNormalUnkonwnCOUNT,0))) *100,2),0) risk_nocheck_rate, &#45;&#45; 人工未复核占比
+
+           IFNULL(ROUND ( (IFNULL(unknown_total_join.unknown_total,0))/freshcardNotNull.freshcardNotNullCOUNT	*100,2),0) unknown_brush_rate,  	&#45;&#45; 系统提示未知占比
+           IFNULL(ROUND ( IFNULL(Channel_nocard_total_join.channel_nocard_total,0)/IFNULL(channelSum.channelSumAll,0)*100,2),0)  channel_nocard_rate, &#45;&#45; 渠道未刷证占比
+           IFNULL(ROUND ( IFNULL(deal_nocard_total_join.deal_nocard_total,0)/IFNULL(channelSum.channelSumAll,0) *100,2),0) deal_nocard_rate, &#45;&#45; 成交未刷证占比
+
+           (IFNULL(AgentRate.AgentRateCOUNT,0)+IFNULL( selfChannelRate.selfChannelRateCount,0)+IFNULL( selfSalesRate.selfSalesRateCOUNT,0))  channel_volume_total, &#45;&#45; 渠道成交量
+           IFNULL(ROUND (  (IFNULL(AgentRate.AgentRateCOUNT,0)+IFNULL( selfChannelRate.selfChannelRateCount,0)+IFNULL( selfSalesRate.selfSalesRateCOUNT,0))/channelSum.channelSumAll*100,2),0)   channel_volume_per, &#45;&#45; 渠道成交占比
+           IFNULL(ROUND ( IFNULL(AgentRate.AgentRateCount,0)/IFNULL(channelSum.channelSumAll,0)*100,2),0)   agency_volume_per, &#45;&#45; 中介成交占比
+           IFNULL(ROUND (selfChannelRate.selfChannelRateCount/channelSum.channelSumAll*100,2),0)  agochannel_volume_per, &#45;&#45; 自渠占比
+           IFNULL(ROUND (selfSalesRate.selfSalesRateCOUNT/channelSum.channelSumAll*100,2),0) own_volume_per, &#45;&#45; 私营占比
+           IFNULL(yetNormalNature.yetNormalNatureCOUNT,0) normal_check_normal, &#45;&#45; 系统提示正常的正常
+           IFNULL(yetNormalRisk.yetNormalRiskCOUNT,0) normal_check_fly_alone, &#45;&#45; 系统提示正常飞单
+           IFNULL(yetNormalUnkonwn.yetNormalUnkonwnCOUNT,0) normal_nocheck, &#45;&#45; 系统提示正常未复核
+           IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0) risk_check_normal, &#45;&#45; 系统提示风险正常
+           IFNULL(yetRiskDanger.yetRiskDangerCOUNT,0) risk_check_fly_alone, &#45;&#45; 系统提示风险飞单
+           IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0) risk_nocheck,  &#45;&#45; 系统提示风险未复核
+           IFNULL(yetRiskIsNUll.yetRiskIsNUllCOUNT,0) brush_card_nosnap,  &#45;&#45; 已刷证无抓拍
+           IFNULL(freshcardIsNull.freshcardIsNullCOUNT,0) nocard, &#45;&#45; 未刷证合计
+           IFNULL(freshcardNotNull.freshcardNotNullCOUNT,0) brush_card_total, &#45;&#45; 已刷证合计
+           IFNULL(yetNormalTotal.yetNormalTotalCOUNT,0)	normal_normal_total, &#45;&#45; 系统提示正常的合计
+
+           IFNULL(unknown_total_join.unknown_total,0) unknown_total,  &#45;&#45; 系统提示未知合计
+           IFNULL(no_report_time_join.no_report_time,0) no_report_time, &#45;&#45; 未导入报备时间
+           IFNULL(no_frist_snap_join.no_frist_snap,0) no_frist_snap,  &#45;&#45; 无首次抓拍时间
+
+           IFNULL(Channel_nocard_total_join.channel_nocard_total,0) channel_nocard_total, &#45;&#45; 渠道未刷证合计
+           IFNULL(deal_nocard_total_join.deal_nocard_total,0)   deal_nocard_total &#45;&#45; 成交未刷证
+
+
+
+           FROM      vs_xsgl_order_fk  o
+           INNER JOIN
+           (
+           SELECT project_id from s_user_project_rel
+           where userId=#{userId}
+           UNION
+           SELECT a.project_id from mm_idm_business_unit_project_rel a
+           INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+           where userId=#{userId}
+           UNION
+           SELECT a.project_id from mm_idm_main_rel a
+           INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+           where userId=#{userId}
+           GROUP BY project_id
+           ) temp on temp.project_id=o.project_id
+           LEFT  JOIN  (
+           SELECT    DISTINCT
+           opening_time,
+           project_id,
+           channel,  &#45;&#45;    渠道公司
+
+           businessUnit  ,
+           project_name  &#45;&#45;  项目名
+           FROM    mm_risk_control_info  info
+           WHERE  info.opening_time  IS  NOT  NULL
+           )    info  ON  info.project_id=o.PROJECTID  AND  info.opening_time  IS  NOT  NULL
+
+
+           LEFT  JOIN    mm_idm_business_unit_project_rel  unit  ON  info.project_id=unit.project_id
+           &#45;&#45;  成交量合计
+           LEFT  JOIN  (
+
+
+
+
+           SELECT    COUNT(1)  AS  channelSumAll,o.PROJECTID  project_id
+           FROM      vs_xsgl_order_fk  o
+           where 1=1
+           <include refid="selectdate"></include>
+
+           GROUP    BY  project_id
+
+
+
+           )  channelSum
+           ON  channelSum.project_id=o.PROJECTID
+
+           &#45;&#45;  中介成交占比
+           LEFT  JOIN  (
+           &#45;&#45;  0 .763
+           SELECT  COUNT(1) AgentRateCOUNT,project_id 	FROM(	SELECT  COUNT(1) AgentRateCOUNT, o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           WHERE o.mainMediaGuid IN ('D0B0421F-C75B-E711-80BB-005056A27FB0')
+           <include refid="selectdate"></include>
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+
+           ) AgentRate
+           ON AgentRate.project_id=o.PROJECTID
+           &#45;&#45; 自渠成交占比
+           LEFT JOIN (
+           &#45;&#45; 0.006
+           SELECT  COUNT(1) selfChannelRateCOUNT   , project_id  FROM( SELECT  COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           WHERE o.mainMediaGuid IN (
+           'CEB0421F-C75B-E711-80BB-005056A27FB0',
+           '11B9407A-6FE6-E911-80BB-005056A37AFB',
+           '85163219-C75B-E711-80BB-005056A27FB0',
+           '36ADC711-C75B-E711-80BB-005056A27FB0',
+           '21B9407A-6FE6-E911-80BB-005056A37AFC')
+           <include refid="selectdate"></include>
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) selfChannelRate
+           ON selfChannelRate.project_id=o.PROJECTID
+           &#45;&#45; 私营媒介营销占比
+           LEFT JOIN ( &#45;&#45; 0.962
+           SELECT  COUNT(1) selfSalesRateCOUNT   , project_id  FROM( SELECT  COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           WHERE o.mainMediaGuid IN (
+           '51B9407A-6FE6-E911-80BB-005056A37AFA',
+           '33D3B527-C75B-E711-80BB-005056A27FB0',
+           '41B9407A-6FE6-E911-80BB-005056A37AF4'
+           )
+            <include refid="selectdate"></include>
+
+             GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) selfSalesRate
+           ON selfSalesRate.project_id=o.PROJECTID
+           &#45;&#45; 系统提示正常的正常
+           LEFT JOIN (
+           SELECT  COUNT(1) yetNormalNatureCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer  b  ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='正常'
+           AND info.freshcard_time  IS NOT NULL
+           AND risk_approve_status='正常'
+           <include refid="selectChannel"></include>
+
+
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetNormalNature
+           ON yetNormalNature.project_id=o.PROJECTID
+           &#45;&#45; 系统提示正常飞单
+           LEFT JOIN (
+           &#45;&#45; 0.089
+           SELECT  COUNT(1) yetNormalRiskCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer  b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='正常'
+           AND risk_approve_status='风险'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+           AND info.opening_time IS NOT NULL AND o.ywgsDate >=info.opening_time GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetNormalRisk
+           ON yetNormalRisk.project_id=o.PROJECTID
+
+           &#45;&#45; 系统提示正常未复核
+           LEFT JOIN (
+           &#45;&#45; 0.138
+           SELECT  COUNT(1) yetNormalUnkonwnCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='正常'
+           AND risk_approve_status='未知'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+
+
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetNormalUnkonwn
+           ON yetNormalUnkonwn.project_id=o.PROJECTID
+
+           &#45;&#45; 系统提示风险正常
+           LEFT JOIN (
+
+           &#45;&#45; 0.117
+           SELECT  COUNT(1) yetRiskNormalCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid,  COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='风险'
+           AND risk_approve_status='正常'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+
+           AND info.opening_time IS NOT NULL AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetRiskNormal
+           ON yetRiskNormal.project_id=o.PROJECTID
+
+
+           &#45;&#45; 系统提示风险飞单
+           LEFT JOIN (
+
+           &#45;&#45; 0.076
+           SELECT  COUNT(1) yetRiskDangerCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='风险'
+           AND risk_approve_status='风险'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+           AND info.opening_time IS NOT NULL AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetRiskDanger
+           ON yetRiskDanger.project_id=o.PROJECTID
+
+
+           &#45;&#45; 系统提示风险未复核
+           LEFT JOIN (
+
+           &#45;&#45; 0.137
+           SELECT  COUNT(1) yetRiskUnkownCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='风险'
+           AND risk_approve_status='未知'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetRiskUnkown
+           ON yetRiskUnkown.project_id=o.PROJECTID
+
+
+           &#45;&#45; 已刷证无抓拍
+           LEFT JOIN (
+           &#45;&#45; 0.08
+           SELECT  COUNT(1) yetRiskIsNUllCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE  info.freshcard_time  IS NOT NULL
+           AND info.firstphoto_time  IS NULL
+           <include refid="selectChannel"></include>
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetRiskIsNUll
+           ON yetRiskIsNUll.project_id=o.PROJECTID
+
+
+           &#45;&#45; 未刷证合计
+           LEFT JOIN (&#45;&#45; 0.327
+           SELECT  COUNT(1) freshcardIsNullCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE info.freshcard_time  IS  NULL
+           <include refid="selectdate"></include>
+
+
+           AND info.opening_time IS NOT NULL AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')    GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) freshcardIsNull
+           ON freshcardIsNull.project_id=o.PROJECTID
+
+           &#45;&#45; 已刷证合计
+           LEFT JOIN (
+           &#45;&#45; 0.44
+           SELECT  COUNT(1) freshcardNotNullCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) freshcardNotNull
+           ON freshcardNotNull.project_id=o.PROJECTID
+
+
+           &#45;&#45; 系统提示风险的合计
+           LEFT JOIN (
+
+           &#45;&#45; 0.203
+           SELECT  COUNT(1) yetRiskTotalCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='风险'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+
+
+
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetRiskTotal
+           ON yetRiskTotal.project_id=o.PROJECTID
+
+
+           &#45;&#45; 系统提示正常的合计
+           LEFT JOIN (
+           &#45;&#45; 0.264
+           SELECT  COUNT(1) yetNormalTotalCOUNT   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid,  COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='正常'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) yetNormalTotal
+           ON yetNormalTotal.project_id=o.PROJECTID
+           &#45;&#45; 操盘手
+           LEFT JOIN
+           mm_basic_trader_mingyuan trader ON  o.projectCode=trader.project_id
+           &#45;&#45; 系统提示未知合计
+           LEFT JOIN (
+           &#45;&#45; 0.184
+           SELECT  COUNT(1) unknown_total   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE system_risk='未知'
+           AND info.freshcard_time  IS NOT NULL
+
+           <include refid="selectChannel"></include>
+
+
+
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) unknown_total_join
+           ON unknown_total_join.project_id=o.PROJECTID
+           &#45;&#45; 未导入报备时间
+           LEFT JOIN (
+           &#45;&#45; 0.198
+           SELECT  COUNT(1) no_report_time   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE info.report_time IS NULL AND info.system_risk='未知'
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) no_report_time_join
+           ON no_report_time_join.project_id=o.PROJECTID
+           &#45;&#45; 无首次抓拍时间
+           LEFT JOIN (
+           &#45;&#45; 0.055
+           SELECT  COUNT(1) no_frist_snap   , project_id  FROM(
+           SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+           FROM   vs_xsgl_order_fk o
+           LEFT JOIN  vs_buyer b ON  b.SaleGUID = o.orderGuid
+           LEFT JOIN  mm_risk_control_info info ON info.project_id=o.PROJECTID  AND  info.id_number = b.CardID
+           WHERE info.system_risk='未知' AND info.firstphoto_time IS NULL
+           AND info.freshcard_time  IS NOT NULL
+           <include refid="selectChannel"></include>
+           GROUP  BY o.id ) temp GROUP  BY project_id
+
+           ) no_frist_snap_join
+           ON no_frist_snap_join.project_id=o.PROJECTID
+           &#45;&#45; 渠道未刷证合计
+           LEFT JOIN (
+           SELECT COUNT(1) channel_nocard_total,cj.projectId project_id  FROM (
+           &#45;&#45; 成交 0.063
+           SELECT  o.projectId,o.orderGuid &#45;&#45; ,b.CardID,rci.id
+           FROM vs_xsgl_order_fk o
+           WHERE 0=0
+           AND o.mainMediaGuid IN (
+           '51B9407A-6FE6-E911-80BB-005056A37AFA',
+           '33D3B527-C75B-E711-80BB-005056A27FB0',
+           '41B9407A-6FE6-E911-80BB-005056A37AF4',
+           'CEB0421F-C75B-E711-80BB-005056A27FB0',
+           '11B9407A-6FE6-E911-80BB-005056A37AFB',
+           '85163219-C75B-E711-80BB-005056A27FB0',
+           '36ADC711-C75B-E711-80BB-005056A27FB0',
+           '21B9407A-6FE6-E911-80BB-005056A37AFC',
+           'D0B0421F-C75B-E711-80BB-005056A27FB0'
+           )
+           <include refid="selectdate"></include>
+           &#45;&#45; WHERE  0=0
+           ) cj WHERE cj.orderGuid
+
+           NOT IN 	(
+           &#45;&#45; 0.608
+           SELECT  orderGuid   FROM(
+           SELECT  o.orderGuid,o.PROJECTID project_id,info.freshcard_time
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID   AND  o.project_id=info.project_id
+           WHERE info.freshcard_time  IS NOT NULL
+           AND o.mainMediaGuid IN (
+           '51B9407A-6FE6-E911-80BB-005056A37AFA',
+           '33D3B527-C75B-E711-80BB-005056A27FB0',
+           '41B9407A-6FE6-E911-80BB-005056A37AF4',
+           'CEB0421F-C75B-E711-80BB-005056A27FB0',
+           '11B9407A-6FE6-E911-80BB-005056A37AFB',
+           '85163219-C75B-E711-80BB-005056A27FB0',
+           '36ADC711-C75B-E711-80BB-005056A27FB0',
+           '21B9407A-6FE6-E911-80BB-005056A37AFC',
+           'D0B0421F-C75B-E711-80BB-005056A27FB0'
+           )
+
+
+
+
+           GROUP  BY orderGuid  ) temp 	GROUP  BY project_id
+           ) GROUP  BY project_id
+           )
+
+           Channel_nocard_total_join
+           ON Channel_nocard_total_join.project_id=o.PROJECTID
+
+
+
+           &#45;&#45; 成交未刷证,要减去已刷证
+           LEFT JOIN (
+
+           SELECT COUNT(1) deal_nocard_total,cj.projectId project_id  FROM (
+           &#45;&#45; 成交 0.054
+           SELECT  o.projectId,o.orderGuid &#45;&#45; ,b.CardID,rci.id
+           FROM vs_xsgl_order_fk o
+
+
+           WHERE 0=0
+
+           ) cj WHERE cj.orderGuid
+
+           NOT IN 	(
+           &#45;&#45; 0.57
+           SELECT   orderGuid
+           FROM   vs_xsgl_order_fk o
+
+           LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+           LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+           WHERE info.freshcard_time  IS NOT NULL
+
+           GROUP  BY orderGuid ,projectid
+
+
+
+           )
+           GROUP BY cj.projectId
+           ) deal_nocard_total_join
+           ON deal_nocard_total_join.project_id=o.PROJECTID
+
+
+
+
+
+           WHERE 1=1
+           <if test="startTime!=null and startTime!=''">
+               AND   DATE_FORMAT( o.belonging_time,'%Y-%m-%d') >=#{startTime}
+
+           </if>
+           <if test="endTime!=null  and endTime!=''">
+               AND  DATE_FORMAT( o.belonging_time,'%Y-%m-%d') <![CDATA[ <=]]> #{endTime}
+           </if>
+
+           <if test="business_unit_id!=null and business_unit_id!=''">
+               AND  area_id =#{business_unit_id}
+           </if>
+
+           <if test="project_id!=null and project_id!=''">
+               AND  o.project_id=#{project_id}
+           </if>
+           GROUP BY o.projectid
+       </select>
+    --><!--   &lt;!&ndash;初始化风控外面的概表&ndash;&gt;
+ <select id="selectRiskSurfacsadessss" resultType="java.util.Map">
+ SELECT
+                o.projectCode  project_code,  &#45;&#45;  项目CODE
+                o.ywgsDate    belonging_time,  &#45;&#45;  业务归属时间
+                trader.trader,  &#45;&#45;    操盘手
+                info.channel,  &#45;&#45;    渠道公司
+                info.opening_time,  &#45;&#45;    启用时间
+              unit.business_unit_id  area_id,  &#45;&#45;  项目的区域ID
+                info.project_id,  &#45;&#45;  项目ID
+                info.businessUnit  area_name,  &#45;&#45;  区域名
+                info.project_name,  &#45;&#45;  项目名
+                channelSum.channelSumAll  deal_total,  &#45;&#45;  成交量合计
+          (IFNULL(AgentRate.AgentRateCOUNT,0)+IFNULL(  selfChannelRate.selfChannelRateCount,0)+IFNULL(  selfSalesRate.selfSalesRateCOUNT,0))    channel_volume_total,  &#45;&#45;  渠道成交量
+                (IFNULL(AgentRate.AgentRateCOUNT,0)+IFNULL(  selfChannelRate.selfChannelRateCount,0)+IFNULL(  selfSalesRate.selfSalesRateCOUNT,0))/channelSum.channelSumAll      channel_volume_per,  &#45;&#45;  渠道成交占比
+                AgentRate.AgentRateCount/channelSum.channelSumAll      agency_volume_per,  &#45;&#45;  中介成交占比
+                selfChannelRate.selfChannelRateCount/channelSum.channelSumAll    agochannel_volume_per,  &#45;&#45;  自渠占比
+                selfSalesRate.selfSalesRateCOUNT/channelSum.channelSumAll    own_volume_per,  &#45;&#45;  私营占比
+                yetNormalNature.yetNormalNatureCOUNT  normal_check_normal,  &#45;&#45;  系统提示正常的正常
+                yetNormalRisk.yetNormalRiskCOUNT  normal_check_fly_alone,  &#45;&#45;  系统提示正常飞单
+                yetNormalUnkonwn.yetNormalUnkonwnCOUNT  normal_nocheck,  &#45;&#45;  系统提示正常未复核
+                yetRiskNormal.yetRiskNormalCOUNT  risk_check_normal,  &#45;&#45;  系统提示风险正常
+                yetRiskDanger.yetRiskDangerCOUNT  risk_check_fly_alone,  &#45;&#45;  系统提示风险飞单
+                yetRiskUnkown.yetRiskUnkownCOUNT  risk_nocheck,    &#45;&#45;  系统提示风险未复核
+                yetRiskIsNUll.yetRiskIsNUllCOUNT  brush_card_nosnap,    &#45;&#45;  已刷证无抓拍
+                freshcardIsNull.freshcardIsNullCOUNT  nocard,  &#45;&#45;  未刷证合计
+                freshcardNotNull.freshcardNotNullCOUNT  brush_card_total,  &#45;&#45;  已刷证合计
+                yetNormalTotal.yetNormalTotalCOUNT	normal_normal_total,  &#45;&#45;  系统提示正常的合计
+                yetRiskTotal.yetRiskTotalCOUNT  risk_risk_total,&#45;&#45;  系统提示风险的合计
+                unknown_total_join.unknown_total  ,    &#45;&#45;  系统提示未知合计
+                no_report_time_join.no_report_time,  &#45;&#45;  未导入报备时间
+                no_frist_snap_join.no_frist_snap,    &#45;&#45;  无首次抓拍时间
+
+                IFNULL(Channel_nocard_total_join.channel_nocard_total,0)  channel_nocard_total,  &#45;&#45;  渠道未刷证合计
+                IFNULL(deal_nocard_total_join.deal_nocard_total,0)      deal_nocard_total  &#45;&#45;  成交未刷证
+
+                FROM      vs_xsgl_order_fk  o
+
+                LEFT  JOIN  (
+SELECT    DISTINCT
+opening_time,
+project_id,
+  channel,  &#45;&#45;    渠道公司
+
+                businessUnit  ,
+                project_name  &#45;&#45;  项目名
+FROM    mm_risk_control_info  info
+WHERE  info.opening_time  IS  NOT  NULL
+)    info  ON  info.project_id=o.PROJECTID  AND  info.opening_time  IS  NOT  NULL
+
+
+            LEFT  JOIN    mm_idm_business_unit_project_rel  unit  ON  info.project_id=unit.project_id
+                &#45;&#45;  成交量合计
+                LEFT  JOIN  (
+
+
+
+
+SELECT    COUNT(1)  AS  channelSumAll,o.PROJECTID  project_id
+FROM      vs_xsgl_order_fk  o
+
+
+                GROUP    BY  project_id
+
+
+
+                )  channelSum
+                ON  channelSum.project_id=o.PROJECTID
+
+                &#45;&#45;  中介成交占比
+                LEFT  JOIN  (
+                &#45;&#45;  0 .763
+        SELECT  COUNT(1) AgentRateCOUNT,project_id 	FROM(	SELECT  COUNT(1) AgentRateCOUNT, o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+         WHERE o.mainMediaGuid IN ('D0B0421F-C75B-E711-80BB-005056A27FB0')
+       	    GROUP  BY o.id ) temp GROUP  BY project_id
+
+
+        ) AgentRate
+        ON AgentRate.project_id=o.PROJECTID
+        &#45;&#45; 自渠成交占比
+        LEFT JOIN (
+        &#45;&#45; 0.006
+        SELECT  COUNT(1) selfChannelRateCOUNT   , project_id  FROM( SELECT  COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+        WHERE o.mainMediaGuid IN (
+        'CEB0421F-C75B-E711-80BB-005056A27FB0',
+        '11B9407A-6FE6-E911-80BB-005056A37AFB',
+        '85163219-C75B-E711-80BB-005056A27FB0',
+        '36ADC711-C75B-E711-80BB-005056A27FB0',
+        '21B9407A-6FE6-E911-80BB-005056A37AFC')
+               GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) selfChannelRate
+        ON selfChannelRate.project_id=o.PROJECTID
+        &#45;&#45; 私营媒介营销占比
+        LEFT JOIN ( &#45;&#45; 0.962
+        SELECT  COUNT(1) selfSalesRateCOUNT   , project_id  FROM( SELECT  COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+       WHERE o.mainMediaGuid IN (
+        '51B9407A-6FE6-E911-80BB-005056A37AFA',
+        '33D3B527-C75B-E711-80BB-005056A27FB0',
+        '41B9407A-6FE6-E911-80BB-005056A37AF4'
+        )    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) selfSalesRate
+        ON selfSalesRate.project_id=o.PROJECTID
+        &#45;&#45; 系统提示正常的正常
+        LEFT JOIN (
+        SELECT  COUNT(1) yetNormalNatureCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer  b  ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND info.freshcard_time  IS NOT NULL
+        AND risk_approve_status='正常'
+
+
+
+   GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetNormalNature
+        ON yetNormalNature.project_id=o.PROJECTID
+        &#45;&#45; 系统提示正常飞单
+        LEFT JOIN (
+        &#45;&#45; 0.089
+        SELECT  COUNT(1) yetNormalRiskCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer  b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND risk_approve_status='风险'
+        AND info.freshcard_time  IS NOT NULL
+  	AND info.opening_time IS NOT NULL AND o.ywgsDate >=info.opening_time GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetNormalRisk
+        ON yetNormalRisk.project_id=o.PROJECTID
+
+        &#45;&#45; 系统提示正常未复核
+        LEFT JOIN (
+        &#45;&#45; 0.138
+        SELECT  COUNT(1) yetNormalUnkonwnCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND risk_approve_status='未知'
+        AND info.freshcard_time  IS NOT NULL
+
+
+
+  	 GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetNormalUnkonwn
+        ON yetNormalUnkonwn.project_id=o.PROJECTID
+
+        &#45;&#45; 系统提示风险正常
+        LEFT JOIN (
+
+        &#45;&#45; 0.117
+        SELECT  COUNT(1) yetRiskNormalCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid,  COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND risk_approve_status='正常'
+        AND info.freshcard_time  IS NOT NULL
+
+
+  	AND info.opening_time IS NOT NULL AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskNormal
+        ON yetRiskNormal.project_id=o.PROJECTID
+
+
+        &#45;&#45; 系统提示风险飞单
+        LEFT JOIN (
+
+        &#45;&#45; 0.076
+        SELECT  COUNT(1) yetRiskDangerCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND risk_approve_status='风险'
+        AND info.freshcard_time  IS NOT NULL
+ 	AND info.opening_time IS NOT NULL AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskDanger
+        ON yetRiskDanger.project_id=o.PROJECTID
+
+
+        &#45;&#45; 系统提示风险未复核
+        LEFT JOIN (
+
+        &#45;&#45; 0.137
+        SELECT  COUNT(1) yetRiskUnkownCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND risk_approve_status='未知'
+        AND info.freshcard_time  IS NOT NULL
+    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskUnkown
+        ON yetRiskUnkown.project_id=o.PROJECTID
+
+
+        &#45;&#45; 已刷证无抓拍
+        LEFT JOIN (
+        &#45;&#45; 0.08
+        SELECT  COUNT(1) yetRiskIsNUllCOUNT   , project_id  FROM(
+        SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE  info.freshcard_time  IS NOT NULL
+        AND info.firstphoto_time  IS NULL
+   GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskIsNUll
+        ON yetRiskIsNUll.project_id=o.PROJECTID
+
+
+        &#45;&#45; 未刷证合计
+        LEFT JOIN (&#45;&#45; 0.327
+        SELECT  COUNT(1) freshcardIsNullCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE info.freshcard_time  IS  NULL
+
+
+
+   	AND info.opening_time IS NOT NULL AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) freshcardIsNull
+        ON freshcardIsNull.project_id=o.PROJECTID
+
+        &#45;&#45; 已刷证合计
+        LEFT JOIN (
+        &#45;&#45; 0.44
+        SELECT  COUNT(1) freshcardNotNullCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE info.freshcard_time  IS NOT NULL
+
+
+  GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) freshcardNotNull
+        ON freshcardNotNull.project_id=o.PROJECTID
+
+
+        &#45;&#45; 系统提示风险的合计
+        LEFT JOIN (
+
+        &#45;&#45; 0.203
+        SELECT  COUNT(1) yetRiskTotalCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND info.freshcard_time  IS NOT NULL
+
+
+
+
+ GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskTotal
+        ON yetRiskTotal.project_id=o.PROJECTID
+
+
+        &#45;&#45; 系统提示正常的合计
+        LEFT JOIN (
+        &#45;&#45; 0.264
+        SELECT  COUNT(1) yetNormalTotalCOUNT   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid,  COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND info.freshcard_time  IS NOT NULL
+    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetNormalTotal
+        ON yetNormalTotal.project_id=o.PROJECTID
+        &#45;&#45; 操盘手
+        LEFT JOIN
+        mm_basic_trader_mingyuan trader ON  o.projectCode=trader.project_id
+        &#45;&#45; 系统提示未知合计
+        LEFT JOIN (
+        &#45;&#45; 0.184
+          SELECT  COUNT(1) unknown_total   , project_id  FROM(
+          SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE system_risk='未知'
+        AND info.freshcard_time  IS NOT NULL
+
+
+
+
+
+   GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) unknown_total_join
+        ON unknown_total_join.project_id=o.PROJECTID
+        &#45;&#45; 未导入报备时间
+        LEFT JOIN (
+        &#45;&#45; 0.198
+        SELECT  COUNT(1) no_report_time   , project_id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE info.report_time IS NULL AND info.system_risk='未知'
+        AND info.freshcard_time  IS NOT NULL
+
+        GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) no_report_time_join
+        ON no_report_time_join.project_id=o.PROJECTID
+        &#45;&#45; 无首次抓拍时间
+        LEFT JOIN (
+        &#45;&#45; 0.055
+        SELECT  COUNT(1) no_frist_snap   , project_id  FROM(
+         SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order_fk o
+      	  LEFT JOIN  vs_buyer b ON  b.SaleGUID = o.orderGuid
+        LEFT JOIN  mm_risk_control_info info ON info.project_id=o.PROJECTID  AND  info.id_number = b.CardID
+        WHERE info.system_risk='未知' AND info.firstphoto_time IS NULL
+        AND info.freshcard_time  IS NOT NULL
+
+        GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) no_frist_snap_join
+        ON no_frist_snap_join.project_id=o.PROJECTID
+        &#45;&#45; 渠道未刷证合计
+        LEFT JOIN (
+        SELECT COUNT(1) channel_nocard_total,cj.projectId project_id  FROM (
+            &#45;&#45; 成交 0.063
+            SELECT  o.projectId,o.orderGuid &#45;&#45; ,b.CardID,rci.id
+            FROM vs_xsgl_order_fk o
+ WHERE 0=0
+   AND o.mainMediaGuid IN (
+            '51B9407A-6FE6-E911-80BB-005056A37AFA',
+            '33D3B527-C75B-E711-80BB-005056A27FB0',
+            '41B9407A-6FE6-E911-80BB-005056A37AF4',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'D0B0421F-C75B-E711-80BB-005056A27FB0'
+            )
+            &#45;&#45; WHERE  0=0
+            ) cj WHERE cj.orderGuid
+
+            NOT IN 	(
+&#45;&#45; 0.608
+ SELECT  orderGuid   FROM(
+        SELECT  o.orderGuid,o.PROJECTID project_id,info.freshcard_time
+        FROM   vs_xsgl_order_fk o
+
+        LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID   AND  o.project_id=info.project_id
+        WHERE info.freshcard_time  IS NOT NULL
+   AND o.mainMediaGuid IN (
+            '51B9407A-6FE6-E911-80BB-005056A37AFA',
+            '33D3B527-C75B-E711-80BB-005056A27FB0',
+            '41B9407A-6FE6-E911-80BB-005056A37AF4',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'D0B0421F-C75B-E711-80BB-005056A27FB0'
+            )
+
+
+
+
+GROUP  BY orderGuid  ) temp 	GROUP  BY project_id
+            ) GROUP  BY project_id
+)
+
+         Channel_nocard_total_join
+        ON Channel_nocard_total_join.project_id=o.PROJECTID
+
+
+
+        &#45;&#45; 成交未刷证,要减去已刷证
+        LEFT JOIN (
+
+  SELECT COUNT(1) deal_nocard_total,cj.projectId project_id  FROM (
+            &#45;&#45; 成交 0.054
+            SELECT  o.projectId,o.orderGuid &#45;&#45; ,b.CardID,rci.id
+            FROM vs_xsgl_order_fk o
+
+
+            WHERE 0=0
+
+            ) cj WHERE cj.orderGuid
+
+            NOT IN 	(
+&#45;&#45; 0.57
+      SELECT   orderGuid
+        FROM   vs_xsgl_order_fk o
+
+        LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE info.freshcard_time  IS NOT NULL
+
+ GROUP  BY orderGuid ,projectid
+
+
+
+            )
+ GROUP BY cj.projectId
+   ) deal_nocard_total_join
+        ON deal_nocard_total_join.project_id=o.PROJECTID
+
+
+
+        WHERE 0=0
+        GROUP BY o.projectid
+ </select>
+		&lt;!&ndash;更新风控外面的概述表&ndash;&gt;
+<insert id="insertRiskSurface" parameterType="java.util.Map">
+	INSERT INTO mm_risk_control(
+	id,
+	area_id,
+	area_name,
+	project_id,
+	project_name,
+	channel_volume_total,
+	channel_volume_per,
+	brush_card_total,
+	risk_risk_total,
+	risk_check_fly_alone,
+	risk_check_normal,
+	risk_nocheck,
+	normal_normal_total,
+	normal_check_fly_alone,
+	normal_check_normal,
+	normal_nocheck,
+	brush_card_nosnap,
+	nocard,
+	belonging_time,
+	channel,
+	agency_volume_per,
+	agochannel_volume_per,
+	own_volume_per,
+	opening_time,
+	deal_total,
+	unknown_total,
+	no_report_time,
+	no_frist_snap,
+	channel_nocard_total,
+	deal_nocard_total,
+	trader,
+	project_code
+	)
+
+	VALUES
+	<foreach collection="list" index="index" separator="," item="item">
+
+	(		UUID(),
+		#{ item.area_id},
+		#{ item.area_name},
+		#{ item.project_id},
+		#{ item.project_name},
+		#{ item.channel_volume_total},
+		#{ item.channel_volume_per},
+		#{ item.brush_card_total},
+		#{ item.risk_risk_total},
+		#{ item.risk_check_fly_alone},
+		#{ item.risk_check_normal},
+		#{ item.risk_nocheck},
+		#{ item.normal_normal_total},
+		#{ item.normal_check_fly_alone},
+		#{ item.normal_check_normal},
+		#{ item.normal_nocheck},
+		#{ item.brush_card_nosnap},
+		#{ item.nocard},
+		#{ item.belonging_time},
+		#{ item.channel},
+		#{ item.agency_volume_per},
+		#{ item.agochannel_volume_per},
+		#{ item.own_volume_per},
+		#{ item.opening_time},
+		#{ item.deal_total},
+		#{ item.unknown_total},
+		#{ item.no_report_time},
+		#{ item.no_frist_snap},
+		#{ item.channel_nocard_total},
+		#{ item.deal_nocard_total},
+		#{ item.trader},
+		#{ item.project_code}
+        )
+	</foreach>
+</insert>-->
+
+    <!--找到所有和买方表对应的GUID-->
+    <select id="AllOrderGuid" resultType="java.lang.String">
+ SELECT  orderGuid FROM vs_xsgl_order  GROUP BY orderGuid
+</select>
+    <!-- 查找事业部的ID-->
+    <select id="selectBusinessName" resultType="java.util.Map">
+         select  business_unit_id, business_unit_name from mm_idm_business_unit_project_rel GROUP BY business_unit_name
+ </select>
+
+    <!--风控外面的概表查询,导出专用-->
+
+
+    <select id="selectRiskInforExcel" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        area_id,  -- 区域ID
+        area_name,  -- 区域名
+        o.project_id,  -- 项目ID
+
+        project_code,  -- 项目CODE
+        trader,  -- 操盘手
+        project_name,  -- 项目名
+        IFNULL(channel_volume_total,0) channel_volume_total,  -- 渠道成交量合计
+
+        IFNULL(ROUND ( channel_volume_per*100,2),0)  channel_volume_per,  -- 渠道成交量占比
+
+        IFNULL(freshcardNotNull.freshcardNotNullCOUNT,0)   brush_card_total,  -- 刷证合计
+
+        IFNULL(yetRiskTotal.yetRiskTotalCOUNT,0) risk_risk_total,  -- 风险合计
+
+        IFNULL( ROUND ( IFNULL( yetRiskTotal.yetRiskTotalCOUNT,0)/deal_total *100,2),0) risk_rate, -- 系统提示风险占比
+        IFNULL( ROUND (  IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0)/(
+        IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0) +
+        IFNULL(yetRiskDanger.yetRiskDangerCOUNT,0) +
+        IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0)) *100,2),0)  risk_check_rate,  -- 系统提示风险人工复核为正常占比
+
+        IFNULL( ROUND ( ( IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0)+IFNULL(yetNormalUnkonwn.yetNormalUnkonwnCOUNT,0))/
+        ((IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0) +
+        IFNULL(yetRiskDanger.yetRiskDangerCOUNT,0) +
+        IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0))+ (
+        IFNULL(yetNormalNature.yetNormalNatureCOUNT,0) +
+        IFNULL( yetNormalRisk.yetNormalRiskCOUNT,0) +
+        IFNULL(yetNormalUnkonwn.yetNormalUnkonwnCOUNT,0))) *100,2),0) risk_nocheck_rate, -- 人工未复核占比
+        IFNULL(ROUND ( (IFNULL(unknown_total_join.unknown_total,0))/freshcardNotNull.freshcardNotNullCOUNT	*100,2),0) unknown_brush_rate,  	-- 系统提示未知占比
+        IFNULL(ROUND ( channel_nocard_total/deal_total*100,2),0)  channel_nocard_rate, -- 渠道未刷证占比
+        IFNULL(ROUND ( deal_nocard_total/deal_total *100,2),0) deal_nocard_rate, -- 成交未刷证占比
+        IFNULL(yetRiskNormal.yetRiskNormalCOUNT,0) risk_check_normal, -- 系统提示风险正常
+        IFNULL(yetRiskDanger.yetRiskDangerCOUNT,0) risk_check_fly_alone, -- 系统提示风险飞单
+        IFNULL(yetRiskUnkown.yetRiskUnkownCOUNT,0) risk_nocheck,  -- 系统提示风险未复核
+        IFNULL(yetNormalTotal.yetNormalTotalCOUNT,0)  normal_normal_total,  -- 正常正常合计
+
+        IFNULL(yetNormalNature.yetNormalNatureCOUNT,0) normal_check_normal, -- 系统提示正常的正常
+        IFNULL(yetNormalRisk.yetNormalRiskCOUNT,0) normal_check_fly_alone, -- 系统提示正常飞单
+        IFNULL(yetNormalUnkonwn.yetNormalUnkonwnCOUNT,0) normal_nocheck, -- 系统提示正常未复核
+        IFNULL(yetRiskIsNUll.yetRiskIsNUllCOUNT,0)  brush_card_nosnap,  -- 已刷证无抓拍
+        IFNULL(nocard,0) nocard,  -- 未刷证
+
+        DATE_FORMAT(belonging_time,'%Y-%m-%d %H:%i:%s') belonging_time,  -- 业务归属时间
+        channel,  -- 渠道
+        IFNULL( ROUND ( agency_volume_per *100,2),0) agency_volume_per,  -- 中介成交占比
+        IFNULL(ROUND ( agochannel_volume_per *100,2),0) agochannel_volume_per,  -- 自渠成交占比
+        IFNULL(ROUND ( own_volume_per *100,2),0) own_volume_per,  -- 私营媒介成交占比
+        DATE_FORMAT(opening_time,'%Y-%m-%d %H:%i:%s') opening_time,  --  启用时间
+        IFNULL(deal_total,0) deal_total,  --  成交量合计
+        IFNULL(unknown_total_join.unknown_total,0) unknown_total,  --  系统提示未知合计
+        IFNULL(no_report_time_join.no_report_time,0) no_report_time,   --  未导入报备时间
+        IFNULL(no_frist_snap_join.no_frist_snap,0) no_frist_snap,  --  无首次抓拍时间
+        IFNULL(channel_nocard_total,0) channel_nocard_total,  --  渠道未刷证合计
+        IFNULL(deal_nocard_total,0) deal_nocard_total --  成交未刷证合计
+        FROM mm_risk_control o
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+
+        -- 系统提示正常的正常
+        LEFT JOIN (
+        SELECT  COUNT(1) yetNormalNatureCOUNT   , project_id  from(
+        SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND info.freshcard_time  is not null
+        AND risk_approve_status='正常'
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+
+        ) yetNormalNature
+        ON yetNormalNature.project_id=o.project_id
+        -- 系统提示正常飞单
+        LEFT JOIN (
+        SELECT  COUNT(1) yetNormalRiskCOUNT   , project_id  from(
+        SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND risk_approve_status='风险'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetNormalRisk
+        ON yetNormalRisk.project_id=o.project_id
+
+        -- 系统提示正常未复核
+        LEFT JOIN (
+        SELECT  COUNT(1) yetNormalUnkonwnCOUNT   , project_id  from(
+        SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN vs_buyer  b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND risk_approve_status='未知'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetNormalUnkonwn
+        ON yetNormalUnkonwn.project_id=o.project_id
+
+        -- 系统提示风险正常
+        LEFT JOIN (
+        SELECT  COUNT(1) yetRiskNormalCOUNT   , project_id  from(
+        SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND risk_approve_status='正常'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskNormal
+        ON yetRiskNormal.project_id=o.project_id
+
+
+        -- 系统提示风险飞单
+        LEFT JOIN (
+        SELECT  COUNT(1) yetRiskDangerCOUNT   , project_id  from(
+        SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND risk_approve_status='风险'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')     GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskDanger
+        ON yetRiskDanger.project_id=o.project_id
+
+
+        -- 系统提示风险未复核
+        LEFT JOIN (
+        SELECT  COUNT(1) yetRiskUnkownCOUNT   , project_id  from(
+        SELECT  DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN (select CardID,SaleGUID  from vs_buyer GROUP BY SaleGUID  ) b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND risk_approve_status='未知'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskUnkown
+        ON yetRiskUnkown.project_id=o.project_id
+        -- 已刷证无抓拍
+        LEFT JOIN (
+        SELECT  COUNT(1) yetRiskIsNUllCOUNT   , project_id  from(
+        SELECT DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE  info.freshcard_time  is not null
+        AND info.firstphoto_time  is null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskIsNUll
+        ON yetRiskIsNUll.project_id=o.project_id
+        -- 未导入报备时间
+        LEFT JOIN (
+        SELECT  COUNT(1) no_report_time   , project_id  from(
+        SELECT DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE info.report_time is null and info.system_risk='未知'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')
+        GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) no_report_time_join
+        ON no_report_time_join.project_id=o.project_id
+        -- 无首次抓拍时间
+        LEFT JOIN (
+        SELECT  COUNT(1) no_frist_snap   , project_id  from(
+        SELECT DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE info.system_risk='未知' and info.firstphoto_time is null
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')
+        GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) no_frist_snap_join
+        ON no_frist_snap_join.project_id=o.project_id
+
+        -- 已刷证合计
+        LEFT JOIN (
+        SELECT  COUNT(1) freshcardNotNullCOUNT   , project_id  from(
+        SELECT DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')   GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) freshcardNotNull
+        ON freshcardNotNull.project_id=o.project_id
+
+        -- 系统提示未知合计
+        LEFT JOIN (
+        SELECT  COUNT(1) unknown_total   , project_id  from(
+        SELECT DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='未知'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')   GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) unknown_total_join
+        ON unknown_total_join.project_id=o.project_id
+        -- 系统提示风险的合计
+        LEFT JOIN (
+        SELECT  COUNT(1) yetRiskTotalCOUNT   , project_id  from(
+        SELECT DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='风险'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )  	AND info.opening_time is not null AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')    GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetRiskTotal
+        ON yetRiskTotal.project_id=o.project_id
+
+
+        -- 系统提示正常的合计
+        LEFT JOIN (
+        SELECT  COUNT(1) yetNormalTotalCOUNT   , project_id  from(
+        SELECT DISTINCT o.orderGuid, COUNT(1),o.PROJECTID project_id
+        FROM   vs_xsgl_order o
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = o.projectId
+        LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID and  ot.project_id=info.project_id
+        WHERE system_risk='正常'
+        AND info.freshcard_time  is not null
+        <include refid="selectChannel"></include>
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )   AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')   GROUP  BY o.id ) temp GROUP  BY project_id
+
+        ) yetNormalTotal
+        ON yetNormalTotal.project_id=o.project_id
+
+
+        WHERE 1=1
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.belonging_time,'%Y-%m-%d') >=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.belonging_time,'%Y-%m-%d') <![CDATA[ <=]]> #{endTime}
+        </if>
+
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND  area_id =#{business_unit_id}
+        </if>
+
+        <if test="project_id!=null and project_id!=''">
+            AND  o.project_id=#{project_id}
+        </if>
+        group by o.id
+        <if test="byorder!=null and byorder!=''">
+            ORDER BY ${byorder}
+            <if test='sorting=="descending"'>
+                DESC
+            </if>
+        </if>
+    </select>
+
+
+    <sql id="selectChannel">
+        <if test='channel=="1"'>
+            and  o.mainMediaGuid in  (
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC')
+        </if>
+        <if test='channel=="2"'>
+            and o.mainMediaGuid in ('D0B0421F-C75B-E711-80BB-005056A27FB0')
+        </if>
+        <if test='channel=="3"' >
+            and  o.mainMediaGuid in (
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76'
+            )
+        </if>
+
+    </sql>
+
+
+    <sql id="selectdate">
+
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.belonging_time,'%Y-%m-%d') >=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.belonging_time,'%Y-%m-%d') <![CDATA[ <=]]> #{endTime}
+        </if>
+    </sql>
+
+
+
+
+    <!--风控里面的那张表的查询-->
+    <select id="selectRiskInside" parameterType="java.util.Map" resultType="java.util.Map">
+
+        SELECT
+        businessunit.business_unit_name  businessUnit,
+        o.projectId,
+        o.projectName project_name,
+        info.client_id,
+        b.CstName client_name,
+
+        DATE_FORMAT(info.freshcard_time,'%Y-%m-%d %H:%i:%s') freshcard_time,
+
+        DATE_FORMAT(info.create_time,'%Y-%m-%d %H:%i:%s') create_time,
+        DATE_FORMAT(info.firstphoto_time,'%Y-%m-%d %H:%i:%s') firstphoto_time,
+        concat(substring(b.CardID,1,6),'********',substring(b.CardID,LENGTH(b.CardID)-3,4)) id_number,
+        info.system_risk,
+        info.risk_approve_status,
+        info.risk_approve_remark,
+        DATE_FORMAT(info.risk_approve_time,'%Y-%m-%d %H:%i:%s') risk_approve_time,
+        DATE_FORMAT(info.reject_time,'%Y-%m-%d %H:%i:%s') reject_time,
+        info.reject_content,
+        info.remark,
+        DATE_FORMAT(info.report_time,'%Y-%m-%d %H:%i:%s') report_time,
+        DATE_FORMAT(info.import_time,'%Y-%m-%d %H:%i:%s') import_time,
+        info.agent,
+        info.counselor_name,
+        o.mainMediaName channel,
+        info.state,
+        DATE_FORMAT(
+        case when info.freshcard_time is null then null
+        when info.firstphoto_time is null  then null
+        when info.report_time is null  then null
+        when info.freshcard_time>info.firstphoto_time and info.freshcard_time>info.report_time then info.freshcard_time
+        when info.firstphoto_time>info.freshcard_time and info.firstphoto_time>info.report_time then info.firstphoto_time
+        when info.report_time>info.freshcard_time and info.report_time>info.firstphoto_time then info.report_time
+        end,
+        '%Y-%m-%d %H:%i:%s') risk_time,
+        DATE_FORMAT(info.opening_time,'%Y-%m-%d %H:%i:%s') opening_time,
+        info.risk_reason,
+
+        case when  info.freshcard_time is null then '系统未判定'
+        when info.firstphoto_time is null  then '系统未判定'
+        when info.report_time is null  then '系统未判定'
+        when info.risk_approve_time is null then '人工未复核'
+        else CONCAT( TimeStampDiff(DAY,
+        case when info.freshcard_time>info.firstphoto_time and info.freshcard_time>info.report_time then info.freshcard_time
+        when info.firstphoto_time>info.freshcard_time and info.firstphoto_time>info.report_time then info.firstphoto_time
+        when info.report_time>info.freshcard_time and info.report_time>info.firstphoto_time then info.report_time end,
+        info.risk_approve_time),'天', MOD(TimeStampDiff(HOUR,
+        case when info.freshcard_time>info.firstphoto_time and info.freshcard_time>info.report_time then info.freshcard_time
+        when info.firstphoto_time>info.freshcard_time and info.firstphoto_time>info.report_time then info.firstphoto_time
+        when info.report_time>info.freshcard_time and info.report_time>info.firstphoto_time then info.report_time end,
+        info.risk_approve_time ),24),'小时' )
+        end riskSpan,
+
+        o.roominfo,
+
+        o.projectCode,
+        o.mainMediaName,
+        o.orderGuid,
+        DATE_FORMAT(o.ywgsDate,'%Y-%m-%d %H:%i:%s') ywgsDate,
+        (CASE WHEN o.closeReason is null
+        and o.status='激活' THEN '认购'
+        ELSE o.closeReason END)
+        closeReason
+        FROM  vs_xsgl_order_fk o
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+
+
+        LEFT JOIN v_risk_show v on o.project_id = v.project_id and o.orderGuid = v.orderGuid
+
+        LEFT JOIN (select business_unit_name,project_id,business_unit_id  from mm_idm_business_unit_project_rel ) businessunit
+        ON businessunit.project_id=o.projectId
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = v.project_id
+        LEFT JOIN vs_buyer b ON b.SaleGUID = v.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID  and info.project_id = ot.project_id
+        WHERE  b.`id` IS NOT NULL
+        -- 中介成交占比
+        <if test='choice=="agency_volume_per"' >
+            and o.mainMediaGuid in ('D0B0421F-C75B-E711-80BB-005056A27FB0')
+        </if>
+        -- 自渠成交占比
+        <if test='choice=="agochannel_volume_per"' >
+            and o.mainMediaGuid in (
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC')
+        </if>
+        -- 私营媒介营销占比
+        <if test='choice=="own_volume_per"' >
+            and o.mainMediaGuid in (
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76'
+            )
+        </if>
+        -- 渠道成交量合计
+        <if test='choice=="channel_volume_total" or  channel=="channel_volume_per"'>
+            and o.mainMediaGuid in (
+            'D0B0421F-C75B-E711-80BB-005056A27FB0',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76'
+            )
+        </if>
+        -- 系统提示正常的合计
+        <if test='choice=="normal_normal_total"'>
+            and (v.normal_check_normal ='1' or
+            v.normal_check_fly_alone ='1' or
+            v.normal_nocheck ='1' )
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示正常的正常
+        <if test='choice=="normal_check_normal"'>
+            and v.normal_check_normal='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+            AND risk_approve_status='正常'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示正常飞单
+        <if test='choice=="normal_check_fly_alone"'>
+            and v.normal_check_fly_alone='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+            AND risk_approve_status='风险'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示正常未复核
+        <if test='choice=="normal_nocheck"'>
+            and v.normal_nocheck='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+            AND risk_approve_status='未知'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示风险合计
+        <if test='choice=="risk_risk_total"'>
+            and (v.risk_check_fly_alone ='1' or
+            v.risk_check_normal ='1' or
+            v.risk_nocheck ='1' )
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示风险正常
+        <if test='choice=="risk_check_normal"'>
+            and v.risk_check_normal='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            AND risk_approve_status='正常'
+            <include refid="selectChannel"></include>-->
+        </if>
+
+        -- 系统提示风险飞单
+        <if test='choice=="risk_check_fly_alone"'>
+            and v.risk_check_fly_alone='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            AND risk_approve_status='风险'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示风险未复核
+        <if test='choice=="risk_nocheck"'>
+            and v.risk_nocheck='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            AND risk_approve_status='未知'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 已刷证无抓拍
+        <if test='choice=="brush_card_nosnap"'>
+            and v.brush_card_nosnap='1'
+            <!--AND  info.freshcard_time  is not null
+            AND info.firstphoto_time  is null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示未知合计
+        <if test='choice=="unknown_total"'>
+            and (v.no_report_time='1' or
+            v.no_frist_danger='1' or
+            v.no_frist_nature='1' or
+            v.no_frist_unkown='1')
+            <!--and info.system_risk='未知'
+            AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 未导入报备时间
+        <if test='choice=="no_report_time"'>
+            and v.no_report_time='1'
+            <!--AND  info.report_time is null and info.system_risk='未知'
+            AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 无首次抓拍时间
+        <if test='choice=="no_frist_snap"'>
+            and v.no_frist_snap='1'
+            <!--AND  info.system_risk='未知' and info.firstphoto_time is null
+            AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 已刷证合计
+        <if test='choice=="brush_card_total"'>
+            and (v.normal_check_normal='1' or
+            v.risk_check_fly_alone='1' or
+            v.normal_check_fly_alone='1' or
+            v.risk_nocheck='1' or
+            v.normal_nocheck='1' or
+            v.risk_check_normal='1' or
+            v.no_report_time='1' or
+            v.no_frist_danger='1' or
+            v.no_frist_nature='1' or
+            v.no_frist_unkown='1')
+
+            <!--AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        --  成交未刷证
+        <if test='choice=="deal_nocard_total" or channel=="deal_nocard_rate"' >
+            and v.deal_nocard_total = '1'
+            <!--AND b.id IN   (
+            SELECT   DISTINCT b.id
+            FROM   vs_xsgl_order_fk o
+            LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+            LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+            WHERE info.freshcard_time  IS  NULL
+            GROUP  BY  o.orderGuid
+            )-->
+        </if>
+        --  无首次抓拍时间 复合为飞单
+        <if test='choice=="no_frist_danger" ' >
+            and v.no_frist_danger = '1'
+        </if>
+        --  无首次抓拍时间 复合为正常
+        <if test='choice=="no_frist_nature" ' >
+            and v.no_frist_nature = '1'
+        </if>
+        --  无首次抓拍时间 未知
+        <if test='choice=="no_frist_unkown" ' >
+            and v.no_frist_unkown = '1'
+        </if>
+
+        --  渠道未刷证
+        <if test='choice=="channel_nocard_total" or channel=="channel_nocard_rate"' >
+            and channel_nocard_total = '1'
+            <!--AND b.id IN   (
+            SELECT   DISTINCT b.id
+            FROM   vs_xsgl_order_fk o
+
+            LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+            LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+            WHERE info.freshcard_time  IS  NULL
+            and o.mainMediaGuid in (
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'D0B0421F-C75B-E711-80BB-005056A27FB0'
+            )
+            GROUP  BY  o.orderGuid
+            )-->
+        </if>
+
+        <include refid="selectChannel"></include>
+
+        <if test="project_id!=null and project_id!=''">
+            AND o.projectId=#{project_id}
+        </if>
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND  businessunit.business_unit_id=#{business_unit_id}
+        </if>
+
+        AND o.ywgsDate >= DATE_FORMAT(ot.opening_time,'%Y-%m-01')
+
+        --  AND ot.opening_time IS NOT NULL
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )
+
+        --   AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')
+
+
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.ywgsDate,'%Y-%m-%d') &gt;=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.ywgsDate,'%Y-%m-%d')  &lt;= #{endTime}
+        </if>
+
+        group by b.id  ORDER BY orderGuid , ywgsDate
+    </select>
+
+    <select id="selectRiskInside_COUNT" parameterType="java.util.Map" resultType="Long">
+        SELECT count(1)
+        FROM  vs_xsgl_order_fk o
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+        LEFT JOIN v_risk_show v on o.project_id = v.project_id and o.orderGuid = v.orderGuid
+        LEFT JOIN (select business_unit_name,project_id,business_unit_id  from mm_idm_business_unit_project_rel ) businessunit
+        ON businessunit.project_id=o.projectId
+        LEFT JOIN vs_buyer b ON b.SaleGUID = v.orderGuid
+        WHERE  b.`id` IS NOT NULL
+        <if test='choice=="agency_volume_per"' >
+            and o.mainMediaGuid in ('D0B0421F-C75B-E711-80BB-005056A27FB0')
+        </if>
+        <if test='choice=="agochannel_volume_per"' >
+            and o.mainMediaGuid in (
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC')
+        </if>
+        <if test='choice=="own_volume_per"' >
+            and o.mainMediaGuid in (
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76'
+            )
+        </if>
+        <if test='choice=="channel_volume_total" or  channel=="channel_volume_per"'>
+            and o.mainMediaGuid in (
+            'D0B0421F-C75B-E711-80BB-005056A27FB0',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76'
+            )
+        </if>
+        <if test='choice=="normal_normal_total"'>
+            and (v.normal_check_normal ='1' or
+            v.normal_check_fly_alone ='1' or
+            v.normal_nocheck ='1' )
+        </if>
+        <if test='choice=="normal_check_normal"'>
+            and v.normal_check_normal='1'
+        </if>
+        <if test='choice=="normal_check_fly_alone"'>
+            and v.normal_check_fly_alone='1'
+        </if>
+        <if test='choice=="normal_nocheck"'>
+            and v.normal_nocheck='1'
+        </if>
+        <if test='choice=="risk_risk_total"'>
+            and (v.risk_check_fly_alone ='1' or
+            v.risk_check_normal ='1' or
+            v.risk_nocheck ='1' )
+        </if>
+        <if test='choice=="risk_check_normal"'>
+            and v.risk_check_normal='1'
+        </if>
+
+        <if test='choice=="risk_check_fly_alone"'>
+            and v.risk_check_fly_alone='1'
+        </if>
+        <if test='choice=="risk_nocheck"'>
+            and v.risk_nocheck='1'
+        </if>
+        <if test='choice=="brush_card_nosnap"'>
+            and v.brush_card_nosnap='1'
+        </if>
+        <if test='choice=="unknown_total"'>
+            and (v.no_report_time='1' or
+            v.no_frist_danger='1' or
+            v.no_frist_nature='1' or
+            v.no_frist_unkown='1')
+        </if>
+        <if test='choice=="no_report_time"'>
+            and v.no_report_time='1'
+        </if>
+        <if test='choice=="no_frist_snap"'>
+            and v.no_frist_snap='1'
+        </if>
+        <if test='choice=="brush_card_total"'>
+            and (v.normal_check_normal='1' or
+            v.risk_check_fly_alone='1' or
+            v.normal_check_fly_alone='1' or
+            v.risk_nocheck='1' or
+            v.normal_nocheck='1' or
+            v.risk_check_normal='1' or
+            v.no_report_time='1' or
+            v.no_frist_danger='1' or
+            v.no_frist_nature='1' or
+            v.no_frist_unkown='1')
+        </if>
+        <if test='choice=="deal_nocard_total" or channel=="deal_nocard_rate"' >
+            and v.deal_nocard_total = '1'
+        </if>
+        <if test='choice=="no_frist_danger" ' >
+            and v.no_frist_danger = '1'
+        </if>
+        <if test='choice=="no_frist_nature" ' >
+            and v.no_frist_nature = '1'
+        </if>
+        <if test='choice=="no_frist_unkown" ' >
+            and v.no_frist_unkown = '1'
+        </if>
+
+        <if test='choice=="channel_nocard_total" or channel=="channel_nocard_rate"' >
+            and channel_nocard_total = '1'
+        </if>
+
+        <include refid="selectChannel"></include>
+
+        <if test="project_id!=null and project_id!=''">
+            AND o.projectId=#{project_id}
+        </if>
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND  businessunit.business_unit_id=#{business_unit_id}
+        </if>
+
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )
+
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.ywgsDate,'%Y-%m-%d') &gt;=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.ywgsDate,'%Y-%m-%d')  &lt;= #{endTime}
+        </if>
+    </select>
+    <!--
+             CONCAT(TimeStampDiff(DAY,
+        case when info.freshcard_time is null and info.import_time is null then null
+        when info.freshcard_time is null and info.import_time is not null then  info.import_time
+        when info.freshcard_time is not null and info.import_time is  null then  info.freshcard_time
+        when info.freshcard_time>info.import_time then info.freshcard_time
+        else info.import_time end ,info.risk_approve_time),'天',
+        MOD(TimeStampDiff(HOUR, case when info.freshcard_time is null and info.import_time is null then null
+        when info.freshcard_time is null and info.import_time is not null then  info.import_time
+        when info.freshcard_time is not null and info.import_time is  null then  info.freshcard_time
+        when info.freshcard_time>info.import_time then info.freshcard_time
+        else info.import_time end,info.risk_approve_time ),24),'小时') riskSpan,
+
+     -->
+
+
+    <!--若用户没有选择CHANNEL条件，先走这个外部查询SQL-->
+    <select id="selectOutsideBe" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+
+        area_id,  -- 区域ID
+        area_name,  -- 区域名
+        o.project_id,  -- 项目ID
+
+        project_code,  -- 项目CODE
+        trader,  -- 操盘手
+        project_name,  -- 项目名
+        IFNULL(SUM(channel_volume_total),0) channel_volume_total,  -- 渠道成交量合计
+
+        IFNULL(ROUND (SUM(channel_volume_per)/SUM(deal_total)*100,2),0)  channel_volume_per,  -- 渠道成交量占比
+
+        IFNULL(SUM(deal_total),0) deal_total,  --  成交量合计
+        IFNULL(SUM(nocard),0) nocard,  -- 未刷证
+
+        DATE_FORMAT(belonging_time,'%Y-%m-%d %H:%i:%s') belonging_time,  -- 业务归属时间
+        channel,  -- 渠道
+        IFNULL(ROUND (SUM(agency_volume_per)/SUM(deal_total)*100,2),0) agency_volume_per,  -- 中介成交占比
+        IFNULL(ROUND (SUM(agochannel_volume_per)/SUM(deal_total)*100,2),0) agochannel_volume_per,  -- 自渠成交占比
+        IFNULL (ROUND (SUM(own_volume_per)/SUM(deal_total)*100,2),0) own_volume_per,  -- 私营媒介成交占比
+        DATE_FORMAT(opening_time,'%Y-%m-%d %H:%i:%s') opening_time,  --  启用时间
+
+
+        -- IFNULL(SUM(brush_card_total),0) brush_card_total, -- 刷证合计
+        -- IFNULL(SUM(risk_risk_total),0) risk_risk_total, -- 风险合计
+        IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(risk_nocheck),0)+IFNULL(SUM(normal_nocheck),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0)  brush_card_total, -- 刷证合计
+
+        IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(risk_nocheck),0) risk_risk_total, -- 风险合计
+
+        IFNULL(ROUND ( IFNULL( SUM(risk_check_fly_alone)+SUM(risk_check_normal)+SUM(risk_nocheck),0)/SUM(deal_total) *100,2),0) risk_rate, -- 系统提示风险占比
+        IFNULL(ROUND ( IFNULL(SUM(risk_check_normal),0)/(SUM(risk_check_fly_alone)+SUM(risk_check_normal)+SUM(risk_nocheck))*100,2),0) risk_check_rate, -- 系统提示风险人工复核为正常占比
+
+        -- IFNULL(ROUND ( IFNULL((SUM(risk_nocheck)+SUM(normal_nocheck)),0)/(SUM(normal_normal_total)+SUM(risk_risk_total))*100,2),0)risk_nocheck_rate, -- 人工未复核占比
+        IFNULL(ROUND ( IFNULL((SUM(risk_nocheck)+SUM(normal_nocheck)),0)/(SUM(risk_check_fly_alone)+SUM(normal_check_fly_alone)+SUM(risk_nocheck)+SUM(normal_nocheck)+SUM(risk_check_normal)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) )*100,2),0)risk_nocheck_rate, -- 人工未复核占比
+
+
+        -- IFNULL(ROUND ( IFNULL(SUM(unknown_total),0)/SUM(brush_card_total)	*100,2),0) unknown_brush_rate, 	-- 系统提示未知占比
+        IFNULL(ROUND ( IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0),0) / (IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(risk_nocheck),0)+IFNULL(SUM(normal_nocheck),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) )*100,2) unknown_brush_rate, 	-- 系统提示未知占比
+
+        IFNULL(ROUND ( SUM(channel_nocard_total)/SUM(deal_total)*100,2),0)		channel_nocard_rate, -- 渠道未刷证占比
+
+        IFNULL(ROUND ( SUM(deal_nocard_total)/SUM(deal_total) *100,2),0) deal_nocard_rate, -- 成交未刷证占比
+
+        IFNULL(SUM(risk_check_normal),0) risk_check_normal, -- 系统提示风险正常
+        IFNULL(SUM(risk_check_fly_alone),0) risk_check_fly_alone, -- 系统提示风险飞单
+        IFNULL(SUM(risk_nocheck),0) risk_nocheck,  -- 系统提示风险未复核
+
+        -- IFNULL(SUM(normal_normal_total),0) normal_normal_total,  -- 正常正常合计
+        IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(normal_nocheck),0) normal_normal_total,  -- 正常正常合计
+
+        IFNULL(SUM(normal_check_normal),0) normal_check_normal, -- 系统提示正常的正常
+        IFNULL(SUM(normal_check_fly_alone),0) normal_check_fly_alone, -- 系统提示正常飞单
+        IFNULL(SUM(normal_nocheck),0) normal_nocheck, -- 系统提示正常未复核
+        IFNULL(SUM(brush_card_nosnap),0)  brush_card_nosnap,  -- 已刷证无抓拍
+
+
+        -- IFNULL(SUM(unknown_total),0) unknown_total,  --  系统提示未知合计
+        IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) unknown_total,  --  系统提示未知合计
+
+        IFNULL(SUM(no_report_time),0) no_report_time,   --  未导入报备时间
+        IFNULL(SUM(no_frist_snap),0) no_frist_snap,  --  无首次抓拍时间
+        IFNULL(SUM(no_frist_danger),0) no_frist_danger,  --  无首次抓拍时间 复合为飞单
+        IFNULL(SUM(no_frist_nature),0) no_frist_nature,  --  无首次抓拍时间 复合为正常
+        IFNULL(SUM(no_frist_unkown),0) no_frist_unkown,  --  无首次抓拍时间 未知
+        IFNULL(SUM(channel_nocard_total),0) channel_nocard_total,  --  渠道未刷证合计
+        IFNULL(SUM(deal_nocard_total),0) deal_nocard_total --  成交未刷证合计
+        FROM v_risk_show O
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+        WHERE 1=1
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.belonging_time,'%Y-%m-%d') >=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.belonging_time,'%Y-%m-%d') <![CDATA[ <=]]> #{endTime}
+        </if>
+
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND  area_id =#{business_unit_id}
+        </if>
+
+        <if test="project_id!=null and project_id!=''">
+            AND  o.project_id=#{project_id}
+        </if>
+        <include refid="selectChannel"></include>
+
+
+        GROUP BY project_id
+
+        <if test="byorder!=null and byorder!=''">
+            ORDER BY ${byorder}
+            <if test='sorting=="descending"'>
+                DESC
+            </if>
+        </if>
+
+    </select>
+
+    <select id="selectOutsideBe_COUNT" parameterType="java.util.Map"  resultType="Long" >
+        select count(1) from (
+        SELECT O.project_id
+        FROM v_risk_show O
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+        WHERE 1=1
+        <if test="startTime!=null and startTime!=''">
+            AND DATE_FORMAT( o.belonging_time,'%Y-%m-%d') >=#{startTime}
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND DATE_FORMAT( o.belonging_time,'%Y-%m-%d') <![CDATA[ <=]]> #{endTime}
+        </if>
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND area_id =#{business_unit_id}
+        </if>
+        <if test="project_id!=null and project_id!=''">
+            AND o.project_id=#{project_id}
+        </if>
+        <include refid="selectChannel"></include>
+        GROUP BY project_id
+        <if test="byorder!=null and byorder!=''">
+            ORDER BY ${byorder}
+            <if test='sorting=="descending"'>
+                DESC
+            </if>
+        </if>
+        ) v
+    </select>
+
+
+
+    <!--风控里面的那张表的查询, 导出专用-->
+    <select id="selectRiskInsideByExport" parameterType="java.util.Map" resultType="cn.visolink.salesmanage.riskcontrolmanager.model.InsideBe">
+
+        SELECT
+        businessunit.business_unit_name  businessUnit,
+        o.projectId,
+        o.projectName project_name,
+        info.client_id,
+        b.CstName client_name,
+
+        DATE_FORMAT(info.freshcard_time,'%Y-%m-%d %H:%i:%s') freshcard_time,
+
+        DATE_FORMAT(info.create_time,'%Y-%m-%d %H:%i:%s') create_time,
+        DATE_FORMAT(info.firstphoto_time,'%Y-%m-%d %H:%i:%s') firstphoto_time,
+        concat(substring(b.CardID,1,6),'********',substring(b.CardID,LENGTH(b.CardID)-3,4)) id_number,
+        info.system_risk,
+        info.risk_approve_status,
+        info.risk_approve_remark,
+        DATE_FORMAT(info.risk_approve_time,'%Y-%m-%d %H:%i:%s') risk_approve_time,
+        DATE_FORMAT(info.reject_time,'%Y-%m-%d %H:%i:%s') reject_time,
+        info.reject_content,
+        info.remark,
+        DATE_FORMAT(info.report_time,'%Y-%m-%d %H:%i:%s') report_time,
+        DATE_FORMAT(info.import_time,'%Y-%m-%d %H:%i:%s') import_time,
+        info.agent,
+        info.counselor_name,
+        o.mainMediaName channel,
+        info.state,
+        DATE_FORMAT(
+        case when info.freshcard_time is null then null
+        when info.firstphoto_time is null  then null
+        when info.report_time is null  then null
+        when info.freshcard_time>info.firstphoto_time and info.freshcard_time>info.report_time then info.freshcard_time
+        when info.firstphoto_time>info.freshcard_time and info.firstphoto_time>info.report_time then info.firstphoto_time
+        when info.report_time>info.freshcard_time and info.report_time>info.firstphoto_time then info.report_time
+        end,
+        '%Y-%m-%d %H:%i:%s') risk_time,
+        DATE_FORMAT(info.opening_time,'%Y-%m-%d %H:%i:%s') opening_time,
+        info.risk_reason,
+        CONCAT(TimeStampDiff(DAY,info.risk_approve_time,
+        case when info.freshcard_time is null and info.import_time is null then null
+        when info.freshcard_time is null and info.import_time is not null then  info.import_time
+        when info.freshcard_time is not null and info.import_time is  null then  info.freshcard_time
+        when info.freshcard_time>info.import_time then info.freshcard_time
+        else info.import_time end ),'天',
+        MOD(TimeStampDiff(HOUR,info.risk_approve_time, case when info.freshcard_time is null and info.import_time is null then null
+        when info.freshcard_time is null and info.import_time is not null then  info.import_time
+        when info.freshcard_time is not null and info.import_time is  null then  info.freshcard_time
+        when info.freshcard_time>info.import_time then info.freshcard_time
+        else info.import_time end ),24),'小时') riskSpan,
+
+        o.roominfo,
+
+        o.projectCode,
+        o.mainMediaName,
+        o.orderGuid,
+        DATE_FORMAT(o.ywgsDate,'%Y-%m-%d %H:%i:%s') ywgsDate,
+        (CASE WHEN o.closeReason is null
+        and o.status='激活' THEN '认购'
+        ELSE o.closeReason END)
+        closeReason
+        FROM  vs_xsgl_order_fk o
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+
+        LEFT JOIN v_risk_show v on o.project_id = v.project_id and o.orderGuid = v.orderGuid
+
+        LEFT JOIN (select business_unit_name,project_id,business_unit_id  from mm_idm_business_unit_project_rel ) businessunit
+        ON businessunit.project_id=o.projectId
+        LEFT JOIN (
+        SELECT  DISTINCT opening_time,project_id FROM  mm_risk_control_info rci
+        WHERE rci.opening_time IS NOT NULL
+        ) ot ON ot.project_id = v.project_id
+        LEFT JOIN vs_buyer b ON b.SaleGUID = v.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID  and info.project_id = ot.project_id
+        WHERE  b.`id` IS NOT NULL
+        -- 中介成交占比
+        <if test='choice=="agency_volume_per"' >
+            and o.mainMediaGuid in ('D0B0421F-C75B-E711-80BB-005056A27FB0')
+        </if>
+        -- 自渠成交占比
+        <if test='choice=="agochannel_volume_per"' >
+            and o.mainMediaGuid in (
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC')
+        </if>
+        -- 私营媒介营销占比
+        <if test='choice=="own_volume_per"' >
+            and o.mainMediaGuid in (
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76'
+            )
+        </if>
+        -- 渠道成交量合计
+        <if test='choice=="channel_volume_total" or  channel=="channel_volume_per"'>
+            and o.mainMediaGuid in ('D0B0421F-C75B-E711-80BB-005056A27FB0',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76'
+            )
+        </if>
+        -- 系统提示正常的合计
+        <if test='choice=="normal_normal_total"'>
+            and (v.normal_check_normal ='1' or
+            v.normal_check_fly_alone ='1' or
+            v.normal_nocheck ='1' )
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示正常的正常
+        <if test='choice=="normal_check_normal"'>
+            and v.normal_check_normal='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+            AND risk_approve_status='正常'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示正常飞单
+        <if test='choice=="normal_check_fly_alone"'>
+            and v.normal_check_fly_alone='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+            AND risk_approve_status='风险'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示正常未复核
+        <if test='choice=="normal_nocheck"'>
+            and v.normal_nocheck='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='正常'
+            AND risk_approve_status='未知'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示风险合计
+        <if test='choice=="risk_risk_total"'>
+            and (v.risk_check_fly_alone ='1' or
+            v.risk_check_normal ='1' or
+            v.risk_nocheck ='1' )
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示风险正常
+        <if test='choice=="risk_check_normal"'>
+            and v.risk_check_normal='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            AND risk_approve_status='正常'
+            <include refid="selectChannel"></include>-->
+        </if>
+
+        -- 系统提示风险飞单
+        <if test='choice=="risk_check_fly_alone"'>
+            and v.risk_check_fly_alone='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            AND risk_approve_status='风险'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示风险未复核
+        <if test='choice=="risk_nocheck"'>
+            and v.risk_nocheck='1'
+            <!--AND info.freshcard_time  is not null
+            AND system_risk='风险'
+            AND risk_approve_status='未知'
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 已刷证无抓拍
+        <if test='choice=="brush_card_nosnap"'>
+            and v.brush_card_nosnap='1'
+            <!--AND  info.freshcard_time  is not null
+            AND info.firstphoto_time  is null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 系统提示未知合计
+        <if test='choice=="unknown_total"'>
+            and (v.no_report_time='1' or
+            v.no_frist_danger='1' or
+            v.no_frist_nature='1' or
+            v.no_frist_unkown='1')
+            <!--and info.system_risk='未知'
+            AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 未导入报备时间
+        <if test='choice=="no_report_time"'>
+            and v.no_report_time='1'
+            <!--AND  info.report_time is null and info.system_risk='未知'
+            AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 无首次抓拍时间
+        <if test='choice=="no_frist_snap"'>
+            and v.no_frist_snap='1'
+            <!--AND  info.system_risk='未知' and info.firstphoto_time is null
+            AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        -- 已刷证合计
+        <if test='choice=="brush_card_total"'>
+            and (v.normal_check_normal='1' or
+            v.risk_check_fly_alone='1' or
+            v.normal_check_fly_alone='1' or
+            v.risk_nocheck='1' or
+            v.normal_nocheck='1' or
+            v.risk_check_normal='1' or
+            v.no_report_time='1' or
+            v.no_frist_danger='1' or
+            v.no_frist_nature='1' or
+            v.no_frist_unkown='1')
+
+            <!--AND info.freshcard_time  is not null
+            <include refid="selectChannel"></include>-->
+        </if>
+        --  成交未刷证
+        <if test='choice=="deal_nocard_total" or channel=="deal_nocard_rate"' >
+            and v.deal_nocard_total = '1'
+            <!--AND b.id IN   (
+            SELECT   DISTINCT b.id
+            FROM   vs_xsgl_order_fk o
+            LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+            LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+            WHERE info.freshcard_time  IS  NULL
+            GROUP  BY  o.orderGuid
+            )-->
+        </if>
+        --  无首次抓拍时间 复合为飞单
+        <if test='choice=="no_frist_danger" ' >
+            and v.no_frist_danger = '1'
+        </if>
+        --  无首次抓拍时间 复合为正常
+        <if test='choice=="no_frist_nature" ' >
+            and v.no_frist_nature = '1'
+        </if>
+        --  无首次抓拍时间 未知
+        <if test='choice=="no_frist_unkown" ' >
+            and v.no_frist_unkown = '1'
+        </if>
+
+        --  渠道未刷证
+        <if test='choice=="channel_nocard_total" or channel=="channel_nocard_rate"' >
+            and channel_nocard_total = '1'
+            <!--AND b.id IN   (
+            SELECT   DISTINCT b.id
+            FROM   vs_xsgl_order_fk o
+
+            LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+            LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+            WHERE info.freshcard_time  IS  NULL
+            and o.mainMediaGuid in (
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'D0B0421F-C75B-E711-80BB-005056A27FB0'
+            )
+            GROUP  BY  o.orderGuid
+            )-->
+        </if>
+
+        <include refid="selectChannel"></include>
+
+        <if test="project_id!=null and project_id!=''">
+            AND o.projectId=#{project_id}
+        </if>
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND  businessunit.business_unit_id=#{business_unit_id}
+        </if>
+
+        AND o.ywgsDate >= DATE_FORMAT(ot.opening_time,'%Y-%m-01')
+
+        --  AND ot.opening_time IS NOT NULL
+        AND (o.status='激活'
+        or(o.status='关闭'
+        and (o.closeReason='转签约' or closeReason='退房')) )
+
+        --   AND o.ywgsDate >= DATE_FORMAT(info.opening_time,'%Y-%m-01')
+
+
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.ywgsDate,'%Y-%m-%d') &gt;=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.ywgsDate,'%Y-%m-%d')  &lt;= #{endTime}
+        </if>
+
+        group by b.id  ORDER BY orderGuid , ywgsDate
+    </select>
+    <!--若用户没有选择CHANNEL条件，先走这个外部查询SQL, 导出专用-->
+    <select id="selectOutsideBeByExport" parameterType="java.util.Map" resultType="cn.visolink.salesmanage.riskcontrolmanager.model.OutsideBe">
+
+        SELECT
+
+        area_id,  -- 区域ID
+        area_name,  -- 区域名
+        o.project_id,  -- 项目ID
+
+        project_code,  -- 项目CODE
+        trader,  -- 操盘手
+        project_name,  -- 项目名
+        IFNULL(SUM(channel_volume_total),0) channel_volume_total,  -- 渠道成交量合计
+
+        IFNULL(ROUND (SUM(channel_volume_per)/SUM(deal_total)*100,2),0)  channel_volume_per,  -- 渠道成交量占比
+
+        IFNULL(SUM(deal_total),0) deal_total,  --  成交量合计
+        IFNULL(SUM(nocard),0) nocard,  -- 未刷证
+
+        DATE_FORMAT(belonging_time,'%Y-%m-%d %H:%i:%s') belonging_time,  -- 业务归属时间
+        channel,  -- 渠道
+        IFNULL(ROUND (SUM(agency_volume_per)/SUM(deal_total)*100,2),0) agency_volume_per,  -- 中介成交占比
+        IFNULL(ROUND (SUM(agochannel_volume_per)/SUM(deal_total)*100,2),0) agochannel_volume_per,  -- 自渠成交占比
+        IFNULL (ROUND (SUM(own_volume_per)/SUM(deal_total)*100,2),0) own_volume_per,  -- 私营媒介成交占比
+        DATE_FORMAT(opening_time,'%Y-%m-%d %H:%i:%s') opening_time,  --  启用时间
+
+        -- IFNULL(SUM(brush_card_total),0) brush_card_total, -- 刷证合计
+        -- IFNULL(SUM(risk_risk_total),0) risk_risk_total, -- 风险合计
+        IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(risk_nocheck),0)+IFNULL(SUM(normal_nocheck),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0)  brush_card_total, -- 刷证合计
+
+        IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(risk_nocheck),0) risk_risk_total, -- 风险合计
+
+        IFNULL(ROUND ( IFNULL( SUM(risk_check_fly_alone)+SUM(risk_check_normal)+SUM(risk_nocheck),0)/SUM(deal_total) *100,2),0) risk_rate, -- 系统提示风险占比
+        IFNULL(ROUND ( IFNULL(SUM(risk_check_normal),0)/(SUM(risk_check_fly_alone)+SUM(risk_check_normal)+SUM(risk_nocheck))*100,2),0) risk_check_rate, -- 系统提示风险人工复核为正常占比
+
+        -- IFNULL(ROUND ( IFNULL((SUM(risk_nocheck)+SUM(normal_nocheck)),0)/(SUM(normal_normal_total)+SUM(risk_risk_total))*100,2),0)risk_nocheck_rate, -- 人工未复核占比
+        IFNULL(ROUND ( IFNULL((SUM(risk_nocheck)+SUM(normal_nocheck)),0)/(SUM(risk_check_fly_alone)+SUM(normal_check_fly_alone)+SUM(risk_nocheck)+SUM(normal_nocheck)+SUM(risk_check_normal)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) )*100,2),0)risk_nocheck_rate, -- 人工未复核占比
+
+
+        -- IFNULL(ROUND ( IFNULL(SUM(unknown_total),0)/SUM(brush_card_total)	*100,2),0) unknown_brush_rate, 	-- 系统提示未知占比
+        IFNULL(ROUND ( IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0),0) / (IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(risk_nocheck),0)+IFNULL(SUM(normal_nocheck),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) )*100,2) unknown_brush_rate, 	-- 系统提示未知占比
+
+        IFNULL(ROUND ( SUM(channel_nocard_total)/SUM(deal_total)*100,2),0)		channel_nocard_rate, -- 渠道未刷证占比
+
+        IFNULL(ROUND ( SUM(deal_nocard_total)/SUM(deal_total) *100,2),0) deal_nocard_rate, -- 成交未刷证占比
+
+        IFNULL(SUM(risk_check_normal),0) risk_check_normal, -- 系统提示风险正常
+        IFNULL(SUM(risk_check_fly_alone),0) risk_check_fly_alone, -- 系统提示风险飞单
+        IFNULL(SUM(risk_nocheck),0) risk_nocheck,  -- 系统提示风险未复核
+
+        -- IFNULL(SUM(normal_normal_total),0) normal_normal_total,  -- 正常正常合计
+        IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(normal_nocheck),0) normal_normal_total,  -- 正常正常合计
+
+        IFNULL(SUM(normal_check_normal),0) normal_check_normal, -- 系统提示正常的正常
+        IFNULL(SUM(normal_check_fly_alone),0) normal_check_fly_alone, -- 系统提示正常飞单
+        IFNULL(SUM(normal_nocheck),0) normal_nocheck, -- 系统提示正常未复核
+        IFNULL(SUM(brush_card_nosnap),0)  brush_card_nosnap,  -- 已刷证无抓拍
+
+
+        -- IFNULL(SUM(unknown_total),0) unknown_total,  --  系统提示未知合计
+        IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) unknown_total,  --  系统提示未知合计
+
+        IFNULL(SUM(no_report_time),0) no_report_time,   --  未导入报备时间
+        IFNULL(SUM(no_frist_snap),0) no_frist_snap,  --  无首次抓拍时间
+        IFNULL(SUM(no_frist_danger),0) no_frist_danger,  --  无首次抓拍时间 复合为飞单
+        IFNULL(SUM(no_frist_nature),0) no_frist_nature,  --  无首次抓拍时间 复合为正常
+        IFNULL(SUM(no_frist_unkown),0) no_frist_unkown,  --  无首次抓拍时间 未知
+        IFNULL(SUM(channel_nocard_total),0) channel_nocard_total,  --  渠道未刷证合计
+        IFNULL(SUM(deal_nocard_total),0) deal_nocard_total --  成交未刷证合计
+        FROM v_risk_show O
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+        WHERE 1=1
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.belonging_time,'%Y-%m-%d') >=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.belonging_time,'%Y-%m-%d') <![CDATA[ <=]]> #{endTime}
+        </if>
+
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND  area_id =#{business_unit_id}
+        </if>
+
+        <if test="project_id!=null and project_id!=''">
+            AND  o.project_id=#{project_id}
+        </if>
+        <include refid="selectChannel"></include>
+
+
+        GROUP BY project_id
+
+        <if test="byorder!=null and byorder!=''">
+            ORDER BY ${byorder}
+            <if test='sorting=="descending"'>
+                DESC
+            </if>
+        </if>
+
+    </select>
+
+
+
+    <!--算合计-->
+    <select id="selectOutsideGroupAll" parameterType="java.util.Map" resultType="java.util.Map">
+
+        SELECT
+
+
+        '合计' as area_name,  -- 区域名
+
+
+        IFNULL(SUM(channel_volume_total),0) channel_volume_total,  -- 渠道成交量合计
+
+        IFNULL(ROUND (SUM(channel_volume_per)/SUM(deal_total)*100,2),0)  channel_volume_per,  -- 渠道成交量占比
+
+        IFNULL(SUM(deal_total),0) deal_total,  --  成交量合计
+        IFNULL(SUM(nocard),0) nocard,  -- 未刷证
+
+
+        channel,  -- 渠道
+        IFNULL(ROUND (SUM(agency_volume_per)/SUM(deal_total)*100,2),0) agency_volume_per,  -- 中介成交占比
+        IFNULL(ROUND (SUM(agochannel_volume_per)/SUM(deal_total)*100,2),0) agochannel_volume_per,  -- 自渠成交占比
+        IFNULL (ROUND (SUM(own_volume_per)/SUM(deal_total)*100,2),0) own_volume_per,  -- 私营媒介成交占比
+
+
+        -- IFNULL(SUM(brush_card_total),0) brush_card_total, -- 刷证合计
+        -- IFNULL(SUM(risk_risk_total),0) risk_risk_total, -- 风险合计
+        IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(risk_nocheck),0)+IFNULL(SUM(normal_nocheck),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0)  brush_card_total, -- 刷证合计
+
+        IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(risk_nocheck),0) risk_risk_total, -- 风险合计
+
+        IFNULL(ROUND ( IFNULL( SUM(risk_check_fly_alone)+SUM(risk_check_normal)+SUM(risk_nocheck),0)/SUM(deal_total) *100,2),0) risk_rate, -- 系统提示风险占比
+        IFNULL(ROUND ( IFNULL(SUM(risk_check_normal),0)/(SUM(risk_check_fly_alone)+SUM(risk_check_normal)+SUM(risk_nocheck))*100,2),0) risk_check_rate, -- 系统提示风险人工复核为正常占比
+
+        -- IFNULL(ROUND ( IFNULL((SUM(risk_nocheck)+SUM(normal_nocheck)),0)/(SUM(normal_normal_total)+SUM(risk_risk_total))*100,2),0)risk_nocheck_rate, -- 人工未复核占比
+        IFNULL(ROUND ( IFNULL((SUM(risk_nocheck)+SUM(normal_nocheck)),0)/(SUM(risk_check_fly_alone)+SUM(normal_check_fly_alone)+SUM(risk_nocheck)+SUM(normal_nocheck)+SUM(risk_check_normal)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) )*100,2),0)risk_nocheck_rate, -- 人工未复核占比
+
+
+        -- IFNULL(ROUND ( IFNULL(SUM(unknown_total),0)/SUM(brush_card_total)	*100,2),0) unknown_brush_rate, 	-- 系统提示未知占比
+        IFNULL(ROUND ( IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0),0) / (IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(risk_check_fly_alone),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(risk_nocheck),0)+IFNULL(SUM(normal_nocheck),0)+IFNULL(SUM(risk_check_normal),0)+IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) )*100,2) unknown_brush_rate, 	-- 系统提示未知占比
+
+        IFNULL(ROUND ( SUM(channel_nocard_total)/SUM(deal_total)*100,2),0)		channel_nocard_rate, -- 渠道未刷证占比
+
+        IFNULL(ROUND ( SUM(deal_nocard_total)/SUM(deal_total) *100,2),0) deal_nocard_rate, -- 成交未刷证占比
+
+        IFNULL(SUM(risk_check_normal),0) risk_check_normal, -- 系统提示风险正常
+        IFNULL(SUM(risk_check_fly_alone),0) risk_check_fly_alone, -- 系统提示风险飞单
+        IFNULL(SUM(risk_nocheck),0) risk_nocheck,  -- 系统提示风险未复核
+
+        -- IFNULL(SUM(normal_normal_total),0) normal_normal_total,  -- 正常正常合计
+        IFNULL(SUM(normal_check_normal),0)+IFNULL(SUM(normal_check_fly_alone),0)+IFNULL(SUM(normal_nocheck),0) normal_normal_total,  -- 正常正常合计
+
+        IFNULL(SUM(normal_check_normal),0) normal_check_normal, -- 系统提示正常的正常
+        IFNULL(SUM(normal_check_fly_alone),0) normal_check_fly_alone, -- 系统提示正常飞单
+        IFNULL(SUM(normal_nocheck),0) normal_nocheck, -- 系统提示正常未复核
+        IFNULL(SUM(brush_card_nosnap),0)  brush_card_nosnap,  -- 已刷证无抓拍
+
+
+        -- IFNULL(SUM(unknown_total),0) unknown_total,  --  系统提示未知合计
+        IFNULL(SUM(no_report_time),0)+IFNULL(SUM(no_frist_danger),0)+IFNULL(SUM(no_frist_nature),0)+IFNULL(SUM(no_frist_unkown),0) unknown_total,  --  系统提示未知合计
+
+        IFNULL(SUM(no_report_time),0) no_report_time,   --  未导入报备时间
+        IFNULL(SUM(no_frist_snap),0) no_frist_snap,  --  无首次抓拍时间
+        IFNULL(SUM(no_frist_danger),0) no_frist_danger,  --  无首次抓拍时间 复合为飞单
+        IFNULL(SUM(no_frist_nature),0) no_frist_nature,  --  无首次抓拍时间 复合为正常
+        IFNULL(SUM(no_frist_unkown),0) no_frist_unkown,  --  无首次抓拍时间 未知
+        IFNULL(SUM(channel_nocard_total),0) channel_nocard_total,  --  渠道未刷证合计
+        IFNULL(SUM(deal_nocard_total),0) deal_nocard_total --  成交未刷证合计
+        FROM v_risk_show O
+
+
+
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id from mm_idm_main_rel a
+        INNER JOIN s_user_project_rel b on a.group_company_id=b.project_id
+        where userId=#{userId}
+        GROUP BY project_id
+        ) temp on temp.project_id=o.project_id
+        WHERE 1=1
+        <if test="startTime!=null and startTime!=''">
+            AND   DATE_FORMAT( o.belonging_time,'%Y-%m-%d') >=#{startTime}
+
+        </if>
+        <if test="endTime!=null  and endTime!=''">
+            AND  DATE_FORMAT( o.belonging_time,'%Y-%m-%d') <![CDATA[ <=]]> #{endTime}
+        </if>
+
+        <if test="business_unit_id!=null and business_unit_id!=''">
+            AND  area_id =#{business_unit_id}
+        </if>
+
+        <if test="project_id!=null and project_id!=''">
+            AND  o.project_id=#{project_id}
+        </if>
+        <include refid="selectChannel"></include>
+        limit 0,1
+
+    </select>
+
+
+
+    <!--每次刷新之前都要清空概述表里的数据-->
+    <update id="deleteRisk" >
+    truncate table mm_risk_control
+</update>
+    <!--每次刷新之前都要清空详细表近30天里的数据-->
+    <update id="deleteRiskInfo" >
+         DELETE FROM mm_risk_control_info WHERE create_time >  date_sub( DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s') , interval 30 day)
+    </update>
+
+    <!--每次刷新之前都要更新已存在用户ID的数据-->
+
+    <update id="deleteInfoByClient" parameterType="java.util.Map">
+        UPDATE
+       mm_risk_control_info
+       SET
+
+      client_name=#{custName},
+            freshcard_time=#{freshCardTime},
+            counselor_name=#{sales},
+            create_time=#{createTime},
+            firstphoto_time=#{firstPhotoTime},
+            id_number=#{idNumber},
+            system_risk=#{sysRisk},
+            risk_approve_status=#{riskApproveStatus},
+            risk_approve_remark=#{riskApproveRemark},
+            risk_approve_time=#{riskApproveTime},
+            reject_time=#{rejectTime},
+            reject_content=#{rejectContent},
+            remark=#{remark},
+            report_time=#{reportTime},
+            import_time=#{importTime},
+            agent =#{agent},
+            channel=#{channel},
+            state=#{state},
+            risk_time=#{riskTime},
+            opening_time=#{openingTime},
+            risk_reason=#{riskReason},
+            update_time=#{syncTime}
+           WHERE
+            client_id=#{customerId}
+            AND project_id=#{thirdPrjId}
+
+    </update>
+
+    <!-- 更新之前先查找-->
+    <select id="selectInfoDetail" parameterType="java.util.Map" resultType="java.util.Map">
+        select client_id from mm_risk_control_info
+        WHERE
+            client_id=#{customerId}
+            AND project_id=#{thirdPrjId}
+
+            LIMIT 0,1
+    </select>
+
+
+    <!--在更新买方表之前，先删掉对应的买方表里的数据-->
+    <update id="updateBuyerBefore" parameterType="java.util.Map" >
+     DELETE
+     FROM vs_buyer
+      WHERE SaleGUID
+       in
+     (select orderGuid FROM ( SELECT a.orderGuid FROM  VS_XSGL_ORDER a INNER JOIN
+        vs_buyer b ON a.OrderGUID=b.SaleGUID
+        WHERE (a.QSDate &gt;#{queryStartDate} and  QSDate &lt;=#{queryEndDate})) a)
+
+
+
+    </update>
+
+    <!--初始化风控外面的概表-->
+    <insert id="selectRiskSurface">
+        INSERT  INTO    mm_risk_show(trader,orderGuid,project_code,belonging_time,channel,opening_time,area_id,project_id,area_name,project_name,deal_total,channel_volume_total,channel_volume_per,agency_volume_per,agochannel_volume_per,own_volume_per,normal_check_normal,normal_check_fly_alone,normal_nocheck,risk_check_normal,risk_check_fly_alone,risk_nocheck,brush_card_nosnap,nocard,brush_card_total,normal_normal_total,risk_risk_total,unknown_total,no_report_time,no_frist_snap,
+        no_frist_danger,no_frist_nature,no_frist_unkown,
+        mainMediaGuid,channel_nocard_total,deal_nocard_total
+        )
+        SELECT
+        trader.trader ,orderdata.*   --        操盘手
+        FROM (
+            SELECT
+                o.orderGuid  orderGuid,
+                o.projectCode    project_code,    --    项目CODE
+                o.ywgsDate        belonging_time,    --    业务归属时间
+                info.channel,    --        渠道公司
+                info.opening_time,    --        启用时间
+                info.business_unit_id    area_id,    --    项目的区域ID
+                info.project_id,    --    项目ID
+                info.businessUnit    area_name,    --    区域名
+                info.project_name,    --    项目名
+                oc1.channelSumAll    deal_total,    --    成交量合计
+                (IFNULL(oc1.AgentRateCOUNT,0)+IFNULL(oc1.selfChannelRateCount,0)+IFNULL( oc1.selfSalesRateCOUNT,0)) channel_volume_total,    --    渠道成交量
+                (IFNULL(oc1.AgentRateCOUNT,0)+IFNULL(oc1.selfChannelRateCount,0)+IFNULL( oc1.selfSalesRateCOUNT,0)) channel_volume_per,    --    渠道成交占比
+                oc1.AgentRateCount          agency_volume_per,    --    中介成交占比
+                oc1.selfChannelRateCount     agochannel_volume_per,    --    自渠占比
+                oc1.selfSalesRateCOUNT        own_volume_per,    --    私营占比
+                oc2.yetNormalNatureCOUNT    normal_check_normal,    --    系统提示正常的正常
+                oc2.yetNormalRiskCOUNT    normal_check_fly_alone,    --    系统提示正常飞单
+                oc2.yetNormalUnkonwnCOUNT    normal_nocheck,    --    系统提示正常未复核
+                oc2.yetRiskNormalCOUNT    risk_check_normal,    --    系统提示风险正常
+                oc2.yetRiskDangerCOUNT    risk_check_fly_alone,    --    系统提示风险飞单
+                oc2.yetRiskUnkownCOUNT    risk_nocheck,        --    系统提示风险未复核
+                oc2.yetRiskIsNUllCOUNT    brush_card_nosnap,        --    已刷证无抓拍
+                oc2.freshcardIsNullCOUNT    nocard,    --    未刷证合计
+                oc2.freshcardNotNullCOUNT    brush_card_total,    --    已刷证合计
+                oc2.yetNormalTotalCOUNT	normal_normal_total,    --    系统提示正常的合计
+                oc2.yetRiskTotalCOUNT    risk_risk_total,--    系统提示风险的合计
+                oc2.unknown_total    ,        --    系统提示未知合计
+                oc2.no_report_time,    --    未导入报备时间
+                oc2.no_frist_snap,        --    无首次抓拍时间
+                oc2.no_frist_danger no_frist_danger,        --    无首次抓拍时间 复合为飞单
+                oc2.no_frist_nature no_frist_nature,        --    无首次抓拍时间 复合为正常
+                oc2.no_frist_unkown no_frist_unkown,        --    无首次抓拍时间 未知
+                o.mainMediaGuid,
+                IFNULL(oc2.channel_nocard_total,0)    channel_nocard_total,    --    渠道未刷证合计
+                IFNULL(oc2.deal_nocard_total,0)            deal_nocard_total    --    成交未刷证
+            FROM            vs_xsgl_order_fk    o
+            LEFT JOIN  vs_buyer  b  ON  b.SaleGUID  =  o.orderGuid
+            LEFT    JOIN    (
+                SELECT        DISTINCT unit.business_unit_id    ,
+                opening_time,
+                info.project_id,
+                channel,    --        渠道公司
+                businessUnit    ,
+                info.project_name    --    项目名
+                FROM        mm_risk_control_info    info,mm_idm_business_unit_project_rel  unit
+                WHERE    info.project_id = unit.project_id AND info.opening_time    IS    NOT    NULL
+            )        info    ON    info.project_id=o.PROJECTID    AND    info.opening_time    IS    NOT    NULL
+
+            LEFT JOIN (
+                SELECT    o.orderGuid  orderGuid,
+                        COUNT(1)  AS  channelSumAll, --  成交量合计
+                        (CASE WHEN o.mainMediaGuid IN ('D0B0421F-C75B-E711-80BB-005056A27FB0') THEN 1 ELSE 0 END)  AS  AgentRateCOUNT ,--  中介成交数量
+                        (CASE WHEN o.mainMediaGuid IN (
+                            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+                            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+                            '85163219-C75B-E711-80BB-005056A27FB0',
+                            '36ADC711-C75B-E711-80BB-005056A27FB0',
+                            '21B9407A-6FE6-E911-80BB-005056A37AFC'
+                        ) THEN 1 ELSE 0 END)  AS  selfChannelRateCOUNT ,--  自渠成交数量
+                        (CASE WHEN o.mainMediaGuid IN (
+                            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+                            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+                            '52AA3722-B457-EA11-80BE-005056A21B76',
+                            '3574F634-B457-EA11-80BE-005056A21B76'
+                        ) THEN 1 ELSE 0 END)  AS  selfSalesRateCOUNT --  私营媒介营销数量
+                FROM      vs_xsgl_order_fk  o
+                GROUP    BY  o.orderGuid
+            ) oc1
+            ON  oc1.orderGuid=o.orderGuid
+            LEFT JOIN (
+                SELECT  o.orderGuid,
+                    MAX(CASE WHEN system_risk='风险' AND info.freshcard_time  IS NOT NULL THEN 1 ELSE 0 END) yetRiskTotalCOUNT, -- 系统提示风险的合计
+                    MAX(CASE WHEN system_risk='正常' AND info.freshcard_time  IS NOT NULL THEN 1 ELSE 0 END) yetNormalTotalCOUNT, -- 系统提示正常的合计
+                    MAX(CASE WHEN system_risk='未知' AND info.freshcard_time  IS NOT NULL THEN 1 ELSE 0 END) unknown_total, -- 系统提示未知合计
+                    MAX(CASE WHEN system_risk='未知' AND info.freshcard_time  IS NOT NULL AND info.report_time IS NULL  THEN 1 ELSE 0 END) no_report_time, -- 未导入报备时间  ?
+                    MAX(CASE WHEN system_risk='未知' AND info.freshcard_time  IS NOT NULL AND info.firstphoto_time IS NULL  THEN 1 ELSE 0 END) no_frist_snap, -- 无首次抓拍时间  ?
+                    MAX(CASE WHEN system_risk='未知' AND info.freshcard_time  IS NOT NULL AND info.firstphoto_time IS NULL AND risk_approve_status='风险'  THEN 1 ELSE 0 END
+                    ) no_frist_danger, -- 无首次抓拍时间 复合为风险
+                    MAX(CASE WHEN system_risk='未知' AND info.freshcard_time  IS NOT NULL AND info.firstphoto_time IS NULL AND risk_approve_status='正常'  THEN 1 ELSE 0 END
+                    ) no_frist_nature, -- 无首次抓拍时间 复合为正常
+                    MAX(CASE WHEN system_risk='未知' AND info.freshcard_time  IS NOT NULL AND info.firstphoto_time IS NULL AND risk_approve_status='未知'  THEN 1 ELSE 0 END
+                    ) no_frist_unkown,-- -- 无首次抓拍时间 未知
+                    MAX(CASE WHEN system_risk='正常' AND info.freshcard_time  IS NOT NULL AND risk_approve_status='正常' THEN 1 ELSE 0 END
+                    ) yetNormalNatureCOUNT, -- 系统提示正常,人工复核正常
+                    MAX(CASE WHEN system_risk='正常' AND info.freshcard_time  IS NOT NULL AND risk_approve_status='风险' THEN 1 ELSE 0 END
+                    ) yetNormalRiskCOUNT, -- 系统提示正常,人工复核飞单
+                    MAX(CASE WHEN system_risk='正常' AND info.freshcard_time  IS NOT NULL AND risk_approve_status='未知' THEN 1 ELSE 0 END
+                    ) yetNormalUnkonwnCOUNT, -- 系统提示正常,人工复核未复核
+                    MAX(CASE WHEN system_risk='风险' AND info.freshcard_time  IS NOT NULL AND risk_approve_status='正常' THEN 1 ELSE 0 END
+                    ) yetRiskNormalCOUNT, -- 系统提示风险,人工复核正常
+                    MAX(CASE WHEN system_risk='风险' AND info.freshcard_time  IS NOT NULL AND risk_approve_status='风险' THEN 1 ELSE 0 END
+                    ) yetRiskDangerCOUNT, -- 系统提示风险,人工复核风险
+                    MAX(CASE WHEN system_risk='风险' AND info.freshcard_time  IS NOT NULL AND risk_approve_status='未知' THEN 1 ELSE 0 END
+                    ) yetRiskUnkownCOUNT, -- 系统提示风险,人工复核未复核
+                    MAX(CASE WHEN info.firstphoto_time  IS NULL AND info.freshcard_time  IS NOT NULL  THEN 1 ELSE 0 END
+                    ) yetRiskIsNUllCOUNT, -- 已刷证无抓拍
+                    MAX(CASE WHEN o.closeReason != '退房' AND info.freshcard_time IS NULL  THEN 1 ELSE 0 END
+                    ) freshcardIsNullCOUNT, -- 未刷证合计
+                    MAX(CASE WHEN o.closeReason = '转签约' AND info.freshcard_time IS NULL  THEN 1 ELSE 0 END
+                    ) deal_nocard_total, -- 成交未刷证,要减去已刷证
+                    MAX(CASE WHEN o.closeReason not in ('转签约','退房') AND info.freshcard_time IS NULL
+                     AND o.mainMediaGuid IN (
+                        'DD91DA2E-B457-EA11-80BE-005056A21B76',
+                        'DDD7AC28-B457-EA11-80BE-005056A21B76',
+                        '52AA3722-B457-EA11-80BE-005056A21B76',
+                        '3574F634-B457-EA11-80BE-005056A21B76',
+                        'CEB0421F-C75B-E711-80BB-005056A27FB0',
+                        '11B9407A-6FE6-E911-80BB-005056A37AFB',
+                        '85163219-C75B-E711-80BB-005056A27FB0',
+                        '36ADC711-C75B-E711-80BB-005056A27FB0',
+                        '21B9407A-6FE6-E911-80BB-005056A37AFC',
+                        'D0B0421F-C75B-E711-80BB-005056A27FB0'
+                        ) THEN 1 ELSE 0 END
+                    ) channel_nocard_total, -- 渠道未刷证合计
+                    COUNT(*) freshcardNotNullCOUNT -- 已刷证合计
+                FROM   vs_xsgl_order_fk o
+                    LEFT JOIN vs_buyer  b  ON b.SaleGUID = o.orderGuid
+                    LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+                GROUP  BY  o.orderGuid
+            ) oc2
+            ON  oc2.orderGuid=o.orderGuid
+            WHERE 0=0
+             AND  b.`id` IS NOT NULL
+              AND  not EXISTS (
+            select 1 from vs_buyer b
+            LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID
+            WHERE b.SaleGUID = o.orderGuid AND o.project_id = info.project_id and info.freshcard_time is NULL  AND  o.closeReason ='退房'
+            )
+            GROUP BY o.orderGuid
+        ) orderdata
+        -- 操盘手
+        LEFT JOIN mm_basic_trader_mingyuan trader ON  orderdata.project_code=trader.project_id
+    </insert>
+
+    <!-- 风控统计sql备份
+
+SELECT
+o.orderGuid  orderGuid,
+o.projectCode    project_code,    -    项目CODE
+o.ywgsDate        belonging_time,    -    业务归属时间
+trader.trader,    -        操盘手
+info.channel,    -        渠道公司
+info.opening_time,    -        启用时间
+unit.business_unit_id    area_id,    -    项目的区域ID
+info.project_id,    -    项目ID
+info.businessUnit    area_name,    -    区域名
+info.project_name,    -    项目名
+channelSum.channelSumAll    deal_total,    -    成交量合计
+(IFNULL(AgentRate.AgentRateCOUNT,0)+IFNULL(    selfChannelRate.selfChannelRateCount,0)+IFNULL(    selfSalesRate.selfSalesRateCOUNT,0))        channel_volume_total,    -    渠道成交量
+(IFNULL(AgentRate.AgentRateCOUNT,0)+IFNULL(    selfChannelRate.selfChannelRateCount,0)+IFNULL(    selfSalesRate.selfSalesRateCOUNT,0))            channel_volume_per,    -    渠道成交占比
+AgentRate.AgentRateCount          agency_volume_per,    -    中介成交占比
+selfChannelRate.selfChannelRateCount        agochannel_volume_per,    -    自渠占比
+selfSalesRate.selfSalesRateCOUNT        own_volume_per,    -    私营占比
+yetNormalNature.yetNormalNatureCOUNT    normal_check_normal,    -    系统提示正常的正常
+yetNormalRisk.yetNormalRiskCOUNT    normal_check_fly_alone,    -    系统提示正常飞单
+yetNormalUnkonwn.yetNormalUnkonwnCOUNT    normal_nocheck,    -    系统提示正常未复核
+yetRiskNormal.yetRiskNormalCOUNT    risk_check_normal,    -    系统提示风险正常
+yetRiskDanger.yetRiskDangerCOUNT    risk_check_fly_alone,    -    系统提示风险飞单
+yetRiskUnkown.yetRiskUnkownCOUNT    risk_nocheck,        -    系统提示风险未复核
+yetRiskIsNUll.yetRiskIsNUllCOUNT    brush_card_nosnap,        -    已刷证无抓拍
+freshcardIsNull.freshcardIsNullCOUNT    nocard,    -    未刷证合计
+freshcardNotNull.freshcardNotNullCOUNT    brush_card_total,    -    已刷证合计
+yetNormalTotal.yetNormalTotalCOUNT	normal_normal_total,    -    系统提示正常的合计
+yetRiskTotal.yetRiskTotalCOUNT    risk_risk_total,-    系统提示风险的合计
+unknown_total_join.unknown_total    ,        -    系统提示未知合计
+no_report_time_join.no_report_time,    -    未导入报备时间
+no_frist_snap_join.no_frist_snap,        -    无首次抓拍时间
+no_frist_snap_danger.no_frist_snap no_frist_danger,        -    无首次抓拍时间 复合为飞单
+no_frist_snap_nature.no_frist_snap no_frist_nature,        -    无首次抓拍时间 复合为正常
+no_frist_snap_unkown.no_frist_snap no_frist_unkown,        -    无首次抓拍时间 未知
+o.mainMediaGuid,
+IFNULL(Channel_nocard_total_join.channel_nocard_total,0)    channel_nocard_total,    -    渠道未刷证合计
+IFNULL(deal_nocard_total_join.deal_nocard_total,0)            deal_nocard_total    -    成交未刷证
+
+
+FROM            vs_xsgl_order_fk    o
+
+                LEFT  JOIN  vs_buyer  b  ON  b.SaleGUID  =  o.orderGuid
+LEFT    JOIN    (
+SELECT        DISTINCT
+opening_time,
+project_id,
+channel,    -        渠道公司
+
+businessUnit    ,
+project_name    -    项目名
+FROM        mm_risk_control_info    info
+WHERE    info.opening_time    IS    NOT    NULL
+)        info    ON    info.project_id=o.PROJECTID    AND    info.opening_time    IS    NOT    NULL
+
+
+LEFT    JOIN        mm_idm_business_unit_project_rel  unit  ON  info.project_id=unit.project_id
+-  成交量合计
+LEFT  JOIN  (
+
+
+
+
+SELECT    COUNT(1)  AS  channelSumAll,o.orderGuid  orderGuid
+FROM      vs_xsgl_order_fk  o
+
+
+GROUP    BY  o.orderGuid
+
+
+
+)  channelSum
+ON  channelSum.orderGuid=o.orderGuid
+
+-  中介成交占比
+LEFT  JOIN  (
+-  0 .763
+SELECT  COUNT(1) AgentRateCOUNT,orderGuid 	FROM( SELECT  COUNT(1) AgentRateCOUNT, o.orderGuid orderGuid
+FROM   vs_xsgl_order_fk o
+
+WHERE o.mainMediaGuid IN ('D0B0421F-C75B-E711-80BB-005056A27FB0')
+GROUP  BY o.id ) temp    GROUP  BY orderGuid
+
+
+) AgentRate
+ON AgentRate.orderGuid=o.orderGuid
+- 自渠成交占比
+LEFT JOIN (
+- 0.006
+SELECT  COUNT(1) selfChannelRateCOUNT   , orderGuid  FROM( SELECT  COUNT(1),o.orderGuid
+FROM   vs_xsgl_order_fk o
+
+WHERE o.mainMediaGuid IN (
+'CEB0421F-C75B-E711-80BB-005056A27FB0',
+'11B9407A-6FE6-E911-80BB-005056A37AFB',
+'85163219-C75B-E711-80BB-005056A27FB0',
+'36ADC711-C75B-E711-80BB-005056A27FB0',
+'21B9407A-6FE6-E911-80BB-005056A37AFC')
+GROUP  BY o.id ) temp  GROUP  BY orderGuid
+
+) selfChannelRate
+ON selfChannelRate.orderGuid=o.orderGuid
+- 私营媒介营销占比
+LEFT JOIN ( - 0.962
+SELECT  COUNT(1) selfSalesRateCOUNT   , orderGuid  FROM( SELECT  COUNT(1),o.orderGuid
+FROM   vs_xsgl_order_fk o
+
+WHERE o.mainMediaGuid IN (
+'DD91DA2E-B457-EA11-80BE-005056A21B76',
+'DDD7AC28-B457-EA11-80BE-005056A21B76',
+'52AA3722-B457-EA11-80BE-005056A21B76',
+'3574F634-B457-EA11-80BE-005056A21B76'
+)    GROUP  BY o.id ) temp  GROUP  BY orderGuid
+) selfSalesRate
+ON selfSalesRate.orderGuid=o.orderGuid
+- 系统提示正常的正常
+LEFT JOIN (
+SELECT  COUNT(1) yetNormalNatureCOUNT   ,orderGuid, id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer  b  ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='正常'
+AND info.freshcard_time  IS NOT NULL
+AND risk_approve_status='正常'
+
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetNormalNature
+ON yetNormalNature.orderGuid=o.orderGuid
+- 系统提示正常飞单
+LEFT JOIN (
+- 0.089
+SELECT  COUNT(1) yetNormalRiskCOUNT   , orderGuid,id  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer  b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='正常'
+AND risk_approve_status='风险'
+AND info.freshcard_time  IS NOT NULL
+AND info.opening_time IS NOT NULL AND o.ywgsDate >=DATE_FORMAT(info.opening_time,'%Y-%m-01') GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetNormalRisk
+ON yetNormalRisk.orderGuid=o.orderGuid
+
+- 系统提示正常未复核
+LEFT JOIN (
+- 0.138
+SELECT  COUNT(1) yetNormalUnkonwnCOUNT   ,id, orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='正常'
+AND risk_approve_status='未知'
+AND info.freshcard_time  IS NOT NULL
+
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetNormalUnkonwn
+ON yetNormalUnkonwn.orderGuid=o.orderGuid
+
+- 系统提示风险正常
+LEFT JOIN (
+
+- 0.117
+SELECT  COUNT(1) yetRiskNormalCOUNT  ,orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid,b.id,  COUNT(1)
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='风险'
+AND risk_approve_status='正常'
+AND info.freshcard_time  IS NOT NULL
+
+
+
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetRiskNormal
+ON yetRiskNormal.orderGuid=o.orderGuid
+
+
+- 系统提示风险飞单
+LEFT JOIN (
+
+- 0.076
+SELECT  COUNT(1) yetRiskDangerCOUNT   ,id, orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='风险'
+AND risk_approve_status='风险'
+AND info.freshcard_time  IS NOT NULL
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetRiskDanger
+ON yetRiskDanger.orderGuid=o.orderGuid
+
+
+- 系统提示风险未复核
+LEFT JOIN (
+
+- 0.137
+SELECT  COUNT(1) yetRiskUnkownCOUNT   ,id, orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='风险'
+AND risk_approve_status='未知'
+AND info.freshcard_time  IS NOT NULL
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetRiskUnkown
+ON yetRiskUnkown.orderGuid=o.orderGuid
+
+
+- 已刷证无抓拍
+LEFT JOIN (
+- 0.08
+SELECT  COUNT(1) yetRiskIsNUllCOUNT   ,id, orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE  info.freshcard_time  IS NOT NULL
+AND info.firstphoto_time  IS NULL
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetRiskIsNUll
+ON yetRiskIsNUll.orderGuid=o.orderGuid
+
+
+- 未刷证合计
+LEFT JOIN (- 0.327
+SELECT  COUNT(1) freshcardIsNullCOUNT   ,id, orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE info.freshcard_time  IS  NULL  AND  o.closeReason != '退房'
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) freshcardIsNull
+ON freshcardIsNull.orderGuid=o.orderGuid
+
+- 已刷证合计
+LEFT JOIN (
+- 0.44
+SELECT  COUNT(1) freshcardNotNullCOUNT   ,id, orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE info.freshcard_time  IS NOT NULL
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) freshcardNotNull
+ON freshcardNotNull.orderGuid=o.orderGuid
+
+
+- 系统提示风险的合计
+LEFT JOIN (
+
+- 0.203
+SELECT  COUNT(1) yetRiskTotalCOUNT   , orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer  b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='风险'
+AND info.freshcard_time  IS NOT NULL
+
+
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetRiskTotal
+ON yetRiskTotal.orderGuid=o.orderGuid
+
+
+- 系统提示正常的合计
+LEFT JOIN (
+- 0.264
+SELECT  COUNT(1) yetNormalTotalCOUNT   , orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid,  COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='正常'
+AND info.freshcard_time  IS NOT NULL
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) yetNormalTotal
+ON yetNormalTotal.orderGuid=o.orderGuid
+- 操盘手
+LEFT JOIN
+mm_basic_trader_mingyuan trader ON  o.projectCode=trader.project_id
+- 系统提示未知合计
+LEFT JOIN (
+- 0.184
+SELECT  COUNT(1) unknown_total   ,id, orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE system_risk='未知'
+AND info.freshcard_time  IS NOT NULL
+
+
+
+
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) unknown_total_join
+ON unknown_total_join.orderGuid=o.orderGuid
+- 未导入报备时间
+LEFT JOIN (
+- 0.198
+SELECT  COUNT(1) no_report_time   , orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+
+LEFT JOIN  vs_buyer b ON b.SaleGUID = o.orderGuid
+LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+WHERE info.report_time IS NULL AND info.system_risk='未知'
+AND info.freshcard_time  IS NOT NULL
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) no_report_time_join
+ON no_report_time_join.orderGuid=o.orderGuid
+- 无首次抓拍时间
+LEFT JOIN (
+- 0.055
+SELECT  COUNT(1) no_frist_snap   , orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+LEFT JOIN  vs_buyer b ON  b.SaleGUID = o.orderGuid
+LEFT JOIN  mm_risk_control_info info ON info.project_id=o.PROJECTID  AND  info.id_number = b.CardID
+WHERE info.system_risk='未知' AND info.firstphoto_time IS NULL
+AND info.freshcard_time  IS NOT NULL
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+
+) no_frist_snap_join
+ON no_frist_snap_join.orderGuid=o.orderGuid
+
+- 无首次抓拍时间 复合为风险
+LEFT JOIN (
+- 0.055
+SELECT  COUNT(1) no_frist_snap   , orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+LEFT JOIN  vs_buyer b ON  b.SaleGUID = o.orderGuid
+LEFT JOIN  mm_risk_control_info info ON info.project_id=o.PROJECTID  AND  info.id_number = b.CardID
+WHERE info.system_risk='未知'
+AND risk_approve_status='风险'
+AND info.firstphoto_time IS NULL
+AND info.freshcard_time  IS NOT NULL
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+) no_frist_snap_danger
+ON no_frist_snap_danger.orderGuid=o.orderGuid
+
+ 无首次抓拍时间 复合为正常
+LEFT JOIN (
+SELECT  COUNT(1) no_frist_snap   , orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+LEFT JOIN  vs_buyer b ON  b.SaleGUID = o.orderGuid
+LEFT JOIN  mm_risk_control_info info ON info.project_id=o.PROJECTID  AND  info.id_number = b.CardID
+WHERE info.system_risk='未知'
+AND risk_approve_status='正常'
+AND info.firstphoto_time IS NULL
+AND info.freshcard_time  IS NOT NULL
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+) no_frist_snap_nature
+ON no_frist_snap_nature.orderGuid=o.orderGuid
+
+ 无首次抓拍时间 未知
+LEFT JOIN (
+SELECT  COUNT(1) no_frist_snap   , orderGuid  FROM(
+SELECT  DISTINCT o.orderGuid, COUNT(1),b.id
+FROM   vs_xsgl_order_fk o
+LEFT JOIN  vs_buyer b ON  b.SaleGUID = o.orderGuid
+LEFT JOIN  mm_risk_control_info info ON info.project_id=o.PROJECTID  AND  info.id_number = b.CardID
+WHERE info.system_risk='未知'
+AND risk_approve_status='未知'
+AND info.firstphoto_time IS NULL
+AND info.freshcard_time  IS NOT NULL
+
+GROUP  BY  o.orderGuid ) temp GROUP  BY orderGuid
+) no_frist_snap_unkown
+ON no_frist_snap_unkown.orderGuid=o.orderGuid
+
+
+
+ 渠道未刷证合计
+LEFT JOIN (
+    SELECT COUNT(1) channel_nocard_total,cj.orderGuid,project_id
+    FROM (
+        SELECT   DISTINCT orderGuid ,o.project_id
+        FROM   vs_xsgl_order_fk o
+        LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE info.freshcard_time  IS  NULL
+        and o.closeReason not in ('转签约','退房')
+        AND o.mainMediaGuid IN (
+            'DD91DA2E-B457-EA11-80BE-005056A21B76',
+            'DDD7AC28-B457-EA11-80BE-005056A21B76',
+            '52AA3722-B457-EA11-80BE-005056A21B76',
+            '3574F634-B457-EA11-80BE-005056A21B76',
+            'CEB0421F-C75B-E711-80BB-005056A27FB0',
+            '11B9407A-6FE6-E911-80BB-005056A37AFB',
+            '85163219-C75B-E711-80BB-005056A27FB0',
+            '36ADC711-C75B-E711-80BB-005056A27FB0',
+            '21B9407A-6FE6-E911-80BB-005056A37AFC',
+            'D0B0421F-C75B-E711-80BB-005056A27FB0'
+            )
+        GROUP  BY  o.orderGuid
+    ) cj
+    GROUP  BY  cj.orderGuid
+) Channel_nocard_total_join ON Channel_nocard_total_join.orderGuid=o.orderGuid
+
+
+
+ 成交未刷证,要减去已刷证
+LEFT JOIN (
+    SELECT COUNT(1) deal_nocard_total,cj.orderGuid,project_id
+    FROM (
+         成交 0.054
+        SELECT   DISTINCT orderGuid ,o.project_id
+        FROM   vs_xsgl_order_fk o
+        LEFT JOIN vs_buyer b ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        WHERE info.freshcard_time  IS  NULL
+        and o.closeReason = '转签约'
+        GROUP  BY  o.orderGuid
+    ) cj
+    GROUP  BY  cj.orderGuid
+) deal_nocard_total_join ON deal_nocard_total_join.orderGuid=o.orderGuid
+
+
+
+WHERE 0=0
+ AND  b.`id` IS NOT NULL
+ AND  not EXISTS (
+    select 1 from vs_buyer b
+    LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID
+    WHERE b.SaleGUID = o.orderGuid AND o.project_id = info.project_id and info.freshcard_time is NULL  AND  o.closeReason ='退房'
+    )
+
+GROUP BY o.orderGuid
+    -->
+
+
+    <update id="deleteRiskSurfaceBefore">
+          DELETE  FROM  mm_risk_show;
+    </update>
+
+    <insert id="insertOrderFkUp" >
+
+INSERT  INTO  vs_xsgl_order_fk(
+    `id`,
+    `roominfo`,
+    `roomguid`,
+    `x_bldprdid`,
+    `x_buildingCode`,
+    `x_buildingName`,
+    `x_productCode`,
+    `x_productType`,
+    `projectId`,
+    `kingdeeProjectId`,
+    `projectName`,
+    `projectCode`,
+    `projectFid`,
+    `kingdeeProjectFid`,
+    `stageName`,
+    `stageCode`,
+    `qsDate`,
+    `ywgsDate`,
+    `closeDate`,
+    `closeReason`,
+    `bldArea`,
+    `cjRoomTotal`,
+    `TradeGuid`,
+    `qyCloseReason`,
+    `qyCloseDate`,
+    `status`,
+    `mainMediaName`,
+    `mainMediaGuid`,
+    `subMediaName`,
+    `subMediaGuid`,
+    `group_id`,
+    `group_name`,
+    `orderGuid`,
+    `channel_type`,
+      `modifiedTime`,
+    `opening_time`,
+    `project_id`    )
+
+
+ SELECT        `id`,
+    `roominfo`,
+    `roomguid`,
+    `x_bldprdid`,
+    `x_buildingCode`,
+    `x_buildingName`,
+    `x_productCode`,
+    `x_productType`,
+    `projectId`,
+    `kingdeeProjectId`,
+    `projectName`,
+    `projectCode`,
+    `projectFid`,
+    `kingdeeProjectFid`,
+    `stageName`,
+    `stageCode`,
+    `qsDate`,
+    `ywgsDate`,
+    `closeDate`,
+    `closeReason`,
+    `bldArea`,
+    `cjRoomTotal`,
+    `TradeGuid`,
+    `qyCloseReason`,
+    `qyCloseDate`,
+    `status`,
+    `mainMediaName`,
+    `mainMediaGuid`,
+    `subMediaName`,
+    `subMediaGuid`,
+    `group_id`,
+    `group_name`,
+    `orderGuid`,
+    `channel_type`,
+      `modifiedTime`,
+    `opening_time`,
+    `project_id`
+
+FROM  vs_xsgl_order  o
+LEFT  JOIN  (
+SELECT    DISTINCT  DATE_FORMAT(opening_time,'%Y-%m-01')  opening_time,project_id  FROM    mm_risk_control_info  rci
+WHERE  rci.opening_time  IS  NOT  NULL
+)    info  ON  info.project_id=o.PROJECTID
+WHERE    (STATUS='激活'
+OR(STATUS='关闭'
+AND  (closeReason='转签约'  OR  closeReason='退房'))
+)
+AND  o.ywgsDate  >=info.opening_time
+AND x_productType NOT  LIKE '车位%'
+AND x_productType NOT  LIKE '地下%'
+    AND  o.projectId  IN  (SELECT  project_id  FROM  mm_risk_control_info  WHERE  project_id  IS  NOT  NULL
+  AND  opening_time  IS  NOT  NULL
+--  AND  o.ywgsDate  >=info.opening_time
+
+GROUP    BY  project_id)
+
+GROUP    BY  id
+
+
+LIMIT  0,  1000000000  ;
+
+
+
+ </insert>
+
+    <update id="deleteOrderFkUpBefore" >
+         DELETE  FROM  vs_xsgl_order_fk;
+    </update>
+
+
+</mapper>

@@ -1,0 +1,1093 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.message.dao.MessageManagerDao">
+    <select id="queryMessageTemplateList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        id,
+        template_name,
+        template_type,
+        template_type_name,
+        template_title,
+        template_info,
+        template_send_type,
+        open_dingtalk,
+        open_message,
+        open_emaill,
+        DATE_FORMAT( create_time, '%Y-%m-%d' ) create_time,
+        status
+        FROM
+        ms_template_info
+        WHERE
+        isdel =0
+        <if test="template_title!=null and template_title!=''">
+            AND template_title LIKE concat('%',#{template_title},'%')
+        </if>
+        <if test="template_type!=null and template_type!=''">
+            AND template_type_name= #{template_type}
+        </if>
+        <if test="status!=null and status!=''">
+            AND status= #{status}
+        </if>
+        ORDER BY create_time desc
+        LIMIT #{pageIndex},#{pageSize}
+    </select>
+    <select id="queryMessageTemplateListCount" parameterType="java.util.Map" resultType="java.lang.String">
+        SELECT
+        COUNT(*) as total
+        FROM
+        ms_template_info
+        WHERE
+        isdel =0
+        <if test="template_title!=null and template_title!=''">
+            AND template_title LIKE concat('%',#{template_title},'%')
+        </if>
+        <if test="template_type!=null and template_type!=''">
+            AND template_type_name= #{template_type}
+        </if>
+        <if test="status!=null and status!=''">
+            AND status= #{status}
+        </if>
+        ORDER BY create_time desc
+    </select>
+    <!--查询当前模版已经关联的岗位组，已经选择-->
+    <select id="getSelectedJobList" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	cjob.ID cjob_id,
+	cjob.JobDesc belongDepFullName,
+	cjob.JobCode,
+	cjob.JobName cjob_name,
+	tjob.template_id,
+	tjob.id
+FROM
+	S_CommonJobs cjob
+	INNER JOIN ms_template_commonjob tjob ON tjob.cjob_id = cjob.ID
+WHERE
+	cjob.AuthCompanyID = 'ede1b679-3546-11e7-a3f8-5254007b6f02'
+	AND cjob.ProductID = 'ee3b2466-3546-11e7-a3f8-5254007b6f02'
+	AND cjob.IsDel = 0
+	AND tjob.template_id =#{template_id}
+GROUP BY
+	cjob.ID
+ORDER BY
+	tjob.create_time desc ,cjob.JobName
+	LIMIT #{pageIndex1},#{pageSize1};
+
+    </select>
+    <!--查询当前模版已经关联的岗位组，已经选择的总数量-->
+    <select id="getSelectedJobListTotal" resultType="java.lang.String" parameterType="java.util.Map">
+SELECT
+	COUNT( 1 ) AS total
+FROM
+	(
+	SELECT
+		cjob.*
+	FROM
+		S_CommonJobs cjob
+		INNER JOIN ms_template_commonjob tjob ON tjob.cjob_id = cjob.ID
+	WHERE
+		cjob.AuthCompanyID = 'ede1b679-3546-11e7-a3f8-5254007b6f02'
+		AND cjob.ProductID = 'ee3b2466-3546-11e7-a3f8-5254007b6f02'
+		AND cjob.IsDel = 0
+		AND tjob.template_id = #{template_id}
+	GROUP BY
+		cjob.ID
+	ORDER BY
+	cjob.JobName
+	) t
+    </select>
+    <!--查询当前模版未选择的岗位组/可选择岗位-->
+    <select id="getNotSelectedJobList" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        *
+        FROM
+        (
+        SELECT
+        cjob.ID cjob_id,
+        cjob.JobCode,
+        cjob.JobDesc belongDepFullName,
+        cjob.JobName cjob_name
+        FROM
+        S_CommonJobs cjob
+        WHERE
+        cjob.AuthCompanyID = 'ede1b679-3546-11e7-a3f8-5254007b6f02'
+        AND cjob.ProductID = 'ee3b2466-3546-11e7-a3f8-5254007b6f02'
+        AND cjob.IsDel = 0
+        and cjob.ID NOT IN(
+        SELECT
+        cjob_id
+        FROM ms_template_commonjob where template_id=#{template_id}
+        )
+        ORDER BY
+        cjob.JobName
+        ) s
+        WHERE 1=1
+        <if test="jobName!=null and jobName!=''">
+            AND cjob_name like CONCAT('%',#{jobName},'%')
+        </if>
+        <if test="levelName==1">
+            AND cjob_name like CONCAT('%','集团','%')
+        </if>
+        <if test="levelName==2">
+            AND (cjob_name like CONCAT('%','区域','%') or cjob_name like CONCAT('%','事业部','%'))
+        </if>
+        <if test="levelName==3">
+            AND cjob_name like CONCAT('%','城市','%')
+        </if>
+        <if test="levelName==4">
+            AND cjob_name like CONCAT('%','项目','%')
+        </if>
+        GROUP BY
+        cjob_id
+        LIMIT #{pageIndex2},#{pageSize2};
+    </select>
+    <!--查询当前模版未选择的岗位组/可选择岗位总数-->
+    <select id="getNotSelectedJobListTotal" resultType="java.lang.String" parameterType="java.util.Map">
+        SELECT COUNT(*) total FROM (SELECT
+        *
+        FROM
+        (
+        SELECT
+        cjob.ID cjob_id,
+        cjob.JobCode,
+        cjob.JobDesc belongDepFullName,
+        cjob.JobName cjob_name
+        FROM
+        S_CommonJobs cjob
+        WHERE
+        cjob.AuthCompanyID = 'ede1b679-3546-11e7-a3f8-5254007b6f02'
+        AND cjob.ProductID = 'ee3b2466-3546-11e7-a3f8-5254007b6f02'
+        AND cjob.IsDel = 0
+        and cjob.ID NOT IN(
+        SELECT
+        cjob_id
+        FROM ms_template_commonjob where template_id=#{template_id}
+        )
+        ORDER BY
+        cjob.JobName
+        ) s
+        WHERE 1=1
+        <if test="jobName!=null and jobName!=''">
+            AND cjob_name like CONCAT('%',#{jobName},'%')
+        </if>
+        <if test="levelName==1">
+            AND cjob_name like CONCAT('%','集团','%')
+        </if>
+        <if test="levelName==2">
+            AND (cjob_name like CONCAT('%','区域','%') or cjob_name like CONCAT('%','事业部','%'))
+        </if>
+        <if test="levelName==3">
+            AND cjob_name like CONCAT('%','城市','%')
+        </if>
+        <if test="levelName==4">
+            AND cjob_name like CONCAT('%','项目','%')
+        </if>
+        GROUP BY
+        cjob_id) s
+    </select>
+
+    <!--删除当前模版已经关联的岗位组-->
+    <delete id="deleteSelectedComjob" parameterType="java.lang.String">
+DELETE
+FROM
+	ms_template_commonjob
+WHERE
+	id =#{id}
+	</delete>
+    <!--更新消息模版与岗位组的关联-->
+    <insert id="updateTemplateRelationcomjob">
+        insert into ms_template_commonjob
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            id,
+            <if test="template_id != null">
+                template_id,
+            </if>
+            <if test="cjob_id != null">
+                cjob_id,
+            </if>
+            <if test="cjob_name != null">
+                cjob_name,
+            </if>
+            <if test="cjob_path != null">
+                cjob_path,
+            </if>
+            create_time,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            uuid(),
+            <if test="template_id != null">
+                #{template_id,jdbcType=VARCHAR},
+            </if>
+            <if test="cjob_id != null">
+                #{cjob_id,jdbcType=VARCHAR},
+            </if>
+            <if test="cjob_name != null">
+                #{cjob_name,jdbcType=VARCHAR},
+            </if>
+            <if test="cjob_path != null">
+                #{cjob_path,jdbcType=VARCHAR},
+            </if>
+            now(),
+        </trim>
+    </insert>
+    <select id="queryLabelName" resultType="java.util.Map" parameterType="java.lang.String">
+		SELECT *FROM ms_label_library WHERE isDel=0 and label_name=#{label_name}  and label_class_name=#{label_class_name} limit 1;
+	</select>
+
+    <insert id="saveLabel" parameterType="java.util.Map">
+        insert into ms_label_library
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            id,
+            <if test="label_name != null">
+                label_name,
+            </if>
+            <if test="label_pid != null">
+                label_pid,
+            </if>
+            create_time,
+            <if test="update_time != null">
+                update_time,
+            </if>
+            <if test="isDel != null">
+                isDel,
+            </if>
+            <if test="status != null">
+                status,
+            </if>
+            <if test="extend1 != null">
+                extend1,
+            </if>
+            <if test="extend2 != null">
+                extend2,
+            </if>
+            <if test="label_variable != null">
+                label_variable,
+            </if>
+            <if test="label_type_name != null">
+                label_type_name,
+            </if>
+            <if test="label_level != null">
+                label_level,
+            </if>
+            <if test="label_class_name != null">
+                label_class_name,
+            </if>
+            <if test="orderIndex!=null and orderIndex!=''">
+                orderIndex,
+            </if>
+            <if test="remark!=null and remark!=''">
+                remark,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            UUID(),
+            <if test="label_name != null">
+                #{label_name,jdbcType=VARCHAR},
+            </if>
+            <if test="label_pid != null">
+                #{label_pid,jdbcType=VARCHAR},
+            </if>
+            NOW(),
+            <if test="update_time != null">
+                #{update_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="isDel != null">
+                #{isDel,jdbcType=INTEGER},
+            </if>
+            <if test="status != null">
+                #{status,jdbcType=INTEGER},
+            </if>
+            <if test="extend1 != null">
+                #{extend1,jdbcType=VARCHAR},
+            </if>
+            <if test="extend2 != null">
+                #{extend2,jdbcType=VARCHAR},
+            </if>
+            <if test="label_variable != null">
+                #{label_variable,jdbcType=VARCHAR},
+            </if>
+            <if test="label_type_name != null">
+                #{label_type_name,jdbcType=VARCHAR},
+            </if>
+            <if test="label_level != null">
+                #{label_level,jdbcType=INTEGER},
+            </if>
+            <if test="label_class_name != null">
+                #{label_class_name,jdbcType=VARCHAR},
+            </if>
+            <if test="orderIndex!=null and orderIndex!=''">
+                #{orderIndex},
+            </if>
+            <if test="remark!=null and remark!=''">
+                #{remark},
+            </if>
+        </trim>
+    </insert>
+
+    <update id="updateLabel" parameterType="java.util.Map">
+        update ms_label_library
+        <set>
+            <if test="label_name != null">
+                label_name = #{label_name,jdbcType=VARCHAR},
+            </if>
+            <if test="label_pid != null">
+                label_pid = #{label_pid,jdbcType=VARCHAR},
+            </if>
+            <if test="create_time != null">
+                create_time = #{create_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="update_time != null">
+                update_time = #{update_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="isDel != null">
+                isDel = #{isDel,jdbcType=INTEGER},
+            </if>
+            <if test="status != null">
+                status = #{status,jdbcType=INTEGER},
+            </if>
+            <if test="extend1 != null">
+                extend1 = #{extend1,jdbcType=VARCHAR},
+            </if>
+            <if test="extend2 != null">
+                extend2 = #{extend2,jdbcType=VARCHAR},
+            </if>
+            <if test="label_variable != null">
+                label_variable = #{label_variable,jdbcType=VARCHAR},
+            </if>
+            <if test="label_type_name != null">
+                label_type_name = #{label_type_name,jdbcType=VARCHAR},
+            </if>
+            <if test="label_level != null">
+                label_level = #{label_level,jdbcType=INTEGER},
+            </if>
+            <if test="label_class_name != null">
+                label_class_name = #{label_class_name,jdbcType=VARCHAR},
+            </if>
+            <if test="orderIndex!=null and orderIndex!=''">
+                orderIndex=#{orderIndex},
+            </if>
+            <if test="remark!=null and remark!=''">
+                remark=#{remark},
+            </if>
+
+        </set>
+        where id=#{id}
+    </update>
+    <!--查询标签库-->
+    <select id="queryLabelList" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        ml.id AS id,
+        ml.label_type_name,
+        ml.label_name,
+        ml.label_class_name,
+        ml.orderIndex,
+        ml.label_variable,
+        ml.remark
+        FROM
+        ms_label_library ml
+        INNER JOIN ( SELECT ListIndex, DictName template_type_name FROM s_dictionary WHERE PID =( SELECT ID FROM
+        s_dictionary WHERE DictCode = 'message_typeCode' ) ORDER BY ListIndex ) s ON s.template_type_name =
+        ml.label_type_name
+        WHERE ml.isDel=0
+        <if test="label_type_name!=null and label_type_name!=''">
+            AND ml.label_type_name =#{label_type_name}
+        </if>
+        <if test="label_class_name!=null and label_class_name!=''">
+            AND ml.label_type_name =#{label_class_name}
+        </if>
+        ORDER BY
+        s.ListIndex
+        LIMIT #{pageIndex},#{pageSize}
+    </select>
+    <!--查询标签库列表总数-->
+    <select id="queryLabelListTotal" resultType="java.lang.String" parameterType="java.util.Map">
+        SELECT
+        COUNT(*) AS total
+        FROM
+        ms_label_library ml
+        INNER JOIN ( SELECT ListIndex, DictName template_type_name FROM s_dictionary WHERE PID =( SELECT ID FROM
+        s_dictionary WHERE DictCode = 'message_typeCode' ) ORDER BY ListIndex ) s ON s.template_type_name =
+        ml.label_type_name
+        WHERE ml.isDel=0
+        <if test="label_type_name!=null and label_type_name!=''">
+            AND ml.label_type_name =#{label_type_name}
+        </if>
+        <if test="label_class_name!=null and label_class_name!=''">
+            AND ml.label_type_name =#{label_class_name}
+        </if>
+        ORDER BY
+        s.ListIndex
+    </select>
+
+    <!--查询可以选择的业务归属系统-->
+    <select id="getTemplateType" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+DictName template_type_name
+FROM s_dictionary WHERE PID=(SELECT  ID FROM s_dictionary where DictCode='message_typeCode') ORDER BY ListIndex
+	</select>
+    <!--查询对应归属模块的标签-->
+    <select id="getLabelListByLabelType" parameterType="java.lang.String" resultType="java.util.Map">
+		SELECT *FROM ms_label_library WHERE
+		 label_type_name=#{template_type}
+		 AND isdel=0 order by orderIndex
+	</select>
+    <!--查询标签类别下的标签列表-->
+    <select id="getLabelListByClassName" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT *FROM ms_label_library WHERE
+		 label_class_name=#{label_class_name} and label_type_name=#{template_type_name}
+		 AND isdel=0 order by orderIndex
+	</select>
+    <insert id="saveTemplate" parameterType="java.util.Map">
+        insert into ms_template_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="template_name != null">
+                template_name,
+            </if>
+            <if test="template_type != null">
+                template_type,
+            </if>
+            <if test="template_send_type != null">
+                template_send_type,
+            </if>
+            <if test="status != null">
+                status,
+            </if>
+            <if test="isdel != null">
+                isdel,
+            </if>
+            <if test="job_list != null">
+                job_list,
+            </if>
+            <if test="user_list != null">
+                user_list,
+            </if>
+            <if test="creator != null">
+                creator,
+            </if>
+            <if test="updator != null">
+                updator,
+            </if>
+            create_time,
+            <if test="update_time != null">
+                update_time,
+            </if>
+            <if test="open_dingtalk != null">
+                open_dingtalk,
+            </if>
+            <if test="open_emaill != null">
+                open_emaill,
+            </if>
+            <if test="open_message != null">
+                open_message,
+            </if>
+            <if test="expand1 != null">
+                expand1,
+            </if>
+            <if test="expand2 != null">
+                expand2,
+            </if>
+            <if test="template_type_name != null">
+                template_type_name,
+            </if>
+            <if test="template_info != null">
+                template_info,
+            </if>
+            <if test="template_title != null">
+                template_title,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="template_name != null">
+                #{template_name,jdbcType=VARCHAR},
+            </if>
+            <if test="template_type != null">
+                #{template_type,jdbcType=VARCHAR},
+            </if>
+            <if test="template_send_type != null">
+                #{template_send_type,jdbcType=INTEGER},
+            </if>
+            <if test="status != null">
+                #{status,jdbcType=INTEGER},
+            </if>
+            <if test="isdel != null">
+                #{isdel,jdbcType=INTEGER},
+            </if>
+            <if test="job_list != null">
+                #{job_list,jdbcType=VARCHAR},
+            </if>
+            <if test="user_list != null">
+                #{user_list,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="updator != null">
+                #{updator,jdbcType=VARCHAR},
+            </if>
+            NOW(),
+            <if test="update_time != null">
+                #{update_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="open_dingtalk != null">
+                #{open_dingtalk,jdbcType=INTEGER},
+            </if>
+            <if test="open_emaill != null">
+                #{open_emaill,jdbcType=INTEGER},
+            </if>
+            <if test="open_message != null">
+                #{open_message,jdbcType=INTEGER},
+            </if>
+            <if test="expand1 != null">
+                #{expand1,jdbcType=VARCHAR},
+            </if>
+            <if test="expand2 != null">
+                #{expand2,jdbcType=VARCHAR},
+            </if>
+            <if test="template_type_name != null">
+                #{template_type_name,jdbcType=VARCHAR},
+            </if>
+            <if test="template_info != null">
+                #{template_info,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="template_title != null">
+                #{template_title,jdbcType=LONGVARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateTemplate" parameterType="java.util.Map">
+        update ms_template_info
+        <set>
+            <if test="template_name != null">
+                template_name = #{template_name,jdbcType=VARCHAR},
+            </if>
+            <if test="template_type != null">
+                template_type = #{template_type,jdbcType=VARCHAR},
+            </if>
+            <if test="template_send_type != null">
+                template_send_type = #{template_send_type,jdbcType=INTEGER},
+            </if>
+            <if test="status != null">
+                status = #{status,jdbcType=INTEGER},
+            </if>
+            <if test="isdel != null">
+                isdel = #{isdel,jdbcType=INTEGER},
+            </if>
+            <if test="job_list != null">
+                job_list = #{job_list,jdbcType=VARCHAR},
+            </if>
+            <if test="user_list != null">
+                user_list = #{user_list,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                creator = #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="updator != null">
+                updator = #{updator,jdbcType=VARCHAR},
+            </if>
+            <if test="create_time != null">
+                create_time = #{create_time,jdbcType=TIMESTAMP},
+            </if>
+            update_time = NOW(),
+            <if test="open_dingtalk != null">
+                open_dingtalk = #{open_dingtalk,jdbcType=INTEGER},
+            </if>
+            <if test="open_emaill != null">
+                open_emaill = #{open_emaill,jdbcType=INTEGER},
+            </if>
+            <if test="open_message != null">
+                open_message = #{open_message,jdbcType=INTEGER},
+            </if>
+            <if test="expand1 != null">
+                expand1 = #{expand1,jdbcType=VARCHAR},
+            </if>
+            <if test="expand2 != null">
+                expand2 = #{expand2,jdbcType=VARCHAR},
+            </if>
+            <if test="template_type_name != null">
+                template_type_name = #{template_type_name,jdbcType=VARCHAR},
+            </if>
+            <if test="template_info != null">
+                template_info = #{template_info,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="template_title != null">
+                template_title = #{template_title,jdbcType=LONGVARCHAR},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+    <!--查询当前模版实例明细-->
+    <select id="getTemplateInfo" resultType="java.util.Map" parameterType="java.lang.String">
+select
+id,
+template_name,
+template_type,
+template_title,
+template_send_type,
+template_type_name,
+`status`,
+isdel,
+open_emaill,
+open_message,
+open_dingtalk,
+template_info
+from ms_template_info where id=#{id}
+	</select>
+    <!--删除标签-->
+    <delete id="deleteLabel" parameterType="java.lang.String">
+		DELETE FROM ms_label_library where id=#{id}
+	</delete>
+    <!--根据id获取消息详情-->
+    <select id="getMessageInfoById" resultType="java.util.Map" parameterType="java.lang.String">
+		SELECT *FROM ms_message WHERE ID=#{id} limit 1
+	</select>
+    <!--查询消息模版-->
+    <select id="queryMessageList" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        *
+        FROM
+        ms_message
+        WHERE
+        is_del=0
+        <!--已发送-->
+        <if test="message_send_status!=null and message_send_status!='' and message_send_status=='1'.toString() ">
+            AND message_send_status=1
+        </if>
+        <!--未发送-->
+        <if test="message_send_status!=null  and message_send_status=='0'.toString() ">
+            AND message_send_status=0
+        </if>
+        <if test="message_title!=null and message_title!=''">
+            AND message_title like concat('%',#{message_title},'%')
+        </if>
+        <if test="message_type_name!=null and message_type_name!=''">
+            AND message_type_name like concat('%',#{message_type_name},'%')
+        </if>
+        <if test="time!=null and time!=''">
+            AND message_send_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+
+
+        <if test="message_send_time!=null and message_send_time!=''">
+            ORDER BY message_send_time DESC
+        </if>
+        <if test="create_time!=null and create_time!=''">
+            ORDER BY create_time DESC
+        </if>
+
+        LIMIT #{pageIndex},#{pageSize}
+    </select>
+    <select id="queryMessageListTotal" resultType="java.lang.String" parameterType="java.util.Map">
+        SELECT
+        COUNT(*) total
+        FROM
+        ms_message
+        WHERE
+        is_del=0
+        <!--已发送-->
+        <if test="message_send_status!=null and message_send_status!='' and message_send_status=='1'.toString() ">
+            AND message_send_status=1
+        </if>
+        <!--未发送-->
+        <if test="message_send_status!=null and message_send_status!='' and message_send_status=='0'.toString() ">
+            AND message_send_status=0
+        </if>
+        <if test="message_title!=null and message_title!=''">
+            AND message_title like concat('%',#{message_title},'%')
+        </if>
+        <if test="message_type_name!=null and message_type_name!=''">
+            AND message_type_name like concat('%',#{message_type_name},'%')
+        </if>
+        <if test="time!=null and time!=''">
+            AND message_send_time BETWEEN #{startTime} AND #{endTime}
+        </if>
+        ORDER BY create_time DESC
+    </select>
+    <select id="getMessageSendUserList" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT *FROM (SELECT
+	ba.userName,
+	ba.OfficeMail,
+	ba.Mobile,
+	sc.JobDesc,
+	sj.jobfullCode,
+	hrOrgTypeId,
+	CONCAT( ba.EmployeeName, '(', sc.JobName, ')' ) AS EmployeeName
+FROM
+	s_jobs sj
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+	INNER JOIN s_organization so ON so.id = sj.JobOrgID
+WHERE
+	sc.id IN ( SELECT msjob.cjob_id FROM ms_template_commonjob msjob WHERE template_id =#{message_template_id}  GROUP BY msjob.cjob_id )
+	AND sj.JobOrgID IN (
+SELECT business_unit_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id}
+UNION
+SELECT ID from s_organization where PID IN (SELECT business_unit_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id})
+UNION
+select id  from s_organization where pid in (  SELECT ID from s_organization where PID IN (SELECT business_unit_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id}))
+UNION
+SELECT project_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id}
+	UNION
+SELECT ID FROM s_organization WHERE PID IN ( SELECT project_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id})
+) AND so.hrOrgTypeId  IN  (20,22,23,24,31,32)
+
+UNION ALL
+
+SELECT
+	ba.userName,
+	ba.OfficeMail,
+	ba.Mobile,
+	sc.JobDesc,
+	sj.jobfullCode,
+	hrOrgTypeId,
+	CONCAT( ba.EmployeeName, '(', sc.JobName, ')' ) AS EmployeeName
+FROM
+	s_jobs sj
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+	INNER JOIN s_organization so ON so.id = sj.JobOrgID
+WHERE
+	sc.id IN ( SELECT msjob.cjob_id FROM ms_template_commonjob msjob WHERE template_id =#{message_template_id}  GROUP BY msjob.cjob_id )
+	AND sj.JobOrgID IN (
+SELECT city_id FROM mm_idm_business_unit_project_rel WHERE project_id =#{project_id}
+UNION
+	SELECT ID FROM s_organization WHERE PID IN ( SELECT city_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id})
+UNION
+	SELECT ID FROM s_organization WHERE PID IN (	SELECT ID FROM s_organization WHERE PID =( SELECT city_id FROM mm_idm_business_unit_project_rel WHERE project_id =#{project_id} ) )
+	) 	AND so.hrOrgTypeId IN (21,22,23,24,25)
+
+	UNION ALL
+SELECT
+	ba.userName,
+	ba.OfficeMail,
+	ba.Mobile,
+	sc.JobDesc,
+	sc.JobDesc,
+	hrOrgTypeId,
+	CONCAT( ba.EmployeeName, '(', sc.JobName, ')' ) AS EmployeeName
+FROM
+	s_jobs sj
+	INNER JOIN s_organization so ON so.id = sj.JobOrgID
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+WHERE
+	sc.id IN ( SELECT msjob.cjob_id FROM ms_template_commonjob msjob WHERE template_id =#{message_template_id}
+  GROUP BY msjob.cjob_id )
+	AND so.hrOrgTypeId IN ( 11, 12, 13, 14, 15 )
+	GROUP BY UserName
+	) s
+	GROUP BY UserName
+	</select>
+    <!--查询消息详情-->
+    <select id="queryMessageInfo" resultType="java.util.Map" parameterType="java.lang.String">
+		SELECT *FROM ms_message WHERE ID=#{id}
+	</select>
+    <!--删除消息-->
+    <update id="deleteMessageById" parameterType="java.lang.String">
+		UPDATE ms_message SET is_del=1  WHERE id=#{id}
+	</update>
+    <!--修改消息详情-->
+    <update id="updateMessageInfo" parameterType="java.util.Map">
+		UPDATE ms_message SET message_title=#{message_title} ,message_info=#{message_info} WHERE ID=#{id}
+	</update>
+
+    <!--查询集团层的通用岗位人员-->
+    <select id="getGroupUserList" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	ba.userName,
+	ba.OfficeMail,
+	ba.Mobile,
+	sc.JobDesc,
+	CONCAT( ba.EmployeeName, '(', sc.JobName, ')' ) AS EmployeeName
+FROM
+	s_jobs sj
+	INNER JOIN s_organization so ON so.id = sj.JobOrgID
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+WHERE
+	sc.id IN ( SELECT msjob.cjob_id FROM ms_template_commonjob msjob WHERE template_id = #{message_template_id}  GROUP BY msjob.cjob_id )
+	AND so.hrOrgTypeId IN ( 11, 12, 13, 14, 15 )
+	</select>
+    <!--查询群聊列表-->
+    <select id="queryGroupChatList" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	ms_group_chat order by create_time desc
+	</select>
+    <!--查询群聊列表-->
+    <delete id="deleteBusinessGroupChat" parameterType="java.util.Map">
+DELETE
+
+FROM
+	ms_group_chat
+
+	WHERE ID=#{id}
+	</delete>
+    <!--修改群聊-->
+    <update id="updateBusinessGroupChat" parameterType="java.util.Map">
+        update ms_group_chat
+        <set>
+            <if test="group_chat_name != null">
+                group_chat_name = #{group_chat_name,jdbcType=VARCHAR},
+            </if>
+            <if test="robot_url != null">
+                robot_url = #{robot_url,jdbcType=VARCHAR},
+            </if>
+            <if test="robot_secret != null">
+                robot_secret = #{robot_secret,jdbcType=VARCHAR},
+            </if>
+            <if test="is_effective != null">
+                is_effective = #{is_effective,jdbcType=INTEGER},
+            </if>
+            <if test="buiness_info != null">
+                buiness_info = #{buiness_info,jdbcType=LONGVARCHAR},
+            </if>
+        </set>
+        WHERE ID=#{id}
+    </update>
+    <!--添加群聊-->
+    <insert id="addBuinessGroupChat" parameterType="java.util.Map">
+        insert into ms_group_chat
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="group_chat_name != null">
+                group_chat_name,
+            </if>
+            <if test="robot_url != null">
+                robot_url,
+            </if>
+            <if test="robot_secret != null">
+                robot_secret,
+            </if>
+            <if test="is_effective != null">
+                is_effective,
+            </if>
+            <if test="buiness_info != null">
+                buiness_info,
+            </if>
+            create_time,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="group_chat_name != null">
+                #{group_chat_name,jdbcType=VARCHAR},
+            </if>
+            <if test="robot_url != null">
+                #{robot_url,jdbcType=VARCHAR},
+            </if>
+            <if test="robot_secret != null">
+                #{robot_secret,jdbcType=VARCHAR},
+            </if>
+            <if test="is_effective != null">
+                #{is_effective,jdbcType=INTEGER},
+            </if>
+            <if test="buiness_info != null">
+                #{buiness_info,jdbcType=LONGVARCHAR},
+            </if>
+            NOW(),
+        </trim>
+    </insert>
+
+    <!--查询群聊详情-->
+    <select id="queryBuinessGroupChatInfo" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	ms_group_chat where id=#{id}
+    </select>
+    <!--查询群聊详情-->
+    <select id="checkBuinessGroup" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	ms_group_chat
+	WHERE
+	1=1
+	<if test="robot_url!=null and robot_url!=''">
+      AND   robot_url=#{robot_url}
+    </if>
+    <if test="buiness_id!=null and buiness_id!=''">
+        AND buiness_info like CONCAT('%',#{buiness_id},'%')
+    </if>
+    limit 1
+    </select>
+
+
+
+    <!--查询通用岗位所属的层级-->
+    <select id="getCommonJobHrType" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	id,
+	JobName,
+	joblevel AS JobDesc
+FROM
+	s_commonjobs_level
+WHERE
+	id IN ( SELECT msjob.cjob_id FROM ms_template_commonjob msjob WHERE template_id = #{message_template_id} GROUP BY msjob.cjob_id )
+    </select>
+    <!--查询项目id所属的组织....-->
+<select id="getProjectBelongOrg"  resultType="java.util.Map" parameterType="java.util.Map">
+    SELECT business_unit_id, city_id,project_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id} LIMIT 1;
+</select>
+
+    <!--根据不同层级查询人员-->
+    <select id="getUserList" resultType="java.util.Map" parameterType="java.util.Map">
+ SELECT
+    0 is_send,
+ 	UUID() as userid,
+	ba.username,
+	ba.officemail,
+	ba.mobile,
+	sc.JobDesc as job_desc,
+	sc.JobName as job_name,
+	ba.EmployeeName as employee_name,
+	su.CurrentJob as current_job
+FROM
+	s_jobs sj
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+WHERE
+	sj.id IN (
+	SELECT
+		id
+	FROM
+		s_jobs s
+	WHERE
+		s.CommonJobID = #{id}
+		AND s.jobfullCode LIKE concat('%',#{orgId},'%')
+	)
+	AND CurrentJob=#{CurrentJob}
+	GROUP BY userName
+    </select>
+
+    <!--获取已发送列表-->
+    <select id="getSendedUserList" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	m.userName,
+	m.employee_name AS EmployeeName
+FROM
+	ms_message_send_users m
+	INNER JOIN b_account b ON b.userName = m.UserName
+WHERE
+	m.message_id = #{id}
+GROUP BY
+	m.userName
+    </select>
+    <!--根据json_id删除消息-->
+    <delete id="deleteMessageByProjectId" parameterType="java.lang.String">
+        DELETE FROM ms_message where project_id=#{json_id};
+    </delete>
+    <!--json_id查询消息-->
+    <select id="getMessageByProjectId" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT * FROM ms_message where project_id=#{json_id};
+    </select>
+
+
+    <!--插入待发送人员列表-->
+    <insert id="insertUserList" parameterType="java.util.Map" >
+        <!--
+          WARNING - @mbggenerated
+          This element is automatically generated by MyBatis Generator, do not modify.
+          This element was generated on Thu Sep 03 10:03:48 CST 2020.
+        -->
+        insert into ms_message_users
+        <trim prefix="(" suffix=")" suffixOverrides="," >
+           id,
+            <if test="current_job != null" >
+                current_job,
+            </if>
+            <if test="employee_name != null" >
+                employee_name,
+            </if>
+            <if test="job_desc != null" >
+                job_desc,
+            </if>
+            <if test="job_name != null" >
+                job_name,
+            </if>
+            <if test="mobile != null" >
+                mobile,
+            </if>
+            <if test="officemail != null" >
+                officemail,
+            </if>
+            <if test="is_send != null" >
+                is_send,
+            </if>
+            <if test="userid != null" >
+                userid,
+            </if>
+            <if test="username != null" >
+                username,
+            </if>
+            <if test="message_id != null" >
+                message_id,
+            </if>
+            create_time,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides="," >
+           UUID(),
+            <if test="current_job != null" >
+                #{current_job,jdbcType=INTEGER},
+            </if>
+            <if test="employee_name != null" >
+                #{employee_name,jdbcType=VARCHAR},
+            </if>
+            <if test="job_desc != null" >
+                #{job_desc,jdbcType=VARCHAR},
+            </if>
+            <if test="job_name != null" >
+                #{job_name,jdbcType=VARCHAR},
+            </if>
+            <if test="mobile != null" >
+                #{mobile,jdbcType=VARCHAR},
+            </if>
+            <if test="officemail != null" >
+                #{officemail,jdbcType=VARCHAR},
+            </if>
+            <if test="is_send != null" >
+                #{is_send,jdbcType=INTEGER},
+            </if>
+            <if test="userid != null" >
+                #{userid,jdbcType=VARCHAR},
+            </if>
+            <if test="username != null" >
+                #{username,jdbcType=VARCHAR},
+            </if>
+            <if test="message_id != null" >
+                #{message_id,jdbcType=VARCHAR},
+            </if>
+           now(),
+        </trim>
+    </insert>
+
+
+    <select id="getMessageForUserList" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+current_job as CurrentJob,
+CONCAT(employee_name,'(',job_name,')') as EmployeeName,
+job_desc as JobDesc,
+mobile as Mobile,
+OfficeMail as OfficeMail,
+is_send as isSend,
+userid as userId,
+username as userName
+FROM ms_message_users WHERE message_id=#{message_id}
+ORDER BY CONVERT( employee_name USING gbk ) COLLATE gbk_chinese_ci ASC
+
+    </select>
+</mapper>

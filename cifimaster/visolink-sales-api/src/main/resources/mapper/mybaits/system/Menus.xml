@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="cn.visolink.system.menus.dao.MenusDao">
+
+    <!--获取所有功能模块-->
+    <select id="queryMenus" resultType="java.util.Map">
+  select 	menu.`ID`,
+	menu.`pid`,
+	menu.`id`,
+	menu.`MenuName` menuName,
+	menu.`Url` fullPath,
+	menu.status,
+	menu.isShow,
+	menu.`redirect`,
+	menu.`component`,
+	menu.IsLast,
+	menu.listIndex,
+	menu.isDel,
+	menu.`meta` FROM
+	s_menus menu where PID='-1'
+union
+SELECT
+	menu.`ID`,
+	menu.`pid`,
+	menu.`id`,
+	menu.`MenuName` menuName,
+	menu.`Url` fullPath,
+	menu.status,
+	menu.isShow,
+	menu.`redirect`,
+	menu.`component`,
+	menu.IsLast,
+	menu.listIndex,
+	menu.isDel,
+	menu.`meta`
+FROM
+	s_menus menu where menusType=1
+	</select>
+</mapper>

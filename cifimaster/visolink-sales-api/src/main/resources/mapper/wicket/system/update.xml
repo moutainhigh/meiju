@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<sql-list>
+    <sql id="SystemCommonJobsList_Select" type="array" desc="获取通用岗位列表">
+        <![CDATA[
+      SELECT  ID ,
+              JobName ,
+              JobDesc ,
+              Status,
+              JobCode
+      FROM    S_CommonJobs
+      WHERE   AuthCompanyID = '{AuthCompanyID}'
+              AND ProductID = '{ProductID}'
+              AND ('{JobName}' = '' OR JobName LIKE '%{JobName}%')
+              AND IsDel = 0
+      ORDER BY JobName
+    ]]>
+    </sql>
+
+    <sql id="queryAllCustmerByOther" type="array" desc="通过各种条件查询渠道客户">
+        <![CDATA[
+            SELECT
+            ProjectClueId, -- 线索id
+            CustomerName, -- 客户姓名
+            BasicCustomerId,-- 客户id
+            CustomerMobile, -- 客户手机
+            (case
+            CustomerGender
+            when 1 then '男'
+            when 2 then '女'
+            else '' end ) as CustomerGender, -- 客户性别
+            CustomerCardTypeDesc as CustomerCardType, -- 证件类型
+            CustomerCardNum, -- 证件号码
+            Level, -- 等级
+            (case
+            ClueStatus
+            when 1 then '未到访'
+            when 5 then '已到访'
+            when 6 then '已认筹'
+            when 7 then '已认购'
+            when 8 then '已签约'
+            when 9 then '交易中'
+            when 10 then '看房'
+            when 11 then '提交财务'
+            else '' end) as ClueStatus,  -- 状态
+            -- 联名购房
+            (case AccountAttr
+            when 1 then '拓客'
+            when 2 then '拓客'
+            when 3 then '案场'
+            when 4 then '案场'
+            when 5 then '贝壳树'
+            else '' end ) as AccountAttr, -- 系统类别（来源系统）
+            (case AccountAttr
+            when 1 then '拓客自拓'
+            when 2 then '拓客分销'
+            when 3 then '案场自销'
+            when 4 then '案场代理'
+            when 5 then '贝壳树'
+            else '' end ) as QudaoType, -- 来源类型（改后用此字段）
+            (case SourceType
+            when 1 then '拓客'
+            when 2 then '拓客'
+            when 3 then '拓客'
+            when 4 then '贝壳树'
+            when 5 then '案场'
+            else '' end ) as SourceType,-- 来源类型（渠道类别）（改后弃用---不要删除，其他地方有用此字段）
+            TokerAttributionTeamName,-- 拓客团队
+            TokerAttributionName,-- 拓客归属人
+            TokerAttributionTime,-- 拓客归属时间
+            SalesAttributionTeamName,-- 销售团队
+            SalesAttributionName,-- 案场归属人
+            SalesAttributionTime,-- 案场归属时间
+            -- 跟进方式
+            (case
+            AccountAttr
+            when 1 then TokerTheLatestFollowDate
+            when 2 then TokerTheLatestFollowDate
+            when 3 then SalesTheLatestFollowDate
+            when 4 then SalesTheLatestFollowDate
+            else '' end ) as genjinshijan,-- 最近跟进时间
+            ReportCreateTime,-- 报备时间
+            TheFirstVisitDate,-- 到访时间（首访）
+            BookingDate,-- 认筹时间
+            SubscribingDate,-- 认购时间
+            ContractDate,-- 签约时间
+            (case IsReportExpire
+            when 1 then '逾期'
+            when 0 then '正常'
+            else '' end ) as IsReportExpire, -- 拓客报备（是否逾期，1是，0正常）
+            (case IsTokerVisitExpire
+            when 1 then '逾期'
+            when 0 then '正常'
+            else '' end ) as IsTokerVisitExpire,-- 拓客到访（是否逾期，1是，0正常）
+            (case IsTokerFollowExpire
+            when 1 then '逾期'
+            when 0 then '正常'
+            else '' end ) as IsTokerFollowExpire-- 拓客跟进（是否逾期，1是，0正常）
+            FROM
+            b_project_clues
+            WHERE
+             projectId='{projectId}'
+            {where}
+    ]]>
+    </sql>
+
+    <sql id="ProjectProtectRuleInfo_Select" type="array" desc="新版项目规则查询">
+        <![CDATA[
+            select  *  from  b_project_protect_rule
+            where (ProjectID='{projectId}' or '{projectId}'='') and (SourceType='{sourceType}' or '{sourceType}'='')
+            AND (ProjectOrgCategory='{ProjectOrgCategory}' or '{ProjectOrgCategory}'='')
+            AND (ProjectOrgID='{ProjectOrgID}' or ''='{ProjectOrgID}')
+		]]>
+    </sql>
+
+    <sql id="queryPublicPool" type="array" multi="true" desc="公共池中的顾客信息">
+        <![CDATA[
+            SELECT
+            1 as rownum,
+            ID,
+            CustomerName, -- 客户姓名
+            concat(left(CustomerMobile,3),'****',RIGHT(CustomerMobile,4)) as CustomerMobile, -- 手机
+            (case
+            ClueStatus
+            when 1 then '未到访'
+            when 5 then '已到访'
+            when 6 then '已认筹'
+            when 7 then '已认购'
+            when 8 then '已签约'
+            when 9 then '交易中'
+            when 10 then '看房'
+            when 11 then '提交财务'
+            else '' end) as ClueStatus,  -- 状态
+            OperationTime,  -- 加入公共池时间
+            (case
+            AddType
+            when 1 then '报备逾期'
+            when 2 then '跟进逾期'
+            when 3 then '到访逾期'
+            when 4 then '放弃'
+            when 5 then '判单回收'
+            else '' end ) as 	Reason, -- 加入原因
+            (case
+            CusetomerSource
+            when 1 then '拓客'
+            when 2 then '案场'
+            else '' end ) as CusetomerSource,-- 公共池类型
+            (case
+            CusetomerSource
+            when 1 then ProjectClueId
+            when 2 then OpportunityClueId
+            else '' end ) as ProjectClueId,-- 线索id或机会id
+            ReportUserName, -- 报备人员
+            ReportTime, -- 报备时间
+            ReportTime as ReportCreateTime, -- 报备时间
+            TheFirstVisitDate, -- 首访时间
+            TokerAttributionName, -- 原拓客归属人
+            TokerAttributionTime, -- 原拓客归属时间
+            SalesAttributionName, -- 原案场归属人
+            SalesAttributionTime, -- 原案场归属时间
+            (case
+            CusetomerSource
+            when 1 then TokerAttributionTeamName
+            when 2 then SalesAttributionTeamName
+            else '' end ) as SalesAttributionTeamName, -- 拓客或者案场团队
+            (case
+            CusetomerSource
+             when 1 then TokerTheLatestFollowDate
+             when 2 then SalesTheLatestFollowDate
+             else '' end ) as genjinshijan -- -- 拓客最近跟进日期 或者 案场最近跟进日期
+            FROM
+            B_CustomerPublicPool
+            WHERE
+            projectId='{ProjectID}'
+            {sqlWhere}
+            ORDER BY(OperationTime) DESC
+            LIMIT {start},{end};
+        ]]>
+
+    </sql>
+
+    <sql id="ProjectProtectProxyRule_Select" type="array" desc="分销/代理公司查询">
+        <![CDATA[
+            SELECT
+            Org.ID AS OrgID,
+            org.OrgName,
+            DATE_FORMAT( sc.StartTime, '%Y-%m-%d' ) AS StartTime,
+            DATE_FORMAT( sc.EndTime, '%Y-%m-%d' ) AS EndTime,
+            bpp.*
+            FROM
+            s_organization org
+            LEFT JOIN s_company_info sc ON sc.ID = org.OrgCompanyID
+            LEFT JOIN b_project_protect_rule bpp ON Org.ID = bpp.ProjectOrgID
+            WHERE
+            org.ProjectID = '099e66b3-2523-4b26-9692-2aa208a0d9ae'
+            AND org.OrgCategory = '9'
+
+      ]]>
+    </sql>
+
+    <sql id="queryRedistributionRecord" type="array" desc="查询案场、公共池重分配记录信息">
+        <![CDATA[
+            SELECT
+            1 as rownum,
+            brb.id, -- 重分配批次
+            brb.createUser, --  操作人ID
+           (select EmployeeName from b_account where ID=brb.createUser) as EmployeeName, -- 操作人姓名
+            bc.ConfirmPersonName, -- 被分配人
+            bc.ConfirmTime, -- 分配时间
+            (case
+            brb.RedistributionGenre
+            when 1 then '拓客台账'
+            when 2 then '案场台账'
+            when 3 then 'app'
+            when 4 then '公共池'
+            else '' end ) as RedistributionGenre,-- 重分配类型（1.拓客台账 2.案场台账 3.app 4.公共池）
+            ( SELECT DictName FROM s_dictionary WHERE DictCode = brb.RedistributionType AND DictCode!=0 limit 1  ) AS RedistributionType,-- 重分配原因
+            bpc.CustomerName,-- 客户手机
+            bpc.CustomerMobile, -- 客户手机
+            (case
+            bpc.ClueStatus
+            when 1 then '未到访'
+            when 5 then '已到访'
+            when 6 then '已认筹'
+            when 7 then '已认购'
+            when 8 then '已签约'
+            when 9 then '交易中'
+            when 10 then '看房'
+            when 11 then '提交财务'
+            else '' end) as ClueStatus,  -- 线索状态（客户状态）
+            bpc.Level, -- 客户等级
+            bpc.CustomerCardTypeDesc, -- 客户证件类型
+            bpc.CustomerCardNum, -- 证件号
+            bc.SalesName, -- 归属人员
+            bc.SalesAttributionTime,-- 归属时间
+            bc.OldSalesName,-- 原归属人
+            (case
+            bc.Type
+            when 1 then OldTokerAttributionTime
+            else OldSalesAttributionTime end ) as time, -- 原归属时间，1为拓客
+            (case bpc.AccountAttr
+            when 1 then '拓客'
+            when 2 then '拓客'
+            when 3 then '案场'
+            when 4 then '案场'
+            when 5 then '贝壳树'
+            else '' end ) as AccountAttr, -- 系统类别（来源系统）
+            bc.Type
+            FROM
+            b_redistribution_batch brb
+            JOIN B_CustomerDistributionRecords bc ON brb.id = bc.RedistributionBatchId
+            left join b_project_opportunity bpc on bpc.ProjectClueId = bc.ProjectClueId
+            WHERE
+            brb.projectId='{projectId}' -- 24dd9089-0ea3-4ef9-b27e-e8e637bd9bed
+            AND   brb.RedistributionGenre!=1
+
+         ]]>
+    </sql>
+
+
+</sql-list>

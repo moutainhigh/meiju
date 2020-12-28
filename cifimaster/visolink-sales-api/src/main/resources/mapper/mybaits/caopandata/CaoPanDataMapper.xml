@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.caopandata.dao.CaoPanDataMapper">
+    <delete id="emptySinggingData">
+    DELETE FROM tradedataviewforsman;
+</delete>
+    <insert id="initedSignData" parameterType="java.util.List">
+        INSERT INTO tradedataviewforsman (
+        business_unit,
+        project_id,
+        project_name,
+        project_code,
+        stage_id,
+        stage_name,
+        stage_code,
+        building_id,
+        building_name,
+        estate_code,
+        estate_type,
+        product_code,
+        product_type,
+        room_id,
+        room_num,
+        trade_status,
+        room_count,
+        room_area,
+        trade_money,
+        trade_date,
+        check_time
+        )
+        VALUES
+        <foreach collection="list" index="index" item="item" separator=",">
+            (
+            #{item.business_unit},
+            #{item.project_id},
+            #{item.project_name},
+            #{item.project_code},
+            #{item.stage_id},
+            #{item.stage_name},
+            #{item.stage_code},
+            #{item.building_id},
+            #{item.building_name},
+            #{item.estate_code},
+            #{item.estate_type},
+            #{item.product_code},
+            #{item.product_type},
+            #{item.room_id},
+            #{item.room_num},
+            #{item.trade_status},
+            #{item.room_count},
+            #{item.room_area},
+            #{item.trade_money},
+            #{item.trade_date},
+            #{item.check_time}
+            )
+        </foreach>
+    </insert>
+    <!--合并数据 操盘数据和明源签约数据-->
+    <insert id="mergeData">
+UPDATE tradedataviewforsman a,t_mm_project b
+set a.project_id=b.projectID
+where a.project_code=b.projectCode;
+UPDATE tradedataviewforsman a,t_mm_staging b
+set a.stage_id=b.projectFID
+where a.stage_code=b.stageCode;
+update tradedataviewforsman trm,
+(select room_id,sum(ifnull(room_area,0)) temproom_area  from tradedataviewforsman GROUP BY room_id)
+temptrm
+ set trm.room_area=temptrm.temproom_area where trm.room_id=temptrm.room_id
+ and (trm.trade_status='签约' or trm.trade_status='退房');
+delete  from vs_xsgl_contract where dataType=2;
+INSERT INTO vs_xsgl_contract (
+	`roominfo`,
+	`roomguId`,
+	`x_bldprdId`,
+	`x_buildingName`,
+	`x_productCode`,
+	`x_productType`,
+	`projectid`,
+	`projectName`,
+	`projectCode`,
+	`stageName`,
+	`stageCode`,
+	`ywgsDate`,
+	`qsDate`,
+	 CloseDate,
+	 AuditDate,
+	`cjRmbTotal`,
+	`status`,
+	`dataType`,
+	bidArea,
+	projectFid,
+	CloseReason,
+bcTotal,
+contractGUID,
+modifiedTime
+)
+select CONCAT(project_name,"-",stage_name,"-",building_name)
+as roominfo,
+room_id as roomguId,
+building_ID as x_bldprdId,
+building_name as x_buildingName,
+product_code as x_productCode,
+estate_type as x_productType,
+project_id as projectid,
+project_name as projectName,
+project_code as projectCode,
+stage_name as stageName,
+stage_code as stageCode,
+CONCAT(trade_date," ",substring(check_time,12,18)) as ywgsDate,
+CONCAT(trade_date," ",substring(check_time,12,18)) as qsDate,
+CONCAT(trade_date," ",substring(check_time,12,18)) as CloseDate,
+case when trade_status='补差' then CONCAT(trade_date," ",substring(check_time,12,18)) end AuditDate,
+ abs(trade_money) as cjRmbTotal,
+case when trade_status='退房'
+then '关闭' else '激活' end
+,
+2,
+abs(room_area) as roomArea,
+stage_id as stage_id,
+case when trade_status='退房'
+then 'nos退房' when trade_status='补差'
+then '补差'  else  null end CloseReason,
+case when trade_status='补差'
+then trade_money else null end bcTotal,
+UUID(),
+check_time as modifiedTime
+from tradedataviewforsman;
+update VS_XSGL_CONTRACT set totalArea=bidArea
+where dataType=2 and totalArea is null;
+#增加组团
+update
+    vs_xsgl_contract a,t_mm_group b
+    set a.group_id=b.groupid,a.group_name=b.groupname
+    where a.x_bldprdId=b.bldPrdID and a.dataType=2;
+    #修改没业态code
+update
+    vs_xsgl_contract a,t_mm_designbuild b
+    set a.x_productCode=b.productCode
+    where a.x_bldprdId=b.bldPrdID and (a.x_productCode is null or a.x_productCode='');
+    </insert>
+
+
+    <delete id="deleteCaoPanByDate">
+        delete from tradedataviewforsman where check_time>=#{startTime}
+    </delete>
+
+
+    <insert id="updateCaoPanInfo">
+UPDATE tradedataviewforsman a,t_mm_project b
+set a.project_id=b.projectID
+where a.project_code=b.projectCode and check_time>=#{startTime};
+UPDATE tradedataviewforsman a,t_mm_staging b
+set a.stage_id=b.projectFID
+where a.stage_code=b.stageCode and check_time>=#{startTime};
+update tradedataviewforsman trm,
+(select room_id,sum(ifnull(room_area,0)) temproom_area  from tradedataviewforsman GROUP BY room_id)
+temptrm
+ set trm.room_area=temptrm.temproom_area where trm.room_id=temptrm.room_id
+ and (trm.trade_status='签约' or trm.trade_status='退房') and check_time>=#{startTime};
+delete  from vs_xsgl_contract where dataType=2;
+INSERT INTO vs_xsgl_contract (
+	`roominfo`,
+	`roomguId`,
+	`x_bldprdId`,
+	`x_buildingName`,
+	`x_productCode`,
+	`x_productType`,
+	`projectid`,
+	`projectName`,
+	`projectCode`,
+	`stageName`,
+	`stageCode`,
+	`ywgsDate`,
+	`qsDate`,
+	 CloseDate,
+	 AuditDate,
+	`cjRmbTotal`,
+	`status`,
+	`dataType`,
+	bidArea,
+	projectFid,
+	CloseReason,
+bcTotal,
+contractGUID,
+modifiedTime
+)
+select CONCAT(project_name,"-",stage_name,"-",building_name)
+as roominfo,
+room_id as roomguId,
+building_ID as x_bldprdId,
+building_name as x_buildingName,
+product_code as x_productCode,
+estate_type as x_productType,
+project_id as projectid,
+project_name as projectName,
+project_code as projectCode,
+stage_name as stageName,
+stage_code as stageCode,
+CONCAT(trade_date," ",substring(check_time,12,18)) as ywgsDate,
+CONCAT(trade_date," ",substring(check_time,12,18)) as qsDate,
+CONCAT(trade_date," ",substring(check_time,12,18)) as CloseDate,
+case when trade_status='补差' then CONCAT(trade_date," ",substring(check_time,12,18)) end AuditDate,
+ abs(trade_money) as cjRmbTotal,
+case when trade_status='退房'
+then '关闭' else '激活' end
+,
+2,
+abs(room_area) as roomArea,
+stage_id as stage_id,
+case when trade_status='退房'
+then 'nos退房' when trade_status='补差'
+then '补差'  else  null end CloseReason,
+case when trade_status='补差'
+then trade_money else null end bcTotal,
+UUID(),
+check_time as modifiedTime
+from tradedataviewforsman;
+update VS_XSGL_CONTRACT set totalArea=bidArea
+where dataType=2 and totalArea is null;
+#增加组团
+update
+    vs_xsgl_contract a,t_mm_group b
+    set a.group_id=b.groupid,a.group_name=b.groupname
+    where a.x_bldprdId=b.bldPrdID and a.dataType=2;
+    #修改没业态code
+update
+    vs_xsgl_contract a,t_mm_designbuild b
+    set a.x_productCode=b.productCode
+    where a.x_bldprdId=b.bldPrdID and (a.x_productCode is null or a.x_productCode='');
+    </insert>
+
+</mapper>

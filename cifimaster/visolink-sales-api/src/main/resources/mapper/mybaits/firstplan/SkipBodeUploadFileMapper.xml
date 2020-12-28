@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.skipnodeupload.dao.SkipNodeUploadFileDao">
+    <!--查询补录的附件列表-->
+    <select id="getRepairFileList" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	id,
+	ShowName AS name,
+	SaveUrl AS url,
+	ListIndex AS orderIndex
+FROM
+	s_attach
+WHERE
+	BizID = #{id} AND (IsDel=3 or IsDel=0) order by ListIndex
+</select>
+	<!--更改附件状态-->
+	<update id="updateFileStatus" parameterType="java.util.Map">
+		UPDATE s_attach SET IsDel=3 ,BizID=#{flow_id} WHERE id=#{id}
+	</update>
+
+	<!--将附件更改为有效-->
+	<update id="updateFileStatusIseffective" parameterType="java.lang.String">
+		UPDATE s_attach SET IsDel=0  WHERE BizID=#{flow_id}
+	</update>
+
+	<!--查询进行附件补录的节点名称-->
+	<select id="getNodeName" resultType="java.lang.String" parameterType="java.lang.String">
+SELECT
+	node_name
+FROM
+	fp_plan_node
+WHERE
+	id = #{plan_node_id}
+</select>
+	<!--获取当前处于哪个节点-->
+	<select id="getNodeDataByFlowId" resultType="java.util.Map" parameterType="java.lang.String">
+select
+node.node_name,
+node.node_level
+from
+fp_guest_storage_flow flow
+INNER JOIN fp_plan_node node on node.id=flow.plan_node_id
+where flow.id=#{flow_id}
+	</select>
+</mapper>

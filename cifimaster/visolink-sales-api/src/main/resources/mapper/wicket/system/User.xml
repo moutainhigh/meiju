@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<sql-list>
+    <sql id="User_Select" type="object" desc="用户查询">
+        <![CDATA[
+         	   SELECT
+               sa.id,
+         	 sa.username,
+         	 sa.password,
+         	 sa.AccountType,
+         	 sa.EmployeeCode,
+         	 sa.EmployeeName,
+         	 sa.Gender,
+         	 sa.Mobile,
+         	 sa.Address,
+         	 sa.UserOrgID,
+         	 sa.AuthCompanyID,
+         	 sa.ProductID,
+         	 sa.Creator,
+         	 sa.CreateTime,
+         	 sa.Status,
+         	 sa.IsDel,
+            scj.JobCode,
+						sj.id JobID
+        FROM
+            b_account sa,
+            s_jobsuserrel jur,
+            s_jobs sj,
+            s_commonjobs scj
+        WHERE
+            sa.ID = jur.AccountID
+        AND jur.JobID = sj.ID
+        AND sj.CommonJobID = scj.ID
+        and sa.UserName='{UserName}'
+        {JobID}
+        LIMIT 1;
+        ]]>
+        <sql name="UserProduct" type="array" desc="获取用户关联的产品">
+            <![CDATA[
+        SELECT DISTINCT
+        	p.*,
+        	php.Url,
+          acod.Theme
+        FROM b_account a
+        	INNER JOIN S_JobsUserRel jur ON a.ID = jur.AccountID
+        	INNER JOIN S_Jobs j ON jur.JobID = j.ID
+        	INNER JOIN S_Organization o ON j.JobOrgID = o.ID
+        	INNER JOIN S_Product p ON j.ProductID = p.ID
+        	INNER JOIN S_AuthCompanyOrderDetail acod ON j.ProductID = acod.ProductID AND j.AuthCompanyID = acod.AuthCompanyID
+        	INNER JOIN S_AuthCompany ac ON j.AuthCompanyID = ac.ID
+        	INNER JOIN V_ProductHomePage php ON j.ProductID = php.ProductID
+        WHERE a.IsDel = 0 AND a.Status = 1 AND a.UserName = '{UserName}'
+        	AND j.IsDel = 0 AND j.Status = 1
+        	AND o.IsDel = 0 AND o.Status = 1
+          AND p.IsDel = 0 AND p.Status = 1
+        	AND acod.IsDel = 0 AND acod.Status = 1 AND acod.EndTime >= NOW()
+        	AND ac.IsDel = 0 AND ac.Status = 1
+        ORDER BY p.ProductName DESC
+      ]]>
+        </sql>
+    </sql>
+
+
+    <sql id="mGetAccountType_Update" type="object" desc="判断用户帐号类型">
+        <![CDATA[
+		Update b_account set UserName = '{UserName}' where UserName = '{UserName}'
+		]]>
+    </sql>
+
+
+
+    <sql id="mGetAccountType_Select" type="object" desc="判断用户帐号类型">
+        <![CDATA[
+				SELECT
+		  a.ID,
+		  a.`UserName`,
+		  a.`Gender`,
+		  a.`EmployeeName`,
+		  CONCAT(a.AccountType,'') AS AccountType,
+		  a.`Password`,
+		  a.`Status`,
+		  a.IsDel,
+		  r.IsAudit,
+		  r.`ID` AS AuditID
+		FROM
+		  b_account a
+		  LEFT JOIN b_proxyregister r
+		    ON r.`UserID` = a.`ID`
+		WHERE UserName = '{UserName}' and a.AccountType!=4
+		]]>
+    </sql>
+
+    <sql id="mJobsListByUserIdAndJobId_Select" type="array" desc="根据用户Id和岗位Id获取岗位信息">
+        <![CDATA[
+			SELECT
+            jobs.`ID`, jobs.`JobCode`, jobs.`JobName`, jobs.`JobDesc`, jobs.`JobPID`, jobs.`CommonJobID`, jobs.`JobOrgID`,
+            jobs.`AuthCompanyID`, jobs.`ProductID`, jobs.`Creator`,
+            jobs.`CreateTime`, jobs.`Editor`, jobs.`EditTime`, jobs.`Status`, jobs.`IsDel`
+            FROM
+            S_JobsUserRel rel
+            LEFT JOIN S_Jobs jobs ON rel.JobID = jobs.ID
+            WHERE
+            rel.AccountID = '{UserId}'
+            ORDER BY createtime desc
+		]]>
+    </sql>
+
+    <sql id="mJobsListByUserId_Select" type="array" desc="根据用户Id获取岗位列表">
+        <![CDATA[
+			SELECT
+            jobs.*
+            FROM
+            S_JobsUserRel rel
+            LEFT JOIN S_Jobs jobs ON rel.JobID = jobs.ID
+            WHERE
+            rel.AccountID = '{UserId}'
+            ORDER BY createtime desc
+		]]>
+    </sql>
+
+    <sql id="mFindByProjectIdByOrgId" type="object" desc="根据OrgId查找项目Id">
+        <![CDATA[
+        select a.*,b.ProjectName ,b.IsPrintStatus,b.ID ProjectID from s_organization a
+        left join b_project b on a.ProjectID=b.id
+        where a.id ='{OrgId}'
+        ]]>
+    </sql>
+    <sql id="mFindOrgInfoByPId" type="object" desc="根据OrgId查找项目Id">
+        <![CDATA[
+        select
+        (case org.OrgCategory  when 11 then  org.PID
+        else org.ID end ) as ID,PID,OrgCode,OrgName
+        from s_organization org where id ='{PID}'
+        ]]>
+    </sql>
+    <sql id="mMenusListByUserIdAndJobId_Select" type="array" desc="登录时根据用户Id和JobId查询已经授权的菜单">
+        <![CDATA[
+			SELECT menus.*,jobrel.id jobId from s_menus menus
+            left join S_JobsMenuRel jobrel on menus.ID=jobrel.MenuID
+            where jobrel.JobID in (SELECT
+            jobs.id
+        FROM
+            S_JobsUserRel rel
+            LEFT JOIN S_Jobs jobs ON rel.JobID = jobs.ID
+        WHERE
+            rel.AccountID = '{UserId}'
+            -- and menusType=2
+			and Levels=2
+			and jobs.id='{JobID}'
+            ORDER BY createtime desc)
+
+		]]>
+    </sql>
+
+    <sql id="mMenusListByUserId_Select" type="array" desc="登录时根据用户Id查询已经授权的菜单">
+        <![CDATA[
+			SELECT menus.*,jobrel.id jobId from s_menus menus
+            left join S_JobsMenuRel jobrel on menus.ID=jobrel.MenuID
+            where jobrel.JobID in (SELECT
+            jobs.id
+        FROM
+            S_JobsUserRel rel
+            LEFT JOIN S_Jobs jobs ON rel.JobID = jobs.ID
+        WHERE
+            rel.AccountID = '{UserId}'
+            and menusType=2
+			and Levels=2
+            ORDER BY createtime desc)
+		]]>
+    </sql>
+
+    <sql id="mGetUserIsRepeatByMobile_Select" type="object" desc="根据手机号码查询用户是否重复">
+        <![CDATA[
+        SELECT count(1) as  num FROM `b_account` a WHERE a.`Mobile`='{Mobile}'
+        AND a.Status = 1 and a.IsDel=0 and a.`AccountType` !=4;
+        ]]>
+    </sql>
+    <sql id="mGetUserIsPresenceByMobile_Select" type="object" desc="根据手机号码查询用户是否存在">
+        <![CDATA[
+        select a.`AccountType`,a.`ID`,a.`Mobile` as  account_type,Password,
+        Mobile from `b_account` a where
+         a.`Mobile`='{Mobile}' and a.Status = 1 and a.IsDel=0 AND a.`AccountType` !=4;
+        ]]>
+    </sql>
+    <sql id="mUpdatePassword" type="object" desc="修改密码">
+        <![CDATA[
+        update b_account a  set Password=UPPER(MD5('{NewPassWord}')),
+        EditTime=sysdate() where id='{UserID}' and Status=1 and IsDel =0 AND a.`AccountType` !=4;
+        ]]>
+    </sql>
+    <sql id="mMenusListByUserIdAndPid_Select" type="array" desc="根据用户Id和父级Id查询已经授权的菜单">
+        <![CDATA[
+			SELECT jobrel.JobID,menus.* from s_menus menus
+            left join S_JobsMenuRel jobrel on menus.ID=jobrel.MenuID
+            where  menus.IsShow=1 and jobrel.JobID in (SELECT
+            jobs.id
+        FROM
+            S_JobsUserRel rel
+            LEFT JOIN S_Jobs jobs ON rel.JobID = jobs.ID
+        WHERE
+            rel.AccountID = '{userId}'
+						And  PID='{pId}'
+						and jobrel.JobID= '{JobID}'
+            ORDER BY CreateTime ASC)
+		]]>
+    </sql>
+    <sql id="mLastTimeLogin_Select" type="array" desc="查询上次登录的job与项目">
+        <![CDATA[
+select * from s_account_login_logs where AccountID='{userid}'
+		]]>
+    </sql>
+    <sql id="mLastTimeLogin_Insert" type="array" desc="第一次登录先记录">
+        <![CDATA[
+INSERT INTO s_account_login_logs(id,accountId,jobId,projectId,loginTime) VALUES ('{id}','{accountId}','{jobId}','{projectId}',{loginTime})
+		]]>
+    </sql>
+    <sql id="mLastTimeLogin_Update" type="array" desc="修改上次登录的job project">
+        <![CDATA[
+UPDATE s_account_login_logs SET jobId ='{jobId}' , projectId='{projectId}' , loginTime={loginTime} where accountId='{userid}'
+		]]>
+    </sql>
+    <sql id="GetIdByUserName_Select" type="array" desc="根据登录用户名称获取登录人UserId">
+        <![CDATA[
+select id from b_account where userName='{UserName}'
+		]]>
+    </sql>
+    <sql id="JobMenus_Select" type="array" desc="该产品下与登录人相关岗位的菜单">
+        <![CDATA[
+   SELECT DISTINCT
+	`t`.`UserID` AS `UserID`,
+	`t`.`UserName` AS `UserName`,
+	`t`.`EmployeeName` AS `EmployeeName`,
+	`t`.`JobID` AS `JobID`,
+	`t`.`JobOrgID` AS `JobOrgID`,
+	`t`.`ProductID` AS `ProductID`,
+	`t`.`AuthCompanyID` AS `AuthCompanyID`,
+	`m`.`ID` AS `MenuID`,
+	`m`.`PID` AS `MenuPID`,
+	`m`.`MenuName` AS `MenuName`,
+	`m`.`Url` AS `Url`,
+	`m`.`ImageUrl` AS `ImageUrl`,
+	`m`.`IconClass` AS `IconClass`,
+	`m`.`IsHomePage` AS `IsHomePage`,
+	`m`.`IsShow` AS `IsShow`,
+	`m`.`Levels` AS `Levels`,
+	`m`.`ListIndex` AS `ListIndex`,
+	(
+CASE
+
+	WHEN EXISTS (
+SELECT
+1
+FROM
+`s_menus` `m1`
+WHERE
+(
+( `m1`.`PID` = `m`.`ID` )
+	AND ( `m1`.`IsDel` = 0 )
+	AND ( `m1`.`Status` = 1 )
+	AND ( `m1`.`IsShow` = 1 )
+	)
+	) THEN
+		1 ELSE 0
+	END
+	) AS `IsHasChild`,
+	`t`.`RowNum` AS `RowNum`
+FROM
+	(
+		(
+			(
+				(
+					(
+						(
+							(
+							SELECT
+								`a`.`ID` AS `UserID`,
+								`a`.`UserName` AS `UserName`,
+								`a`.`EmployeeName` AS `EmployeeName`,
+								`a`.`AuthCompanyID` AS `AuthCompanyID`,
+								`j`.`ProductID` AS `ProductID`,
+								`j`.`ID` AS `JobID`,
+								`j`.`JobOrgID` AS `JobOrgID`,
+								`temp`.`MenuID` AS `MenuID`,
+								0 AS `RowNum`
+							FROM
+								(
+									(
+										(
+											( `b_account` `a` JOIN `s_jobsuserrel` `jur` ON ( ( `a`.`ID` = `jur`.`AccountID` ) ) )
+											JOIN `s_jobs` `j` ON ( ( `jur`.`JobID` = `j`.`ID` ) )
+										)
+										JOIN `s_organization` `o` ON ( ( `j`.`JobOrgID` = `o`.`ID` ) )
+									)
+									JOIN (
+									SELECT
+										`s_jobsmenurel`.`JobID` AS `JobID`,
+										`s_jobsmenurel`.`MenuID` AS `MenuID`
+									FROM
+										`s_jobsmenurel`
+									#	UNION
+									#SELECT
+										#`j`.`ID` AS `ID`,
+										#`cjmr`.`MenuID` AS `MenuID`
+									#FROM
+										#( `s_commonjobsmenurel` `cjmr` JOIN `s_jobs` `j` ON ( ( `cjmr`.`JobID` = `j`.`CommonJobID` ) ) )
+									) `temp` ON ( ( `j`.`ID` = `temp`.`JobID` ) )
+								)
+							WHERE
+								(
+									a.`UserName` = '{UserName}'
+									AND j.`ProductID` = '{ProductId}'
+									AND ( `a`.`IsDel` = 0 )
+									AND ( `a`.`Status` = 1 )
+									AND ( `j`.`IsDel` = 0 )
+									AND ( `j`.`Status` = 1 )
+									AND ( `o`.`IsDel` = 0 )
+									AND ( `o`.`Status` = 1 )
+								)
+							)
+						) `t`
+						JOIN `s_productmenurel` `pmr` ON ( ( ( `t`.`ProductID` = `pmr`.`ProductID` ) AND ( `t`.`MenuID` = `pmr`.`MenuID` ) ) )
+					)
+					JOIN `s_menus` `m` ON ( ( `t`.`MenuID` = `m`.`ID` ) )
+				)
+				JOIN `s_authcompanyorderdetail` `acod` ON ( ( ( `t`.`AuthCompanyID` = `acod`.`AuthCompanyID` ) AND ( `t`.`ProductID` = `acod`.`ProductID` ) ) )
+			)
+			JOIN `s_product` `p` ON ( ( `t`.`ProductID` = `p`.`ID` ) )
+		)
+		JOIN `s_authcompany` `ac` ON ( ( `t`.`AuthCompanyID` = `ac`.`ID` ) )
+	)
+WHERE
+	(
+		( `m`.`IsDel` = 0 )
+		AND ( `m`.`Status` = 1 )
+		AND ( `acod`.`IsDel` = 0 )
+		AND ( `acod`.`Status` = 1 )
+		AND ( `acod`.`EndTime` >= NOW( ) )
+		AND ( `p`.`IsDel` = 0 )
+		AND ( `p`.`Status` = 1 )
+		AND ( `ac`.`IsDel` = 0 )
+		AND ( `ac`.`Status` = 1 )
+	)
+ORDER BY
+	m.IsHomePage DESC,
+	m.Levels ASC,
+m.ListIndex ASC;
+      ]]>
+    </sql>
+
+
+</sql-list>

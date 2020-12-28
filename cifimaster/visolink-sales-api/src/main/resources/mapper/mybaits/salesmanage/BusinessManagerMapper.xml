@@ -1,0 +1,598 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.businessmanager.dao.BusinessManagerDao">
+    <!--区域查看项目上报数据-->
+<!--区域查看 项目上报 项目列表-->
+    <select id="regionReportSelect" resultType="java.util.Map" parameterType="java.util.Map">
+
+SELECT
+IFNULL(p.projectCode,'') projectCode,
+bu.`business_name`
+,bu.`type`
+ ,bu.`guid`
+,bu.`business_id`
+,bu.`guid` as business_unit_id
+,bu.`father_id` as father_id
+,DATE_FORMAT(mpb.`months`,'%Y-%m-%d') months
+,bu.`region_org_id`
+,mpb.reserve_can_sell_set
+,mpb.reserve_can_sell_funds
+
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+
+,mpb.top_three_month_average_sign_set
+,mpb.top_three_month_average_sign_funds
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+
+,IFNULL(mpi.reserve_sign_funds,0) reserve_sign_funds
+,IFNULL(mpi.new_sign_funds,0) new_sign_funds
+,IFNULL(mpi.total_sign_funds,0) total_sign_funds
+
+,IFNULL(mpi.plan_subscription_set,0) plan_subscription_set
+,IFNULL(mpi.plan_subscription_funds,0) plan_subscription_funds
+  ,CONCAT (ROUND (mpb.top_three_month_average_turnover_rate *100,2),'%')  top_three_month_average_turnover_rate
+
+,  CONCAT (ROUND ( mpb.last_month_turnover_rate*100,2),'%')  last_month_turnover_rate
+, (case when (mpb.plan_status>3 OR bu.`type`&lt;3 ) then CONCAT (ROUND (  mpi.plan_turnover_rate,2),'%') else null end )    plan_turnover_rate
+,t.marketing_promotion_cost
+ ,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count,
+mpb.`is_effective`,
+ mpb.plan_status
+ FROM mm_business_unit bu
+
+ LEFT JOIN `mm_monthly_plan` mp ON 0=0
+ LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months`
+ LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3  AND mpi.is_effective = 1  AND mp.`months` = mpi.`months`
+LEFT JOIN t_mm_project p on p.projectID=bu.business_id
+
+
+LEFT JOIN(
+
+SELECT
+
+mpi.marketing_promotion_cost,
+bu.business_id
+FROM
+ `mm_monthly_plan`  mp
+
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+WHERE mp.`months` =#{months}
+
+AND bu.`type` IN (2,3) AND mpi.`prepared_by_unit_type` =2
+
+AND
+(
+   bu. `region_org_id`  = #{region_org_id}
+   OR bu.`business_id` =#{region_org_id}
+   )
+
+)t ON t.`business_id` = bu.`business_id`
+
+ WHERE bu.monthly_weekly_type=1  AND bu.`type` IN (2,3)
+ AND (  bu.`region_org_id` = #{region_org_id}
+ OR bu.`business_id` = #{region_org_id}
+ )
+ -- AND mpi.`prepared_by_unit_type` = 3
+ AND mp.`months` = #{months}
+
+    </select>
+<!--区域查看项目上报 合计初始化。-->
+    <select id="regionFundsSelect" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT  bu.`region_org_id`, (mp.`months`,'%Y-%m-%d') months,bu.`region_org_id`,
+SUM( mpi.`reserve_sign_funds`) reserve_sign_funds,
+ SUM(  mpi.`reserve_sign_set`) reserve_sign_set,
+  SUM(   mpi.`new_sign_funds` ) new_sign_funds,
+   SUM(   mpi.`total_sign_funds` ) total_sign_funds,
+    SUM(   mpi.`new_sign_set` ) new_sign_set,
+       SUM(    mpi.`total_sign_set` ) total_sign_set,
+         SUM(   mpi.`marketing_promotion_cost` ) marketing_promotion_cost
+
+
+FROM
+  `mm_monthly_plan_index` mpi
+  LEFT JOIN `mm_monthly_plan`  mp ON mp.`guid` = mpi.`monthly_plan_id`
+  LEFT JOIN `mm_business_unit` bu  ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+
+  WHERE 0=0  AND mp.`months` = #{months}
+  AND mpi.`prepared_by_unit_type` = 3
+  AND mpi.`prepared_by_level` = 3
+  AND bu.`region_org_id` = #{region_org_id}
+    AND mpi.is_effective = 1
+    </select>
+
+    <!--修改区域合计-->
+    <update id="regionFundsUpdate"  parameterType="java.util.Map">
+
+UPDATE `mm_monthly_plan_index` mpi , (
+
+SELECT  bu.`region_org_id`,
+SUM( mpi.`reserve_sign_funds`) AS reserve_sign_funds,
+SUM( mpi.`reserve_sign_set`) AS reserve_sign_set,
+SUM( mpi.`new_sign_funds` ) AS new_sign_funds,
+SUM( mpi.`total_sign_funds` ) AS total_sign_funds,
+SUM( mpi.`new_sign_set` ) AS new_sign_set,
+SUM( mpi.`total_sign_set` ) AS total_sign_set,
+ g.`marketing_promotion_cost`AS marketing_promotion_cost,
+SUM( mpi.plan_subscription_set ) AS plan_subscription_set,
+SUM(mpi.plan_subscription_funds ) AS plan_subscription_funds,
+ROUND(SUM( mpi.plan_subscription_set )/(case when  SUM(mmpid.come_client_quantity)=0 then null else  SUM(mmpid.come_client_quantity) end)*100,0) AS plan_turnover_rate
+FROM
+`mm_monthly_plan_index` mpi
+LEFT JOIN `mm_monthly_plan`  mp ON mp.`guid` = mpi.`monthly_plan_id`
+LEFT JOIN `mm_business_unit` bu  ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`AND mp.`months` = mpb.`months`
+LEFT JOIN  (SELECT
+ come_client_quantity,detail.project_id
+FROM  mm_monthly_plan_index_detail detail
+INNER JOIN
+mm_monthly_plan_basis mpb
+ON mpb.`prepared_by_unit_org_id` = detail.`project_id`
+and mpb.months=#{months} and plan_status>3
+GROUP BY detail.project_id) mmpid ON  bu.`business_id`=mmpid.project_id
+LEFT JOIN(
+SELECT
+mpi.marketing_promotion_cost
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+
+WHERE mp.`months` =#{months}
+
+AND bu.`type`= 2 AND mpi.`prepared_by_unit_type` = 2
+
+AND
+(
+   bu. `region_org_id`  = #{regionOrgId}
+   OR bu.`business_id` =#{regionOrgId}
+   )
+)g ON 0=0
+
+WHERE 0=0  AND mp.`months` =  #{months}
+AND mpi.`prepared_by_unit_type` = 3
+AND mpi.`prepared_by_level` = 3
+AND bu.`region_org_id` = #{regionOrgId}
+AND mpi.is_effective = 1
+AND mpb.plan_status >= 2
+AND mp.`months` = mpi.`months`
+ ) t,mm_monthly_plan mp,mm_business_unit bu
+
+SET
+mpi.`reserve_sign_funds` = t.reserve_sign_funds,
+mpi.`new_sign_funds` = t.new_sign_funds,
+mpi.`total_sign_funds` = t.total_sign_funds,
+mpi.`reserve_sign_set` = t.reserve_sign_set,
+mpi.`new_sign_set` = t.new_sign_set,
+mpi.`total_sign_set` = t.total_sign_set,
+mpi.`marketing_promotion_cost` = t.marketing_promotion_cost,
+ mpi.plan_subscription_set = t.plan_subscription_set,
+mpi.plan_subscription_funds = t. plan_subscription_funds,
+mpi.plan_turnover_rate= t. plan_turnover_rate,
+mpi.is_effective = 1
+
+WHERE 0=0
+AND mp.`months` = #{months}
+AND mp.`guid` = mpi.`monthly_plan_id`
+AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+AND mp.`months` = mpi.`months`
+AND mpi.`prepared_by_unit_type` = 3 -- 项目上报数据
+AND mpi.`prepared_by_level` = 2 -- 事业部/区域层级
+AND mpi.`prepared_by_unit_org_id` = #{regionOrgId}  -- 事业部/区域ID
+    </update>
+
+    <!-- 修改合計sql拆分 (修改) bql 2020.07.30 -->
+    <update id="updateRegionFunds" parameterType="java.util.Map">
+        UPDATE mm_monthly_plan_index mpi,mm_monthly_plan mp,mm_business_unit bu
+        SET
+            mpi.`reserve_sign_funds` = #{reserve_sign_funds},
+            mpi.`new_sign_funds` = #{new_sign_funds},
+            mpi.`total_sign_funds` = #{total_sign_funds},
+            mpi.`reserve_sign_set` = #{reserve_sign_set},
+            mpi.`new_sign_set` = #{new_sign_set},
+            mpi.`total_sign_set` = #{total_sign_set},
+            mpi.`marketing_promotion_cost` = #{marketing_promotion_cost},
+            mpi.plan_subscription_set = #{plan_subscription_set},
+            mpi.plan_subscription_funds = #{plan_subscription_funds},
+            mpi.plan_turnover_rate= #{plan_turnover_rate},
+            mpi.is_effective = 1
+        WHERE 0=0
+            AND mp.`months` = #{months}
+            AND mp.`guid` = mpi.`monthly_plan_id`
+            AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+            AND mp.`months` = mpi.`months`
+            AND mpi.`prepared_by_unit_type` = 3 -- 项目上报数据
+            AND mpi.`prepared_by_level` = 2 -- 事业部/区域层级
+            AND mpi.`prepared_by_unit_org_id` = #{regionOrgId}  -- 事业部/区域ID
+    </update>
+
+    <!-- 修改合計sql拆分 (查询) bql 2020.07.30 -->
+    <select id="selectRegionFunds"  parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT  bu.`region_org_id`,
+            SUM( mpi.`reserve_sign_funds`) AS reserve_sign_funds,
+            SUM( mpi.`reserve_sign_set`) AS reserve_sign_set,
+            SUM( mpi.`new_sign_funds` ) AS new_sign_funds,
+            SUM( mpi.`total_sign_funds` ) AS total_sign_funds,
+            SUM( mpi.`new_sign_set` ) AS new_sign_set,
+            SUM( mpi.`total_sign_set` ) AS total_sign_set,
+            SUM( mpi.plan_subscription_set ) AS plan_subscription_set,
+            SUM(mpi.plan_subscription_funds ) AS plan_subscription_funds,
+            g.`marketing_promotion_cost`AS marketing_promotion_cost,
+            ROUND( SUM( mpi.plan_subscription_set)/(case when SUM(mmpid.come_client_quantity)=0 then null else SUM(mmpid.come_client_quantity) end)*100,0) AS plan_turnover_rate
+        FROM `mm_monthly_plan_index` mpi
+        LEFT JOIN `mm_monthly_plan`  mp ON mp.`guid` = mpi.`monthly_plan_id`
+        LEFT JOIN `mm_business_unit` bu  ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`AND mp.`months` = mpb.`months`
+        LEFT JOIN  (
+            SELECT come_client_quantity,detail.project_id
+            FROM  mm_monthly_plan_index_detail detail
+                INNER JOIN mm_monthly_plan_basis mpb ON mpb.`prepared_by_unit_org_id` = detail.`project_id` and mpb.months=#{months} and plan_status>3
+            GROUP BY detail.project_id
+            ) mmpid ON  bu.`business_id`=mmpid.project_id
+        LEFT JOIN(
+            SELECT mpi.marketing_promotion_cost
+            FROM `mm_monthly_plan`  mp
+                LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+                LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+                LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+            WHERE mp.`months` =#{months}
+                AND bu.`type`= 2 AND mpi.`prepared_by_unit_type` = 2
+                AND ( bu. `region_org_id`  = #{regionOrgId} OR bu.`business_id` =#{regionOrgId} )
+        )g ON 0=0
+        WHERE mp.`months` =  #{months}
+            AND mpi.`prepared_by_unit_type` = 3
+            AND mpi.`prepared_by_level` = 3
+            AND bu.`region_org_id` = #{regionOrgId}
+            AND mpi.is_effective = 1
+            AND mpb.plan_status >= 2
+            AND mp.`months` = mpi.`months`
+    </select>
+
+
+
+        <!--上报区域事业部合计-->
+
+<update id="regionFundsEffective" parameterType="java.util.Map">
+ UPDATE mm_business_unit bu
+ LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`
+ LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3
+ LEFT JOIN `mm_monthly_plan` mp ON mp.`guid` = mpb.`monthly_plan_id`
+SET mpb.`is_effective` = #{isEffective},
+
+ mpb.plan_status =#{planStatus}
+  WHERE 0=0  AND bu.`type` IN (2,3)
+ AND (  bu.`region_org_id` = #{regionOrgId}
+ OR bu.`business_id` = #{regionOrgId}
+ )
+ AND mpi.`prepared_by_unit_type` = 3
+ AND mp.`months` = #{months}
+  AND bu.`type` = 2
+</update>
+
+    <!--测试区域上报金额是否大于下达金额-->
+<select id="testregionEffective"  parameterType="java.util.Map" resultType="java.util.Map">
+SELECT t.total_sign_funds projectfunds,f.total_sign_funds regionfunds FROM
+        (SELECT IFNULL(total_sign_funds,0) total_sign_funds
+         FROM mm_monthly_plan_index
+             WHERE prepared_by_unit_org_id =#{regionOrgId}
+             AND months=#{months}
+           AND prepared_by_unit_type=3) t,
+
+        (SELECT IFNULL(total_sign_funds,0) total_sign_funds
+        FROM mm_monthly_plan_index
+         WHERE prepared_by_unit_org_id =#{regionOrgId}
+          AND months=#{months}
+          AND prepared_by_unit_type=2) f
+</select>
+
+ <!--集团查看区域上报数据列表-->
+    <!--事业部列表-->
+<select id="businessDepartSelect" resultType="java.util.Map" parameterType="java.util.Map">
+ SELECT
+ IFNULL(p.projectCode,'') projectCode,
+bu.`business_name`   ,
+bu.`business_id`,
+bu.`type`  ,
+bu.`guid`
+,bu.`guid` AS business_unit_id
+,bu.`father_id`
+,bu.`region_org_id`
+,DATE_FORMAT(mp.months,'%Y-%m-%d') months
+,mpb.plan_status
+,mpb.send_time
+,mpb.reserve_can_sell_set
+,mpb.reserve_can_sell_funds
+
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+
+,mpb.top_three_month_average_sign_set
+,mpb.top_three_month_average_sign_funds
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+
+,IFNULL(mpi.reserve_sign_funds,0) reserve_sign_funds
+,IFNULL(mpi.new_sign_funds,0) new_sign_funds
+,IFNULL(mpi.total_sign_funds,0) total_sign_funds
+
+,IFNULL(mpi.plan_subscription_set,0) plan_subscription_set
+,IFNULL(mpi.plan_subscription_funds,0) plan_subscription_funds
+
+ ,CONCAT (ROUND ( mpb.top_three_month_average_turnover_rate*100,2),'%') top_three_month_average_turnover_rate
+, CONCAT (ROUND (mpb.last_month_turnover_rate*100,2),'%')  last_month_turnover_rate
+,CONCAT (ROUND (mpi.plan_turnover_rate,2),'%')  plan_turnover_rate
+,IFNULL(cost.marketing_promotion_cost,0) marketing_promotion_cost
+
+,mpi.is_effective
+,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid`
+ AND mpi.`prepared_by_unit_type` = 3  AND mpi.is_effective = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+LEFT JOIN t_mm_project p on p.projectID=bu.business_id
+LEFT join (
+select * from (select monthly_plan_basis_id,marketing_promotion_cost from mm_monthly_plan_index where months=#{months} and prepared_by_unit_type=2 and prepared_by_level in (2,3)
+union all
+select monthly_plan_basis_id,marketing_promotion_cost from mm_monthly_plan_index where months=#{months} and prepared_by_unit_type=3 and prepared_by_level=1) a
+) cost on cost.monthly_plan_basis_id=mpb.guid
+WHERE mp.`months` =  #{months}
+
+AND bu.`type` IN (1,2,3)
+
+ORDER BY bu.`Sort_code` ASC
+
+
+</select>
+<!---->
+    <!--事业部异步请求 项目列表-->
+ <select id="businessprojectSelect" resultType="java.util.Map" parameterType="java.util.Map">
+  SELECT
+bu.`business_name`   ,
+bu.`business_id`,
+bu.`type`  ,
+bu.`guid`
+,mpb.reserve_can_sell_set
+,mpb.reserve_can_sell_funds
+
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+
+,mpb.top_three_month_average_sign_set
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+
+,CONCAT (ROUND (mpb.top_three_month_average_turnover_rate *100,2),'%')  top_three_month_average_turnover_rate
+,mpb.top_three_month_average_sign_funds
+,CONCAT (ROUND (mpb.last_month_turnover_rate *100,2),'%') last_month_turnover_rate
+,mpi.reserve_sign_funds
+,mpi.new_sign_funds
+,mpi.total_sign_funds,DATE_FORMAT(mp.`months`,'%Y-%m-%d') months
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+
+WHERE mp.`months` = #{months}
+
+  AND bu.`type` IN (1,2,3)
+
+AND mpi.`prepared_by_unit_type` = 3
+
+AND bu.`region_org_id` = #{region_org_id}
+
+ORDER BY bu.`type` ASC
+
+
+ </select>
+<!---->
+<!--集团级别的合计，需要被存到旭辉集团里面-->
+<select id="businessTotalSelect" resultType="java.util.Map" parameterType="java.util.Map">
+    SELECT  bu.`region_org_id`,DATE_FORMAT(mp.`months`,'%Y-%m-%d') months,
+SUM( mpi.`reserve_sign_funds`) reserve_sign_funds,
+SUM( mpi.`reserve_sign_set`) reserve_sign_set,
+SUM(   mpi.`new_sign_funds` ) new_sign_funds,
+SUM(   mpi.`total_sign_funds` ) total_sign_funds,
+SUM(   mpi.`new_sign_set` ) new_sign_set,
+SUM(    mpi.`total_sign_set` ) total_sign_set,
+SUM(   mpi.`marketing_promotion_cost` ) marketing_promotion_cost
+
+FROM
+  `mm_monthly_plan_index` mpi
+  LEFT JOIN `mm_monthly_plan`  mp ON mp.`guid` = mpi.`monthly_plan_id`
+  LEFT JOIN `mm_business_unit` bu  ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+WHERE 0=0  AND mp.`months` = #{months}
+  AND mpi.`prepared_by_unit_type` = 3
+  AND mpi.`prepared_by_level` =2
+   AND mpi.is_effective = 1
+</select>
+
+    <!--修改区域上报集团级别合计-->
+    <update id="businessFundsUpdate"  parameterType="java.util.Map">
+     UPDATE `mm_monthly_plan_index` mpi , (
+
+SELECT  bu.`region_org_id`,
+SUM( mpi.`reserve_sign_funds`) AS reserve_sign_funds,
+SUM( mpi.`reserve_sign_set`) AS reserve_sign_set,
+SUM( mpi.`new_sign_funds` ) AS new_sign_funds,
+SUM( mpi.`total_sign_funds` ) AS total_sign_funds,
+SUM( mpi.`new_sign_set` ) AS new_sign_set,
+SUM( mpi.`total_sign_set` ) AS total_sign_set,
+SUM( mpi.`marketing_promotion_cost`) AS marketing_promotion_cost,
+SUM( mpi.plan_subscription_set ) AS plan_subscription_set,
+SUM(mpi.plan_subscription_funds ) AS plan_subscription_funds,
+SUM(mpi.plan_turnover_rate) AS plan_turnover_rate
+FROM
+`mm_monthly_plan_index` mpi
+LEFT JOIN `mm_monthly_plan`  mp ON mp.`guid` = mpi.`monthly_plan_id`
+LEFT JOIN `mm_business_unit` bu  ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+ LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months`=mp.`months`
+WHERE 0=0  AND mp.`months` =  #{months}
+AND mpi.`prepared_by_unit_type` = 3
+AND mpi.`prepared_by_level` = 2
+
+ AND mpb.plan_status >1
+ ) t,mm_monthly_plan mp,mm_business_unit bu
+
+SET
+mpi.`reserve_sign_funds` = t.reserve_sign_funds,
+mpi.`new_sign_funds` = t.new_sign_funds,
+mpi.`total_sign_funds` = t.total_sign_funds,
+mpi.`reserve_sign_set` = t.reserve_sign_set,
+mpi.`new_sign_set` = t.new_sign_set,
+mpi.`total_sign_set` = t.total_sign_set,
+mpi.`marketing_promotion_cost` = t.marketing_promotion_cost,
+mpi. plan_subscription_set = t. plan_subscription_set,
+mpi.plan_subscription_funds = t. plan_subscription_funds,
+mpi.plan_turnover_rate= t. plan_turnover_rate,
+mpi.is_effective = 1
+WHERE 0=0
+AND mp.`months` = #{months}
+AND mp.`guid` = mpi.`monthly_plan_id`
+AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+
+AND mpi.`prepared_by_unit_type` = 3 -- 项目上报数据
+AND mpi.`prepared_by_level` = 1 -- 集团/事业部等级
+ </update>
+
+
+    <!--集团确认-->
+<update id="businessFundsEffective" parameterType="java.util.Map">
+UPDATE
+  `mm_monthly_plan_basis` mpb inner join  mm_business_unit bu
+on mpb.prepared_by_unit_org_id=bu.business_id
+SET
+  `plan_status` = 2,
+  send_time =now()
+WHERE mpb.`months` = #{months}
+
+AND prepared_by_level =1
+
+</update>
+
+    <delete id="deleteMonthIndex" parameterType="String">
+           delete from mm_monthly_plan_index where prepared_by_unit_type=4 and months=#{months}
+    </delete>
+
+    <!-- 集团确认后
+        添加等级为4的数据 -->
+        <insert id="insertMonthIndex" parameterType="java.util.Map">
+
+    insert into mm_monthly_plan_index
+    (
+     prepared_by_unit_type,guid,creator,create_time,is_delete_flag,editor,
+     update_time,months,monthly_plan_id,monthly_plan_basis_id,
+     version,compiler_account_id,
+     prepared_by_unit_org_id,prepared_by_level,prepared_by_level_name,
+     reserve_sign_funds,new_sign_funds,total_sign_funds,reserve_sign_set,
+     new_sign_set,total_sign_set,marketing_promotion_cost,plan_subscription_set,
+     plan_subscription_funds,plan_turnover_rate,approval_status,approval_time,
+     approval_account_id,is_effective,version_id,is_parking,product_code_sale
+    )
+    select 4,guid,creator,create_time,is_delete_flag,editor,
+     update_time,months,monthly_plan_id,monthly_plan_basis_id,
+     version,compiler_account_id,
+     prepared_by_unit_org_id,prepared_by_level,prepared_by_level_name,
+     reserve_sign_funds,new_sign_funds,total_sign_funds,reserve_sign_set,
+     new_sign_set,total_sign_set,marketing_promotion_cost,plan_subscription_set,
+     plan_subscription_funds,plan_turnover_rate,approval_status,approval_time,
+     approval_account_id,is_effective,version_id,is_parking,product_code_sale from mm_monthly_plan_index  where prepared_by_unit_type=3
+    and months=#{months}
+        </insert>
+<!--锁定项目-->
+   <update id="lockedProject"  parameterType="java.util.Map">
+
+ UPDATE
+  `mm_business_unit` bu
+  LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3
+  LEFT JOIN `mm_monthly_plan` mp ON  0=0
+   LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+
+
+SET
+
+  mpi.is_effective = #{is_effective}
+
+
+   WHERE 0=0 AND bu.father_id=#{fatherId}
+  AND mp.`months` = #{months}  AND prepared_by_unit_type = 3
+
+
+   </update>
+
+
+    <!--查找某月下所有区域是否全部上报来决定集团是否编制完成状态-->
+    <select id="AllRegionStatus" parameterType="java.util.Map" resultType="java.util.Map">
+
+    SELECT plan_status FROM  mm_monthly_plan_basis WHERE   months=#{months} AND prepared_by_level=2 AND plan_status &lt; 2
+
+
+</select>
+
+    <!--查找某月下所有区域是否全部上报来决定集团是否编制完成状态-->
+    <update id="updateAllRegionStatus" parameterType="java.util.Map">
+
+update
+mm_monthly_plan_basis
+set
+plan_status=2
+where
+prepared_by_unit_org_id
+in  (select * from  (
+
+SELECT
+bu.`guid` AS business_unit_id
+FROM
+`mm_business_unit` bu
+LEFT JOIN `mm_monthly_plan` mp ON 0=0
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`  AND mpb.months = mp.`months`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_id` =  mp.`guid`
+AND mpi.`prepared_by_unit_org_id` = bu.`business_id`
+
+WHERE bu.monthly_weekly_type=1 AND (
+bu.`region_org_id` IN (SELECT prepared_by_unit_org_id FROM mm_monthly_plan_basis WHERE plan_status>=2 AND prepared_by_level=2 )
+)
+AND mp.`months` =  #{months}
+AND bu.`type` IN (3)
+AND mpb.plan_status &lt;2    GROUP BY bu.guid ) a)
+and  months=#{months}
+</update>
+
+
+   <select id="selectOrgId" parameterType="java.util.Map" resultType="java.lang.String">
+
+SELECT region_org_id FROM
+`mm_business_unit`
+WHERE business_id=#{business_id}
+LIMIT 1
+
+
+   </select>
+
+
+</mapper>

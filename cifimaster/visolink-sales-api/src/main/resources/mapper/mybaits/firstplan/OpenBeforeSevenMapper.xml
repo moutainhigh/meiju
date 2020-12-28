@@ -1,0 +1,2584 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.openbeforeseven.dao.OpenBeforeSevenDayDao">
+
+    <!--查询-->
+    <select id="selectOpenApplyData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	fp_seven_day_index
+WHERE
+	plan_id = #{plan_id} and plan_node_id=#{plan_node_id}
+	LIMIT 1
+    </select>
+    <!--查询版本数据-->
+    <select id="getVersionData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	id,
+	version,
+	(
+	CASE
+			approval_stuat
+			WHEN 2 THEN
+			CONCAT( '开盘前7天-开盘审批', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-编制中' )
+			WHEN 3 THEN
+			CONCAT( '开盘前7天-开盘审批', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批中' )
+			WHEN 4 THEN
+			CONCAT( '开盘前7天-开盘审批', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version )
+			WHEN 5 THEN
+			CONCAT( '开盘前7天-开盘审批', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批驳回' )
+		END
+		) name
+	FROM
+	fp_seven_day_index
+WHERE
+	plan_id = #{plan_id} and plan_node_id=#{plan_node_id} order by create_time desc
+    </select>
+    <!--获取主数据数据-->
+    <select id="getOpenApplayMainData" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	fp_seven_day_index.id preeOpenId,
+	plan_id,
+	plan_node_id,
+	product_type_code,
+	DATE_FORMAT(invest_open_node,'%Y-%m-%d') invest_open_node,
+	invest_product_type,
+	invest_take_card_area,
+	invest_take_card_value,
+	invest_push_area,
+	invest_push_value,
+	invest_selling_area,
+	invest_selling_value,
+	invest_avg_price,
+	invest_operation_price,
+	invest_take_card_per,
+	rules_operation_bfb,
+	invest_operation_bfb,
+	designtwo_operation_bfb,
+	estimate_operation_bfb,
+	invest_this_per,
+	invest_all_per,
+	invest_irr,
+	invest_payback,
+	 DATE_FORMAT(rules_open_node,'%Y-%m-%d') rules_open_node,
+	rules_product_type,
+	rules_take_card_area,
+	rules_take_card_value,
+	rules_push_area,
+	rules_push_value,
+	rules_selling_area,
+	rules_selling_value,
+	rules_avg_price,
+	rules_operation_price,
+	rules_take_card_per,
+	rules_this_per,
+	rules_all_per,
+	rules_irr,
+	rules_payback,
+	 DATE_FORMAT(designtwo_open_node,'%Y-%m-%d') designtwo_open_node,
+	designtwo_product_type,
+	designtwo_take_card_area,
+	designtwo_take_card_value,
+	designtwo_push_area,
+	designtwo_push_value,
+	designtwo_selling_area,
+	designtwo_selling_value,
+	designtwo_avg_price,
+	designtwo_operation_price,
+	designtwo_take_card_per,
+	designtwo_this_per,
+	designtwo_all_per,
+	designtwo_irr,
+	designtwo_payback,
+	 DATE_FORMAT(estimate_open_node,'%Y-%m-%d') estimate_open_node,
+	estimate_product_type,
+	estimate_take_card_area,
+	estimate_take_card_value,
+	estimate_push_area,
+	estimate_push_value,
+	estimate_selling_area,
+	estimate_selling_value,
+	estimate_avg_price,
+	estimate_operation_price,
+	estimate_take_card_per,
+	estimate_this_per,
+	estimate_all_per,
+	estimate_irr,
+	estimate_payback,
+	deviation_open_node ,
+	deviation_product_type,
+	deviation_take_card_area,
+	deviation_take_card_value,
+	deviation_push_area,
+	deviation_push_value,
+	deviation_selling_area,
+	deviation_selling_value,
+	deviation_avg_price,
+	deviation_operation_price,
+	deviation_take_card_per,
+	deviation_this_per,
+	deviation_all_per,
+	deviation_irr,
+	deviation_payback,
+	deviationper_open_node,
+	deviationper_product_type,
+	deviationper_take_card_area,
+	deviationper_take_card_value,
+	deviationper_push_area,
+	deviationper_push_value,
+	deviationper_selling_area,
+	deviationper_selling_value,
+	deviationper_avg_price,
+	deviationper_operation_price,
+	deviationper_take_card_per,
+	deviationper_this_per,
+	deviationper_all_per,
+	deviationper_irr,
+	deviationper_payback,
+	cause_open_node,
+	cause_product_type,
+	cause_take_card_area,
+	cause_take_card_value,
+	cause_push_area,
+	cause_push_value,
+	cause_selling_area,
+	cause_selling_value,
+	cause_avg_price,
+	cause_operation_price,
+	cause_take_card_per,
+	cause_this_per,
+	cause_all_per,
+	cause_irr,
+	cause_payback,
+	competing_relation,
+	competing_product,
+	plate_dynamic,
+	competing_condition,
+	repot_customer_target,
+	repot_customer_actual,
+	repot_customer_per,
+	come_way,
+	come_customer_target,
+	come_customer_actual,
+	come_customer_per,
+	lesser_way,
+	lesser_customer_target,
+	lesser_customer_actual,
+	lesser_customer_per,
+	big_way,
+	big_customer_target,
+	big_customer_actual,
+	big_customer_per,
+	sub_customer_target,
+	sub_customer_actual,
+	sub_customer_per,
+	this_customer_visit,
+	this_customer_conversionper,
+	IFNULL( customer_cause, "" ) customer_cause,
+	trader_open_prediction,
+	version,
+	fp_seven_day_index.create_time,
+	invest_operation_name,
+	designtwo_operation_name,
+	estimate_operation_name,
+	rules_operation_name,
+	approval_stuat,
+	flow.flow_id,
+	fp_seven_day_index.id
+FROM
+	fp_seven_day_index
+	LEFT JOIN mm_ap_flow_info flow on flow.json_id=fp_seven_day_index.id
+WHERE
+fp_seven_day_index.id=#{id}
+    </select>
+
+    <!--获取首开均价数据-->
+    <select id="getFirstOpenAvgData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	fp_seven_day_open_avg
+WHERE
+	day_id = #{id}
+    </select>
+    <!--获取竞品情况数据-->
+    <select id="getCompetingpPoducts" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+product_project,
+DATE_FORMAT(first_opentime,'%Y-%m-%d') first_opentime,
+take_money,
+month_avg_flow,
+avg_price_product
+FROM
+	fp_seven_day_competingproducts
+WHERE
+	delay_id = #{plan_id}
+    </select>
+	<!--获取顶设2核心指标数据-->
+	<select id="getDesigntwoCoreData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+DATE_FORMAT(invest_time,'%Y-%m-%d') invest_open_node,
+DATE_FORMAT(rules_time,'%Y-%m-%d') rules_open_node,
+DATE_FORMAT(designtwo_time,'%Y-%m-%d') designtwo_open_node,
+DATE_FORMAT(designtwo_time,'%Y-%m-%d') estimate_open_node,
+invest_real_type as invest_product_type,
+rules_real_type as rules_product_type,
+designtwo_real_type  as designtwo_product_type,
+IFNULL(invest_take_card_area,0) invest_take_card_area,
+invest_take_card_value ,
+IFNULL(rules_take_card_area,0) rules_take_card_area,
+
+rules_take_card_value,
+IFNULL(designtwo_take_card_area,0) designtwo_take_card_area,
+designtwo_take_card_value,
+IFNULL(invest_push_area,0) invest_push_area,
+invest_push_value,
+IFNULL(rules_push_area,0) rules_push_area,
+rules_push_value,
+IFNULL(designtwo_push_area,0) designtwo_push_area,
+designtwo_push_value,
+IFNULL(invest_selling_area,0) invest_selling_area,
+invest_selling_value,
+IFNULL(rules_selling_area,0) rules_selling_area,
+rules_selling_value,
+IFNULL(designtwo_selling_area,0) designtwo_selling_area,
+designtwo_selling_value,
+invest_create_per invest_this_per,
+rules_create_per rules_this_per,
+designtwo_create_per as  designtwo_this_per,
+invest_all_per,
+rules_all_per,
+designtwo_all_per,
+invest_irr,
+rules_irr,
+fdci.designtwo_irr,
+fdci.invest_payback,
+fdci.rules_payback,
+designtwo_payback,
+fdci.invest_take_card_per,
+fdci.rules_take_card_per,
+fdci.designtwo_take_card_per
+  FROM
+  fp_designtwo_code_index fdci
+  INNER JOIN
+  (SELECT id from fp_plan_node where plan_id=#{plan_id}
+  AND node_level=3   AND is_effective=0
+  ORDER BY create_time  DESC LIMIT 0,1
+  ) realtype
+  ON realtype.id=fdci.plan_node_id
+	</select>
+<!--
+	<select id="getDesigntwoAvgPrice" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+IFNULL( product_type_code, "" ) product_type_code,
+IFNULL( product_type, "" ) product_type,
+IFNULL( invest_open_avg_price, 0.00 ) invest_avg,
+IFNULL( rules_open_avg_price, 0.00 ) rules_avg,
+IFNULL( designtwo_open_avg_price, 0.00 ) designtwo_avg,
+"" AS bias_cause
+FROM
+fp_designtwo_code_index_price fdcip
+  INNER JOIN
+  (SELECT id from fp_plan_node where plan_id=#{plan_id}
+  AND node_level=3 AND is_effective=0
+  ORDER BY create_time  DESC LIMIT 0,1
+  ) realtype
+  ON realtype.id=fdcip.plan_node_id
+	</select>
+-->
+    <select id="getCustomerStorageNode" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	nide_name AS node_name,
+	DATE_FORMAT( node_time, '%Y-%m-%d' ) node_time,
+	line_name,
+	report_num,
+	visit_num,
+	little_num,
+	little_per,
+	big_num,
+	big_per,
+	sub_num,
+	make_per,
+	node_level,
+	level
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id =#{plan_id}
+		and node_level=6
+		AND (approval_stuat=4  or approval_stuat=7)
+		ORDER BY version DESC, approval_stuat desc limit 1
+		)   ORDER BY node_time ASC,   level ASC
+    </select>
+
+	<select id="getDesigntwoAvgPrice" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+IFNULL( product_type_code, "" ) product_type_code,
+IFNULL( product_type, "" ) product_type,
+IFNULL( invest_open_avg_price, 0.00 ) invest_avg,
+IFNULL( rules_open_avg_price, 0.00 ) rules_avg,
+IFNULL( designtwo_open_avg_price, 0.00 ) designtwo_avg,
+"" AS bias_cause
+FROM
+fp_designtwo_code_index_price fdcip
+  INNER JOIN
+  (SELECT id from fp_plan_node where plan_id=#{plan_id}
+  AND node_level=3 AND is_effective=0
+  ORDER BY create_time  DESC LIMIT 0,1
+  ) realtype
+  ON realtype.id=fdcip.plan_node_id
+	</select>
+	<select id="getCustomerStorageNodeSeven" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	nide_name AS node_name,
+	DATE_FORMAT( node_time, '%Y-%m-%d' ) node_time,
+	line_name,
+	report_num,
+	visit_num,
+	little_num,
+	little_per,
+	big_num,
+	big_per,
+	sub_num,
+	make_per,
+	node_level,
+	level
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id =#{plan_id}
+		and node_level=#{node_level}
+		AND version =(
+		SELECT
+			version
+		FROM
+			fp_guest_storage_flow
+		WHERE
+			plan_id =#{plan_id}
+			 and approval_stuat=4
+			 and node_level=#{node_level}
+		ORDER BY
+			node_level desc,version DESC
+			LIMIT 1
+		) ORDER BY node_level desc limit 1)   ORDER BY node_time ASC,   level ASC
+    </select>
+	<select id="getDelayOpenData" resultType="java.lang.String" parameterType="java.lang.String">
+SELECT
+DATE_FORMAT( new_first_time, '%Y-%m-%d' ) estimate_open_node
+FROM fp_delay_apply
+WHERE approval_stuat=4  AND plan_id=#{plan_id} order by create_time DESC LIMIT 1
+    </select>
+
+	<select id="getDinsigTowCustomerPlan" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT
+	nide_name AS node_name,
+	DATE_FORMAT( node_time, '%Y-%m-%d' ) node_time,
+	line_name,
+	report_num,
+	visit_num,
+	little_num,
+	little_per,
+	big_num,
+	big_per,
+	sub_num,
+	make_per,
+	node_level,
+	level
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id =#{plan_id}
+		AND node_level = 3
+		AND version =(
+		SELECT
+			version
+		FROM
+			fp_guest_storage_flow
+		WHERE
+			plan_id = #{plan_id}
+			AND node_level = 3   and approval_stuat=4
+		ORDER BY
+			version,create_time DESC
+			LIMIT 1
+		))   ORDER BY node_time ASC,   level ASC
+	</select>
+	<select id="getXukeCostomerStorageNode" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	report_num,
+	visit_num,
+	little_num,
+	big_num,
+	sub_num,
+	IFNULL( ROUND(( big_num / visit_num )* 100, 2 ), 0.00 ) big_per,
+	IFNULL( ROUND(( little_num / visit_num )* 100, 2 ), 0.00 ) little_per,
+	IFNULL( ROUND(( sub_num / visit_num )* 100, 2 ), 0.00 ) make_per
+FROM
+	(
+	SELECT
+		SUM( reportCnt ) report_num,
+		SUM( visitCnt ) visit_num,
+		SUM( lesser_card ) little_num,
+		SUM( big_card ) big_num,
+		SUM( subscribe_num ) sub_num
+	FROM
+		fp_comm_guest_storage
+	WHERE
+		project_id IN (
+		SELECT
+			fpr.project_id
+		FROM
+			fp_project_relationship fpr,
+			( SELECT ID FROM fp_project_relationship WHERE project_id =( SELECT project_id FROM fp_plan WHERE id =#{plan_id} ) ) PID
+	WHERE
+	( fpr.id = PID.ID OR fpr.pid = PID.ID ))) s
+	</select>
+	<select id="getWeekStroageData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+week,
+DATE_FORMAT( start_time, '%Y-%m-%d' ) start_time,
+DATE_FORMAT( end_time, '%Y-%m-%d' ) end_time,
+day_date,
+plan_add,
+plan_total,
+plan_task_per,
+actual_add,
+actual_total,
+actual_task_per,
+bias_value,
+week_bais_value,
+bias_per,
+bias_cause
+FROM
+	fp_guest_storage_week
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id = #{plan_id}
+		 and (approval_stuat=4 or approval_stuat=7)
+		 and node_level=6
+		ORDER BY
+			version desc, create_time DESC
+			LIMIT 1
+	)
+	ORDER BY start_time
+	</select>
+	<select id="getWeekStroageDataSeven" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+week,
+DATE_FORMAT( start_time, '%Y-%m-%d' ) start_time,
+DATE_FORMAT( end_time, '%Y-%m-%d' ) end_time,
+day_date,
+plan_add,
+plan_total,
+plan_task_per,
+actual_add,
+actual_total,
+actual_task_per,
+bias_value,
+week_bais_value,
+bias_per,
+bias_cause
+FROM
+	fp_guest_storage_week
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+	plan_id=#{plan_id}
+	AND ( approval_stuat=4 or approval_stuat=7)
+	 		ORDER BY version desc, approval_stuat desc
+			LIMIT 1
+)
+ORDER BY start_time
+	</select>
+
+	<select id="getCustomerInfoForDesigntwo" parameterType="java.lang.String" resultType="java.util.Map">
+		SELECT
+IFNULL(SUM(visit_num),0) come_customer_target,
+IFNULL(SUM(big_num),0) big_customer_target,
+IFNULL(SUM(little_num),0) lesser_customer_target
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+			id
+		FROM
+			fp_guest_storage_flow
+		WHERE
+			plan_id = #{plan_id}
+		 and approval_stuat=4
+		ORDER BY
+			node_level desc,version DESC
+			LIMIT 1
+		)  and `level`=1 and node_level=8 ORDER BY create_time ASC,   level ASC
+	</select>
+	<select id="getCustomerStorageNodeData" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT
+		id,
+	nide_name AS node_name,
+	DATE_FORMAT( node_time, '%Y-%m-%d' ) node_time,
+	line_name,
+	report_num,
+	visit_num,
+	little_num,
+	little_per,
+	big_num,
+	big_per,
+	sub_num,
+	make_per,
+	level,
+	node_level
+FROM
+	fp_guest_storage_node_plan gn
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE plan_node_id=#{id}
+)
+ ORDER BY node_time ASC,   level ASC
+
+	</select>
+	<select id="getCustomerStorageNodeDataChange" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT
+		id,
+	nide_name AS node_name,
+	DATE_FORMAT( node_time, '%Y-%m-%d' ) node_time,
+	line_name,
+	report_num,
+	visit_num,
+	little_num,
+	little_per,
+	big_num,
+	big_per,
+	sub_num,
+	make_per,
+	level,
+	node_level
+FROM
+	fp_guest_storage_node_plan gn
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE plan_node_id=#{id}
+)
+ and  gn.changes=1
+ ORDER BY node_time ASC,   level ASC
+
+	</select>
+
+
+	<select id="getWeekData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+id,
+week,
+DATE_FORMAT( start_time, '%Y-%m-%d' ) start_time,
+DATE_FORMAT( end_time, '%Y-%m-%d' ) end_time,
+day_date,
+plan_add,
+plan_total,
+plan_task_per,
+actual_add,
+actual_total,
+actual_task_per,
+bias_value,
+week_bais_value,
+bias_per,
+bias_cause,
+is_edit
+FROM
+	fp_guest_storage_week
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_node_id = #{id}
+	) order by start_time asc,end_time desc
+	</select>
+	<select id="getXukeactCustomer" resultType="java.util.Map" parameterType="java.lang.String">
+		SELECT
+		IFNULL(SUM( visitCnt ),0) come_customer_actual,
+		IFNULL(SUM( lesser_card ) ,0) lesser_customer_actual,
+		IFNULL(SUM( big_card ) ,0) big_customer_actual
+		FROM fp_comm_guest_storage
+		WHERE  project_id in
+		 (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+    (SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+    WHERE
+    (fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+</select>
+<!--更新数据-->
+	<insert id="insertOpenApplayMainData" parameterType="java.util.Map" >
+		insert into fp_seven_day_index
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				id,
+			</if>
+			<if test="plan_id != null">
+				plan_id,
+			</if>
+			<if test="plan_node_id != null">
+				plan_node_id,
+			</if>
+			<if test="product_type_code != null">
+				product_type_code,
+			</if>
+			<if test="invest_open_node != null">
+				invest_open_node,
+			</if>
+			<if test="invest_product_type != null">
+				invest_product_type,
+			</if>
+			<if test="invest_take_card_value != null">
+				invest_take_card_value,
+			</if>
+			<if test="invest_take_card_area != null">
+				invest_take_card_area,
+			</if>
+			<if test="invest_push_value != null">
+				invest_push_value,
+			</if>
+			<if test="invest_push_area != null">
+				invest_push_area,
+			</if>
+			<if test="invest_selling_value != null">
+				invest_selling_value,
+			</if>
+			<if test="invest_selling_area != null">
+				invest_selling_area,
+			</if>
+			<if test="invest_avg_price != null">
+				invest_avg_price,
+			</if>
+			<if test="invest_operation_name != null">
+				invest_operation_name,
+			</if>
+			<if test="invest_take_card_per != null">
+				invest_take_card_per,
+			</if>
+			<if test="invest_this_per != null">
+				invest_this_per,
+			</if>
+			<if test="invest_all_per != null">
+				invest_all_per,
+			</if>
+			<if test="invest_irr != null">
+				invest_irr,
+			</if>
+			<if test="invest_payback != null">
+				invest_payback,
+			</if>
+			<if test="rules_open_node != null">
+				rules_open_node,
+			</if>
+			<if test="rules_product_type != null">
+				rules_product_type,
+			</if>
+			<if test="rules_take_card_value != null">
+				rules_take_card_value,
+			</if>
+			<if test="rules_take_card_area != null">
+				rules_take_card_area,
+			</if>
+			<if test="rules_push_value != null">
+				rules_push_value,
+			</if>
+			<if test="rules_push_area != null">
+				rules_push_area,
+			</if>
+			<if test="rules_selling_value != null">
+				rules_selling_value,
+			</if>
+			<if test="rules_selling_area != null">
+				rules_selling_area,
+			</if>
+			<if test="rules_avg_price != null">
+				rules_avg_price,
+			</if>
+			<if test="rules_operation_name != null">
+				rules_operation_name,
+			</if>
+			<if test="rules_take_card_per != null">
+				rules_take_card_per,
+			</if>
+			<if test="rules_this_per != null">
+				rules_this_per,
+			</if>
+			<if test="rules_all_per != null">
+				rules_all_per,
+			</if>
+			<if test="rules_irr != null">
+				rules_irr,
+			</if>
+			<if test="rules_payback != null">
+				rules_payback,
+			</if>
+			<if test="designtwo_open_node != null">
+				designtwo_open_node,
+			</if>
+			<if test="designtwo_product_type != null">
+				designtwo_product_type,
+			</if>
+			<if test="designtwo_take_card_value != null">
+				designtwo_take_card_value,
+			</if>
+			<if test="designtwo_take_card_area != null">
+				designtwo_take_card_area,
+			</if>
+			<if test="designtwo_push_value != null">
+				designtwo_push_value,
+			</if>
+			<if test="designtwo_push_area != null">
+				designtwo_push_area,
+			</if>
+			<if test="designtwo_selling_value != null">
+				designtwo_selling_value,
+			</if>
+			<if test="designtwo_selling_area != null">
+				designtwo_selling_area,
+			</if>
+			<if test="designtwo_avg_price != null">
+				designtwo_avg_price,
+			</if>
+			<if test="designtwo_operation_name != null">
+				designtwo_operation_name,
+			</if>
+			<if test="designtwo_take_card_per != null">
+				designtwo_take_card_per,
+			</if>
+			<if test="designtwo_this_per != null">
+				designtwo_this_per,
+			</if>
+			<if test="designtwo_all_per != null">
+				designtwo_all_per,
+			</if>
+			<if test="designtwo_irr != null">
+				designtwo_irr,
+			</if>
+			<if test="designtwo_payback != null">
+				designtwo_payback,
+			</if>
+			<if test="estimate_open_node != null">
+				estimate_open_node,
+			</if>
+			<if test="estimate_product_type != null">
+				estimate_product_type,
+			</if>
+			<if test="estimate_take_card_value != null">
+				estimate_take_card_value,
+			</if>
+			<if test="estimate_take_card_area != null">
+				estimate_take_card_area,
+			</if>
+			<if test="estimate_push_value != null">
+				estimate_push_value,
+			</if>
+			<if test="estimate_push_area != null">
+				estimate_push_area,
+			</if>
+			<if test="estimate_selling_value != null">
+				estimate_selling_value,
+			</if>
+			<if test="estimate_selling_area != null">
+				estimate_selling_area,
+			</if>
+			<if test="estimate_avg_price != null">
+				estimate_avg_price,
+			</if>
+			<if test="estimate_operation_name != null">
+				estimate_operation_name,
+			</if>
+			<if test="estimate_take_card_per != null">
+				estimate_take_card_per,
+			</if>
+			<if test="estimate_this_per != null">
+				estimate_this_per,
+			</if>
+			<if test="estimate_all_per != null">
+				estimate_all_per,
+			</if>
+			<if test="estimate_irr != null">
+				estimate_irr,
+			</if>
+			<if test="estimate_payback != null">
+				estimate_payback,
+			</if>
+			<if test="deviation_open_node != null">
+				deviation_open_node,
+			</if>
+			<if test="deviation_product_type != null">
+				deviation_product_type,
+			</if>
+			<if test="deviation_take_card_value != null">
+				deviation_take_card_value,
+			</if>
+			<if test="deviation_take_card_area != null">
+				deviation_take_card_area,
+			</if>
+			<if test="deviation_push_value != null">
+				deviation_push_value,
+			</if>
+			<if test="deviation_push_area != null">
+				deviation_push_area,
+			</if>
+			<if test="deviation_selling_value != null">
+				deviation_selling_value,
+			</if>
+			<if test="deviation_selling_area != null">
+				deviation_selling_area,
+			</if>
+			<if test="deviation_avg_price != null">
+				deviation_avg_price,
+			</if>
+			<if test="deviation_operation_price != null">
+				deviation_operation_price,
+			</if>
+			<if test="deviation_take_card_per != null">
+				deviation_take_card_per,
+			</if>
+			<if test="deviation_this_per != null">
+				deviation_this_per,
+			</if>
+			<if test="deviation_all_per != null">
+				deviation_all_per,
+			</if>
+			<if test="deviation_irr != null">
+				deviation_irr,
+			</if>
+			<if test="deviation_payback != null">
+				deviation_payback,
+			</if>
+			<if test="deviationper_open_node != null">
+				deviationper_open_node,
+			</if>
+			<if test="deviationper_product_type != null">
+				deviationper_product_type,
+			</if>
+			<if test="deviationper_take_card_value != null">
+				deviationper_take_card_value,
+			</if>
+			<if test="deviationper_take_card_area != null">
+				deviationper_take_card_area,
+			</if>
+			<if test="deviationper_push_value != null">
+				deviationper_push_value,
+			</if>
+			<if test="deviationper_push_area != null">
+				deviationper_push_area,
+			</if>
+			<if test="deviationper_selling_value != null">
+				deviationper_selling_value,
+			</if>
+			<if test="deviationper_selling_area != null">
+				deviationper_selling_area,
+			</if>
+			<if test="deviationper_avg_price != null">
+				deviationper_avg_price,
+			</if>
+			<if test="deviationper_operation_price != null">
+				deviationper_operation_price,
+			</if>
+			<if test="deviationper_take_card_per != null">
+				deviationper_take_card_per,
+			</if>
+			<if test="deviationper_this_per != null">
+				deviationper_this_per,
+			</if>
+			<if test="deviationper_all_per != null">
+				deviationper_all_per,
+			</if>
+			<if test="deviationper_irr != null">
+				deviationper_irr,
+			</if>
+			<if test="deviationper_payback != null">
+				deviationper_payback,
+			</if>
+			<if test="cause_open_node != null">
+				cause_open_node,
+			</if>
+			<if test="cause_product_type != null">
+				cause_product_type,
+			</if>
+			<if test="cause_take_card_value != null">
+				cause_take_card_value,
+			</if>
+			<if test="cause_take_card_area != null">
+				cause_take_card_area,
+			</if>
+			<if test="cause_push_value != null">
+				cause_push_value,
+			</if>
+			<if test="cause_push_area != null">
+				cause_push_area,
+			</if>
+			<if test="cause_selling_value != null">
+				cause_selling_value,
+			</if>
+			<if test="cause_selling_area != null">
+				cause_selling_area,
+			</if>
+			<if test="cause_avg_price != null">
+				cause_avg_price,
+			</if>
+			<if test="cause_operation_price != null">
+				cause_operation_price,
+			</if>
+			<if test="cause_take_card_per != null">
+				cause_take_card_per,
+			</if>
+			<if test="cause_this_per != null">
+				cause_this_per,
+			</if>
+			<if test="cause_all_per != null">
+				cause_all_per,
+			</if>
+			<if test="cause_irr != null">
+				cause_irr,
+			</if>
+			<if test="cause_payback != null">
+				cause_payback,
+			</if>
+			<if test="competing_relation != null">
+				competing_relation,
+			</if>
+			<if test="competing_product != null">
+				competing_product,
+			</if>
+			<if test="plate_dynamic != null">
+				plate_dynamic,
+			</if>
+			<if test="competing_condition != null">
+				competing_condition,
+			</if>
+			<if test="repot_customer_target != null">
+				repot_customer_target,
+			</if>
+			<if test="repot_customer_actual != null">
+				repot_customer_actual,
+            </if>
+            <if test="repot_customer_per != null">
+                repot_customer_per,
+            </if>
+            <if test="come_way != null">
+                come_way,
+            </if>
+            <if test="come_customer_target != null">
+                come_customer_target,
+            </if>
+            <if test="come_customer_actual != null">
+                come_customer_actual,
+            </if>
+            <if test="come_customer_per != null">
+                come_customer_per,
+            </if>
+            <if test="lesser_way != null">
+                lesser_way,
+            </if>
+            <if test="lesser_customer_target != null">
+                lesser_customer_target,
+            </if>
+            <if test="lesser_customer_actual != null">
+                lesser_customer_actual,
+            </if>
+            <if test="lesser_customer_per != null">
+                lesser_customer_per,
+            </if>
+            <if test="big_way != null">
+                big_way,
+            </if>
+            <if test="big_customer_target != null">
+                big_customer_target,
+            </if>
+            <if test="big_customer_actual != null">
+                big_customer_actual,
+            </if>
+            <if test="big_customer_per != null">
+                big_customer_per,
+            </if>
+            <if test="sub_customer_target != null">
+                sub_customer_target,
+            </if>
+            <if test="sub_customer_actual != null">
+                sub_customer_actual,
+            </if>
+            <if test="sub_customer_per != null">
+                sub_customer_per,
+            </if>
+            <if test="this_customer_visit != null">
+                this_customer_visit,
+            </if>
+            <if test="this_customer_conversionper != null">
+                this_customer_conversionper,
+            </if>
+            <if test="customer_cause != null">
+                customer_cause,
+            </if>
+            <if test="trader_open_prediction != null">
+                trader_open_prediction,
+			</if>
+			<if test="version != null">
+				version,
+			</if>
+
+				create_time,
+
+			<if test="approval_stuat != null">
+				approval_stuat,
+			</if>
+			<if test="rules_operation_price != null">
+				rules_operation_price,
+			</if>
+			<if test="invest_operation_price != null">
+				invest_operation_price,
+			</if>
+			<if test="designtwo_operation_price != null">
+				designtwo_operation_price,
+			</if>
+			<if test="estimate_operation_price != null">
+				estimate_operation_price,
+			</if>
+			<if test="rules_operation_bfb != null">
+				rules_operation_bfb,
+			</if>
+			<if test="invest_operation_bfb != null">
+				invest_operation_bfb,
+			</if>
+			<if test="designtwo_operation_bfb != null">
+				designtwo_operation_bfb,
+			</if>
+			<if test="estimate_operation_bfb != null">
+				estimate_operation_bfb,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				#{id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null">
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null">
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type_code != null">
+				#{product_type_code,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_open_node != null">
+				#{invest_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_product_type != null">
+				#{invest_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_take_card_value != null">
+				#{invest_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_take_card_area != null">
+				#{invest_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_push_value != null">
+				#{invest_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_push_area != null">
+				#{invest_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_value != null">
+				#{invest_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_area != null">
+				#{invest_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_avg_price != null">
+				#{invest_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_operation_name != null">
+				#{invest_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_take_card_per != null">
+				#{invest_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_this_per != null">
+				#{invest_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_all_per != null">
+				#{invest_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_irr != null">
+				#{invest_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_payback != null">
+				#{invest_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_open_node != null">
+				#{rules_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_product_type != null">
+				#{rules_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_take_card_value != null">
+				#{rules_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_take_card_area != null">
+				#{rules_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_push_value != null">
+				#{rules_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_push_area != null">
+				#{rules_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_value != null">
+				#{rules_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_area != null">
+				#{rules_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_avg_price != null">
+				#{rules_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_operation_name != null">
+				#{rules_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_take_card_per != null">
+				#{rules_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_this_per != null">
+				#{rules_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_all_per != null">
+				#{rules_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_irr != null">
+				#{rules_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_payback != null">
+				#{rules_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_open_node != null">
+				#{designtwo_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_product_type != null">
+				#{designtwo_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_take_card_value != null">
+				#{designtwo_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_take_card_area != null">
+				#{designtwo_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_push_value != null">
+				#{designtwo_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_push_area != null">
+				#{designtwo_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_value != null">
+				#{designtwo_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_area != null">
+				#{designtwo_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_avg_price != null">
+				#{designtwo_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_operation_name != null">
+				#{designtwo_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_take_card_per != null">
+				#{designtwo_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_this_per != null">
+				#{designtwo_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_all_per != null">
+				#{designtwo_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_irr != null">
+				#{designtwo_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_payback != null">
+				#{designtwo_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_open_node != null">
+				#{estimate_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_product_type != null">
+				#{estimate_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_take_card_value != null">
+				#{estimate_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_take_card_area != null">
+				#{estimate_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_push_value != null">
+				#{estimate_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_push_area != null">
+				#{estimate_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_value != null">
+				#{estimate_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_area != null">
+				#{estimate_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_avg_price != null">
+				#{estimate_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_operation_name != null">
+				#{estimate_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_take_card_per != null  and estimate_take_card_per != ''">
+				#{estimate_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_this_per != null">
+				#{estimate_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_all_per != null">
+				#{estimate_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_irr != null">
+				#{estimate_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_payback != null">
+				#{estimate_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_open_node != null">
+				#{deviation_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="deviation_product_type != null">
+				#{deviation_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="deviation_take_card_value != null">
+				#{deviation_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_take_card_area != null">
+				#{deviation_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_push_value != null">
+				#{deviation_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_push_area != null">
+				#{deviation_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_selling_value != null">
+				#{deviation_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_selling_area != null">
+				#{deviation_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_avg_price != null">
+				#{deviation_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_operation_price != null">
+				#{deviation_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="deviation_take_card_per != null">
+				#{deviation_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_this_per != null">
+				#{deviation_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_all_per != null">
+				#{deviation_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_irr != null">
+				#{deviation_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_payback != null">
+				#{deviation_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_open_node != null">
+				#{deviationper_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="deviationper_product_type != null">
+				#{deviationper_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="deviationper_take_card_value != null">
+				#{deviationper_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_take_card_area != null">
+				#{deviationper_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_push_value != null">
+				#{deviationper_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_push_area != null">
+				#{deviationper_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_selling_value != null">
+				#{deviationper_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_selling_area != null">
+				#{deviationper_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_avg_price != null">
+				#{deviationper_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_operation_price != null">
+				#{deviationper_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="deviationper_take_card_per != null">
+				#{deviationper_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_this_per != null">
+				#{deviationper_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_all_per != null">
+				#{deviationper_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_irr != null">
+				#{deviationper_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_payback != null">
+				#{deviationper_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_open_node != null">
+				#{cause_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="cause_product_type != null">
+				#{cause_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="cause_take_card_value != null">
+				#{cause_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_push_value != null">
+				#{cause_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_push_area != null">
+				#{cause_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_selling_value != null">
+				#{cause_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_selling_area != null">
+				#{cause_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_avg_price != null">
+				#{cause_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_operation_price != null">
+				#{cause_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="cause_take_card_per != null">
+				#{cause_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_this_per != null">
+				#{cause_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_all_per != null">
+				#{cause_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_irr != null">
+				#{cause_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_payback != null">
+				#{cause_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="competing_relation != null">
+				#{competing_relation,jdbcType=VARCHAR},
+			</if>
+			<if test="competing_product != null">
+				#{competing_product,jdbcType=VARCHAR},
+			</if>
+			<if test="plate_dynamic != null">
+				#{plate_dynamic,jdbcType=VARCHAR},
+			</if>
+			<if test="competing_condition != null">
+				#{competing_condition,jdbcType=VARCHAR},
+			</if>
+			<if test="repot_customer_target != null">
+				#{repot_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="repot_customer_actual != null">
+				#{repot_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="repot_customer_per != null">
+				#{repot_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="come_way != null">
+				#{come_way,jdbcType=VARCHAR},
+			</if>
+			<if test="come_customer_target != null">
+				#{come_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="come_customer_actual != null and come_customer_actual!=''">
+				#{come_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="come_customer_per != null">
+				#{come_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="lesser_way != null">
+				#{lesser_way,jdbcType=VARCHAR},
+			</if>
+			<if test="lesser_customer_target != null">
+				#{lesser_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="lesser_customer_actual != null and lesser_customer_actual!=''">
+				#{lesser_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="lesser_customer_per != null">
+				#{lesser_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="big_way != null">
+				#{big_way,jdbcType=VARCHAR},
+			</if>
+			<if test="big_customer_target != null">
+				#{big_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="big_customer_actual != null and big_customer_actual!=''">
+				#{big_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="big_customer_per != null">
+				#{big_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="sub_customer_target != null">
+				#{sub_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="sub_customer_actual != null and sub_customer_actual!=''">
+				#{sub_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="sub_customer_per != null">
+				#{sub_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="this_customer_visit != null and this_customer_visit!=''">
+				#{this_customer_visit,jdbcType=INTEGER},
+			</if>
+			<if test="this_customer_conversionper != null">
+				#{this_customer_conversionper,jdbcType=DECIMAL},
+			</if>
+			<if test="customer_cause != null">
+				#{customer_cause,jdbcType=VARCHAR},
+			</if>
+			<if test="trader_open_prediction != null">
+				#{trader_open_prediction,jdbcType=VARCHAR},
+			</if>
+			<if test="version != null">
+				#{version,jdbcType=INTEGER},
+			</if>
+			now(),
+			<if test="approval_stuat != null">
+				#{approval_stuat,jdbcType=INTEGER},
+			</if>
+			<if test="rules_operation_price != null">
+				#{rules_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_operation_price != null">
+				#{invest_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_operation_price != null">
+				#{designtwo_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_operation_price != null">
+				#{estimate_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_operation_bfb != null">
+				#{rules_operation_bfb,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_operation_bfb != null">
+				#{invest_operation_bfb,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_operation_bfb != null">
+				#{designtwo_operation_bfb,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_operation_bfb != null">
+				#{estimate_operation_bfb,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+	<select id="createVserion" parameterType="java.util.Map" resultType="java.util.Map">
+		select version from fp_seven_day_index where plan_id=#{plan_id} and plan_node_id=#{plan_node_id}  order by create_time desc limit 1
+	</select>
+	<insert id="insertCompetingpPoducts" parameterType="java.util.Map" >
+		<!--
+          WARNING - @mbggenerated
+          This element is automatically generated by MyBatis Generator, do not modify.
+          This element was generated on Wed Mar 11 11:37:34 CST 2020.
+        -->
+		insert into fp_seven_day_competingproducts
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				id,
+			</if>
+			<if test="product_project != null" >
+				product_project,
+			</if>
+			<if test="first_opentime != null" >
+				first_opentime,
+			</if>
+			<if test="take_money != null" >
+				take_money,
+			</if>
+			<if test="month_avg_flow != null" >
+				month_avg_flow,
+			</if>
+			<if test="avg_price_product != null" >
+				avg_price_product,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="delay_id != null" >
+				delay_id,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				#{id,jdbcType=VARCHAR},
+			</if>
+			<if test="product_project != null" >
+				#{product_project,jdbcType=VARCHAR},
+			</if>
+			<if test="first_opentime != null" >
+				#{first_opentime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="take_money != null" >
+				#{take_money,jdbcType=DECIMAL},
+			</if>
+			<if test="month_avg_flow != null" >
+				#{month_avg_flow,jdbcType=DECIMAL},
+			</if>
+			<if test="avg_price_product != null" >
+				#{avg_price_product,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="delay_id != null" >
+				#{delay_id,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+	<insert id="insertPriceAvg" parameterType="java.util.Map" >
+		<!--
+          WARNING - @mbggenerated
+          This element is automatically generated by MyBatis Generator, do not modify.
+          This element was generated on Wed Mar 11 11:55:57 CST 2020.
+        -->
+		insert into fp_seven_day_open_avg
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				id,
+			</if>
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="product_type_code != null" >
+				product_type_code,
+			</if>
+			<if test="product_type != null" >
+				product_type,
+			</if>
+			<if test="invest_avg != null" >
+				invest_avg,
+			</if>
+			<if test="rules_avg != null" >
+				rules_avg,
+			</if>
+			<if test="designtwo_avg != null" >
+				designtwo_avg,
+			</if>
+			<if test="open_estimate != null" >
+				open_estimate,
+			</if>
+			<if test="bias_price != null" >
+				bias_price,
+			</if>
+			<if test="bias_per != null" >
+				bias_per,
+			</if>
+			<if test="bias_cause != null" >
+				bias_cause,
+			</if>
+			<if test="day_id != null" >
+				day_id,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				#{id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type_code != null" >
+				#{product_type_code,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type != null" >
+				#{product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_avg != null" >
+				#{invest_avg,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_avg != null" >
+				#{rules_avg,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_avg != null" >
+				#{designtwo_avg,jdbcType=DECIMAL},
+			</if>
+			<if test="open_estimate != null" >
+				#{open_estimate,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_price != null" >
+				#{bias_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_per != null" >
+				#{bias_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_cause != null" >
+				#{bias_cause,jdbcType=VARCHAR},
+			</if>
+			<if test="day_id != null" >
+				#{day_id,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+	<insert id="insertCustomerStoreFlow" parameterType="java.util.Map" >
+		insert into fp_guest_storage_flow
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				id,
+			</if>
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="approval_stuat != null" >
+				approval_stuat,
+			</if>
+			<if test="node_level != null" >
+				node_level,
+			</if>
+				create_time,
+			<if test="version != null" >
+				version,
+			</if>
+			<if test="approval_time != null" >
+				approval_time,
+			</if>
+			<if test="change!=null">
+				`change`,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				#{id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="approval_stuat != null" >
+				#{approval_stuat,jdbcType=TINYINT},
+			</if>
+			<if test="node_level != null" >
+				#{node_level,jdbcType=TINYINT},
+			</if>
+			now(),
+			<if test="version != null" >
+				#{version,jdbcType=VARCHAR},
+			</if>
+			<if test="approval_time != null" >
+				#{approval_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="change!=null">
+				#{change},
+			</if>
+		</trim>
+	</insert>
+	<insert id="insertCustomerStore" parameterType="java.util.Map" >
+		insert into fp_guest_storage_node_plan
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				id,
+			</if>
+			<if test="plan_id != null">
+				plan_id,
+			</if>
+			<if test="plan_node_id != null">
+				plan_node_id,
+			</if>
+			<if test="node_name != null">
+				nide_name,
+			</if>
+			<if test="node_time != null">
+				node_time,
+			</if>
+			<if test="report_num != null">
+				report_num,
+			</if>
+			<if test="visit_num != null">
+				visit_num,
+			</if>
+			<if test="little_num != null">
+				little_num,
+			</if>
+			<if test="little_per != null">
+				little_per,
+			</if>
+			<if test="big_num != null">
+				big_num,
+			</if>
+			<if test="big_per != null">
+				big_per,
+			</if>
+			<if test="sub_num != null">
+				sub_num,
+			</if>
+			<if test="make_per != null">
+				make_per,
+			</if>
+			<if test="level != null">
+				level,
+			</if>
+			<if test="line_name != null">
+				line_name,
+			</if>
+			<if test="little_way != null">
+				little_way,
+			</if>
+			<if test="big_way != null">
+				big_way,
+			</if>
+			<if test="node_level != null">
+				node_level,
+			</if>
+			<if test="version != null">
+				version,
+			</if>
+			<if test="flow_id != null">
+				flow_id,
+			</if>
+			<if test="changes != null">
+				changes,
+			</if>
+
+				create_time,
+
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				#{id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null">
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null">
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="node_name != null">
+				#{node_name,jdbcType=VARCHAR},
+			</if>
+			<if test="node_time != null">
+				#{node_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="report_num != null">
+				#{report_num,jdbcType=INTEGER},
+			</if>
+			<if test="visit_num != null">
+				#{visit_num,jdbcType=INTEGER},
+			</if>
+			<if test="little_num != null">
+				#{little_num,jdbcType=INTEGER},
+			</if>
+			<if test="little_per != null">
+				#{little_per,jdbcType=DECIMAL},
+			</if>
+			<if test="big_num != null">
+				#{big_num,jdbcType=INTEGER},
+			</if>
+			<if test="big_per != null">
+				#{big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="sub_num != null">
+				#{sub_num,jdbcType=INTEGER},
+			</if>
+			<if test="make_per != null">
+				#{make_per,jdbcType=DECIMAL},
+			</if>
+			<if test="level != null">
+				#{level},
+			</if>
+			<if test="line_name != null">
+				#{line_name,jdbcType=VARCHAR},
+			</if>
+			<if test="little_way != null">
+				#{little_way,jdbcType=VARCHAR},
+			</if>
+			<if test="big_way != null">
+				#{big_way,jdbcType=VARCHAR},
+			</if>
+			<if test="node_level != null">
+				#{node_level},
+			</if>
+			<if test="version != null">
+				#{version,jdbcType=VARCHAR},
+			</if>
+			<if test="flow_id != null">
+				#{flow_id,jdbcType=VARCHAR},
+			</if>
+			<if test="changes != null">
+				#{changes},
+			</if>
+			now(),
+		</trim>
+	</insert>
+	<insert id="insertWeekData" parameterType="java.util.Map" >
+		insert into fp_guest_storage_week
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				id,
+			</if>
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="week != null" >
+				week,
+			</if>
+			<if test="start_time != null" >
+				start_time,
+			</if>
+			<if test="end_time != null" >
+				end_time,
+			</if>
+			<if test="day_date != null" >
+				day_date,
+			</if>
+			<if test="plan_add != null" >
+				plan_add,
+			</if>
+			<if test="plan_total != null" >
+				plan_total,
+			</if>
+			<if test="plan_task_per != null" >
+				plan_task_per,
+			</if>
+			<if test="actual_add != null" >
+				actual_add,
+			</if>
+			<if test="actual_total != null" >
+				actual_total,
+			</if>
+			<if test="actual_task_per != null" >
+				actual_task_per,
+			</if>
+			<if test="bias_value != null" >
+				bias_value,
+			</if>
+			<if test="week_bais_value != null" >
+				week_bais_value,
+			</if>
+			<if test="bias_per != null" >
+				bias_per,
+			</if>
+			<if test="bias_cause != null" >
+				bias_cause,
+			</if>
+			<if test="node_level != null" >
+				node_level,
+			</if>
+			<if test="version != null" >
+				version,
+			</if>
+				create_time,
+			<if test="flow_id != null" >
+				flow_id,
+			</if>
+			<if test="is_edit !=null">
+				is_edit
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				#{id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="week != null" >
+				#{week,jdbcType=VARCHAR},
+			</if>
+			<if test="start_time != null" >
+				#{start_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="end_time != null" >
+				#{end_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="day_date != null" >
+				#{day_date,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_add != null" >
+				#{plan_add,jdbcType=INTEGER},
+			</if>
+			<if test="plan_total != null" >
+				#{plan_total,jdbcType=INTEGER},
+			</if>
+			<if test="plan_task_per != null" >
+				#{plan_task_per,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_add != null" >
+				#{actual_add,jdbcType=INTEGER},
+			</if>
+			<if test="actual_total != null" >
+				#{actual_total,jdbcType=INTEGER},
+			</if>
+			<if test="actual_task_per != null" >
+				#{actual_task_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_value != null" >
+				#{bias_value,jdbcType=INTEGER},
+			</if>
+			<if test="week_bais_value != null" >
+				#{week_bais_value,jdbcType=INTEGER},
+			</if>
+			<if test="bias_per != null" >
+				#{bias_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_cause != null" >
+				#{bias_cause,jdbcType=VARCHAR},
+			</if>
+			<if test="node_level != null" >
+				#{node_level,jdbcType=TINYINT},
+			</if>
+			<if test="version != null" >
+				#{version,jdbcType=VARCHAR},
+			</if>
+			now(),
+			<if test="flow_id != null" >
+				#{flow_id,jdbcType=VARCHAR},
+			</if>
+			<if test="is_edit != null" >
+				#{is_edit}
+			</if>
+		</trim>
+	</insert>
+	<update id="updateOpenApplayMainData" parameterType="java.util.Map">
+		<!--
+          WARNING - @mbggenerated
+          This element is automatically generated by MyBatis Generator, do not modify.
+          This element was generated on Wed Mar 11 15:41:47 CST 2020.
+        -->
+		update fp_seven_day_index
+		<set>
+
+			<if test="plan_id != null">
+				plan_id = #{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null">
+				plan_node_id = #{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type_code != null">
+				product_type_code = #{product_type_code,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_open_node != null">
+				invest_open_node = #{invest_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_product_type != null">
+				invest_product_type = #{invest_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_take_card_value != null">
+				invest_take_card_value = #{invest_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_take_card_area != null">
+				invest_take_card_area = #{invest_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_push_value != null">
+				invest_push_value = #{invest_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_push_area != null">
+				invest_push_area = #{invest_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_value != null">
+				invest_selling_value = #{invest_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_area != null">
+				invest_selling_area = #{invest_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_avg_price != null">
+				invest_avg_price = #{invest_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_operation_name != null">
+				invest_operation_name = #{invest_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_take_card_per != null">
+				invest_take_card_per = #{invest_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_this_per != null">
+				invest_this_per = #{invest_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_all_per != null">
+				invest_all_per = #{invest_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_irr != null">
+				invest_irr = #{invest_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_payback != null">
+				invest_payback = #{invest_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_open_node != null">
+				rules_open_node = #{rules_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_product_type != null">
+				rules_product_type = #{rules_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_take_card_value != null">
+				rules_take_card_value = #{rules_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_take_card_area != null">
+				rules_take_card_area = #{rules_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_push_value != null">
+				rules_push_value = #{rules_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_push_area != null">
+				rules_push_area = #{rules_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_value != null">
+				rules_selling_value = #{rules_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_area != null">
+				rules_selling_area = #{rules_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_avg_price != null">
+				rules_avg_price = #{rules_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_operation_name != null">
+				rules_operation_name = #{rules_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_take_card_per != null">
+				rules_take_card_per = #{rules_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_this_per != null">
+				rules_this_per = #{rules_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_all_per != null">
+				rules_all_per = #{rules_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_irr != null">
+				rules_irr = #{rules_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_payback != null">
+				rules_payback = #{rules_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_open_node != null">
+				designtwo_open_node = #{designtwo_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_product_type != null">
+				designtwo_product_type = #{designtwo_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_take_card_value != null">
+				designtwo_take_card_value = #{designtwo_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_take_card_area != null">
+				designtwo_take_card_area = #{designtwo_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_push_value != null">
+				designtwo_push_value = #{designtwo_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_push_area != null">
+				designtwo_push_area = #{designtwo_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_value != null">
+				designtwo_selling_value = #{designtwo_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_area != null">
+				designtwo_selling_area = #{designtwo_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_avg_price != null">
+				designtwo_avg_price = #{designtwo_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_operation_name != null">
+				designtwo_operation_name = #{designtwo_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_take_card_per != null">
+				designtwo_take_card_per = #{designtwo_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_this_per != null">
+				designtwo_this_per = #{designtwo_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_all_per != null">
+				designtwo_all_per = #{designtwo_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_irr != null">
+				designtwo_irr = #{designtwo_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_payback != null">
+				designtwo_payback = #{designtwo_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_open_node != null">
+				estimate_open_node = #{estimate_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_product_type != null">
+				estimate_product_type = #{estimate_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_take_card_value != null ">
+				estimate_take_card_value = #{estimate_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_take_card_area != null ">
+				estimate_take_card_area = #{estimate_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_push_value != null">
+				estimate_push_value = #{estimate_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_push_area != null">
+				estimate_push_area = #{estimate_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_value != null">
+				estimate_selling_value = #{estimate_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_area != null">
+				estimate_selling_area = #{estimate_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_avg_price != null">
+				estimate_avg_price = #{estimate_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_operation_name != null">
+				estimate_operation_name = #{estimate_operation_name,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_take_card_per != null and estimate_take_card_per != ''">
+				estimate_take_card_per = #{estimate_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_this_per != null">
+				estimate_this_per = #{estimate_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_all_per != null">
+				estimate_all_per = #{estimate_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_irr != null">
+				estimate_irr = #{estimate_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_payback != null">
+				estimate_payback = #{estimate_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_open_node != null">
+				deviation_open_node = #{deviation_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="deviation_product_type != null">
+				deviation_product_type = #{deviation_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="deviation_take_card_value != null">
+				deviation_take_card_value = #{deviation_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_take_card_area != null">
+				deviation_take_card_area = #{deviation_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_push_value != null">
+				deviation_push_value = #{deviation_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_push_area != null">
+				deviation_push_area = #{deviation_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_selling_value != null">
+				deviation_selling_value = #{deviation_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_selling_area != null">
+				deviation_selling_area = #{deviation_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_avg_price != null">
+				deviation_avg_price = #{deviation_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_operation_price != null">
+				deviation_operation_price = #{deviation_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="deviation_take_card_per != null">
+				deviation_take_card_per = #{deviation_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_this_per != null">
+				deviation_this_per = #{deviation_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_all_per != null">
+				deviation_all_per = #{deviation_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_irr != null">
+				deviation_irr = #{deviation_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="deviation_payback != null">
+				deviation_payback = #{deviation_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_open_node != null">
+				deviationper_open_node = #{deviationper_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="deviationper_product_type != null">
+				deviationper_product_type = #{deviationper_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="deviationper_take_card_value != null">
+				deviationper_take_card_value = #{deviationper_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_take_card_area != null">
+				deviationper_take_card_area = #{deviationper_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_push_value != null">
+				deviationper_push_value = #{deviationper_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_push_area != null">
+				deviationper_push_area = #{deviationper_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_selling_value != null">
+				deviationper_selling_value = #{deviationper_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_selling_area != null">
+				deviationper_selling_area = #{deviationper_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_avg_price != null">
+				deviationper_avg_price = #{deviationper_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_operation_price != null">
+				deviationper_operation_price = #{deviationper_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="deviationper_take_card_per != null">
+				deviationper_take_card_per = #{deviationper_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_this_per != null">
+				deviationper_this_per = #{deviationper_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_all_per != null">
+				deviationper_all_per = #{deviationper_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_irr != null">
+				deviationper_irr = #{deviationper_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="deviationper_payback != null">
+				deviationper_payback = #{deviationper_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_open_node != null">
+				cause_open_node = #{cause_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="cause_product_type != null">
+				cause_product_type = #{cause_product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="cause_take_card_value != null">
+				cause_take_card_value = #{cause_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_take_card_area != null">
+				cause_take_card_area = #{cause_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_push_value != null">
+				cause_push_value = #{cause_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_push_area != null">
+				cause_push_area = #{cause_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_selling_value != null">
+				cause_selling_value = #{cause_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_selling_area != null">
+				cause_selling_area = #{cause_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_avg_price != null">
+				cause_avg_price = #{cause_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_operation_price != null">
+				cause_operation_price = #{cause_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="cause_take_card_per != null">
+				cause_take_card_per = #{cause_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_this_per != null">
+				cause_this_per = #{cause_this_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_all_per != null">
+				cause_all_per = #{cause_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_irr != null">
+				cause_irr = #{cause_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="cause_payback != null">
+				cause_payback = #{cause_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="competing_relation != null">
+				competing_relation = #{competing_relation,jdbcType=VARCHAR},
+			</if>
+			<if test="competing_product != null">
+				competing_product = #{competing_product,jdbcType=VARCHAR},
+			</if>
+			<if test="plate_dynamic != null">
+				plate_dynamic = #{plate_dynamic,jdbcType=VARCHAR},
+			</if>
+			<if test="competing_condition != null">
+				competing_condition = #{competing_condition,jdbcType=VARCHAR},
+			</if>
+			<if test="repot_customer_target != null">
+				repot_customer_target = #{repot_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="repot_customer_actual != null">
+				repot_customer_actual = #{repot_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="repot_customer_per != null">
+				repot_customer_per = #{repot_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="come_way != null">
+				come_way = #{come_way,jdbcType=VARCHAR},
+			</if>
+			<if test="come_customer_target != null">
+				come_customer_target = #{come_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="come_customer_actual != null">
+				come_customer_actual = #{come_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="come_customer_per != null">
+				come_customer_per = #{come_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="lesser_way != null">
+				lesser_way = #{lesser_way,jdbcType=VARCHAR},
+			</if>
+			<if test="lesser_customer_target != null">
+				lesser_customer_target = #{lesser_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="lesser_customer_actual != null">
+				lesser_customer_actual = #{lesser_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="lesser_customer_per != null">
+				lesser_customer_per = #{lesser_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="big_way != null">
+				big_way = #{big_way,jdbcType=VARCHAR},
+			</if>
+			<if test="big_customer_target != null">
+				big_customer_target = #{big_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="big_customer_actual != null">
+				big_customer_actual = #{big_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="big_customer_per != null">
+				big_customer_per = #{big_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="sub_customer_target != null">
+				sub_customer_target = #{sub_customer_target,jdbcType=INTEGER},
+			</if>
+			<if test="sub_customer_actual != null">
+				sub_customer_actual = #{sub_customer_actual,jdbcType=INTEGER},
+			</if>
+			<if test="sub_customer_per != null">
+				sub_customer_per = #{sub_customer_per,jdbcType=DECIMAL},
+			</if>
+			<if test="this_customer_visit != null">
+				this_customer_visit = #{this_customer_visit,jdbcType=INTEGER},
+			</if>
+			<if test="this_customer_conversionper != null">
+				this_customer_conversionper = #{this_customer_conversionper,jdbcType=DECIMAL},
+			</if>
+			<if test="customer_cause != null">
+				customer_cause = #{customer_cause,jdbcType=VARCHAR},
+			</if>
+			<if test="trader_open_prediction != null">
+				trader_open_prediction = #{trader_open_prediction,jdbcType=VARCHAR},
+			</if>
+			<if test="version != null">
+				version = #{version,jdbcType=INTEGER},
+			</if>
+
+			<if test="approval_stuat != null">
+				approval_stuat = #{approval_stuat,jdbcType=INTEGER},
+			</if>
+			<if test="rules_operation_price != null">
+				rules_operation_price = #{rules_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_operation_price != null">
+				invest_operation_price = #{invest_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_operation_price != null">
+				designtwo_operation_price = #{designtwo_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_operation_price != null">
+				estimate_operation_price = #{estimate_operation_price,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_operation_bfb != null">
+				rules_operation_bfb = #{rules_operation_bfb,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_operation_bfb != null">
+				invest_operation_bfb = #{invest_operation_bfb,jdbcType=VARCHAR},
+			</if>
+			<if test="designtwo_operation_bfb != null">
+				designtwo_operation_bfb = #{designtwo_operation_bfb,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_operation_bfb != null">
+				estimate_operation_bfb = #{estimate_operation_bfb,jdbcType=VARCHAR},
+			</if>
+		</set>
+		where id=#{id}
+	</update>
+
+	<delete id="clearSunData" parameterType="java.util.Map">
+	delete from fp_guest_storage_node_plan where flow_id=(
+		select id from fp_guest_storage_flow
+		where  plan_node_id=#{id}
+		);
+		delete from fp_guest_storage_flow where plan_node_id=#{id};
+		delete from fp_seven_day_competingproducts where delay_id=#{id};
+		delete from fp_seven_day_open_avg where day_id=#{id};
+		delete from fp_guest_storage_week where flow_id=(
+		select id from fp_guest_storage_flow
+		where plan_node_id=#{id}
+		);
+	</delete>
+	<select id="getPlanEndTime" parameterType="java.lang.String" resultType="java.lang.String">
+		SELECT plan_end_time FROM fp_plan_node WHERE ID=#{plan_node_id};
+	</select>
+	<select id="getApplayDatas" resultType="java.util.Map" parameterType="java.lang.String">
+	SELECT
+	proj.projectName,
+	ba.employeeName,
+	flow.post_Name postName,
+	IFNULL(DATE_FORMAT(flow.zddate, '%Y-%m-%d' ),DATE_FORMAT(NOW(), '%Y-%m-%d' )) zddate
+FROM
+	fp_seven_day_index  fa
+	LEFT JOIN mm_ap_flow_info flow ON flow.json_id = fa.id
+
+	LEFT JOIN b_account ba ON ba.UserName = flow.creator
+	LEFT JOIN t_mm_project proj ON proj.projectID = flow.project_id
+	WHERE  fa.id = #{id}
+	 limit 1
+
+	</select>
+
+
+
+
+	<!--明源审批回调-->
+	<!--修改数据状态-->
+	<update id="updateApplayStatus" parameterType="java.util.Map">
+		update fp_guest_storage_flow  set approval_stuat=#{status} where plan_node_id=#{id};
+		update fp_seven_day_index set approval_stuat=#{status} where id=#{id};
+		update fp_plan_node set plan_approval=#{status}
+		 where id=
+		(select plan_node_id from fp_seven_day_index where id=#{id} ) and plan_approval!=4;
+
+	</update>
+	<select id="getPlanNodeFinshTime" parameterType="java.lang.String" resultType="java.lang.String">
+SELECT
+	actual_finish_time
+FROM
+	fp_plan_node fp
+	INNER JOIN fp_seven_day_index seven ON fp.id = seven.plan_node_id
+WHERE
+	seven.id = #{id}
+	</select>
+	<update id="updatePlanNodeFinshTime" parameterType="java.util.Map">
+		update  fp_plan_node set plan_approval=4,update_time=now(),actual_finish_time=now()
+		where id=(
+		select plan_node_id from fp_seven_day_index where id=#{id}
+		);
+	</update>
+	<select id="getApplayData" resultType="java.util.Map" parameterType="java.lang.String">
+		select estimate_open_node,plan_id,plan_node_id from fp_seven_day_index where id=#{id}
+	</select>
+
+
+	<update id="updateThisNodeforSevenDay" parameterType="java.lang.String">
+		update fp_plan set this_node=8 where id=#{plan_id}
+	</update>
+
+	<!--查询当前节点是否存在已经审批通过的版本数据-->
+	<select id="getApplayadopt" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	DATE_FORMAT(estimate_open_node,'%Y-%m-%d') estimate_open_node,
+	estimate_product_type,
+	estimate_take_card_value,
+	estimate_push_value,
+	estimate_selling_value,
+	estimate_this_per,
+	estimate_all_per,
+	estimate_irr,
+	estimate_payback,
+	cause_open_node,
+	cause_product_type,
+	cause_take_card_value,
+	cause_push_value,
+	cause_selling_value,
+	cause_take_card_per,
+	cause_this_per,
+	cause_all_per,
+	cause_irr,
+	cause_payback,
+	this_customer_visit,
+	sub_customer_actual,
+	this_customer_conversionper,
+	sub_customer_per,
+	trader_open_prediction
+FROM
+	fp_seven_day_index
+WHERE
+	plan_node_id = #{plan_node_id}
+	AND approval_stuat = 4
+ORDER BY
+	version DESC limit  1
+	</select>
+
+
+	<!--查询是否有审批通过版本的竞品情况数据-->
+	<select id="getApplayadotCompetingpPoducts" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+product_project,
+DATE_FORMAT(first_opentime,'%Y-%m-%d') first_opentime,
+take_money,
+month_avg_flow,
+avg_price_product
+		FROM fp_seven_day_competingproducts
+		where delay_id =(
+		SELECT id FROM
+	fp_seven_day_index
+WHERE
+	plan_node_id = #{plan_node_id}
+	AND approval_stuat = 4
+ORDER BY
+	version DESC limit  1
+		)
+	</select>
+</mapper>

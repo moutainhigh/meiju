@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.firstplan.planmonitoring.dao.PlanMontitorDao">
+	<select id="getPlanNodeData" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+		case when tb.node_level = 10 then '归档' else tb.node_name end nodeName,
+		-- tb.node_name nodeName,
+		tb.node_level as  this_node,
+		COUNT( tb2.this_node ) as nodeNum
+		FROM
+		( SELECT node_level, node_name FROM fp_template_node node  where node.is_del=0 and is_effective=0   and node_level not in(11,12) GROUP BY node_level ) tb
+		LEFT JOIN
+		(SELECT
+		plan.this_node
+		FROM
+		t_mm_project project
+		INNER JOIN fp_plan plan ON plan.project_id = project.projectID
+		INNER JOIN fp_plan_node on fp_plan_node.plan_id=plan.id
+		INNER JOIN        ( select project_id from (
+		SELECT project_id,1 is_manage from s_user_project_rel
+		where userId=#{userID}
+		UNION
+		SELECT a.project_id,0 is_manage from mm_idm_business_unit_project_rel a
+		INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+		where userId=#{userID}
+		) userproject GROUP BY project_id) s
+		on s.project_id=plan.project_id
+		AND (project.isDelete &lt;&gt;1 or project.isDelete is null)
+		AND plan.is_del = 0
+		AND plan.is_effective = 0
+		AND fp_plan_node.is_effective = 0
+		AND fp_plan_node.is_del=0
+		<!--<if test="thisNode!=null and thisNode!=''">
+			AND plan.this_node=#{thisNode}
+		</if>-->
+		<if test="nodeName!=null and nodeName!=''">
+			AND fp_plan_node.node_name=#{nodeName}
+		</if>
+		<if test="areaName!=null and areaName!=''">
+			AND plan.area_name like concat('%',#{areaName},'%')
+		</if>
+		<if test="projectName!=null and projectName!=''">
+			AND plan.project_name like concat('%',#{projectName},'%')
+		</if>
+		<if test="openTime1!=null and openTime1!='' and openTime2!=null and openTime2!='' ">
+			AND   plan.open_time BETWEEN date_format(#{openTime1}, '%Y-%m-%d') AND date_format(#{openTime2}, '%Y-%m-%d')
+		</if>
+		<if test="nodeStatus!=null  and nodeStatus=='是'.toString()">
+			AND  fp_plan_node.light_stuat in (4,5)
+		</if>
+		<if test="nodeStatus!=null  and nodeStatus=='否'.toString()">
+			AND  fp_plan_node.light_stuat in (1,2,3)
+		</if>
+		<if test="overday=='1天内'.toString()">
+			AND  fp_plan_node.overday_num  &lt;= 1
+		</if>
+		<if test="overday=='1-3天'.toString()">
+			AND fp_plan_node.overday_num &gt;=1  and   fp_plan_node.overday_num &lt;=3
+		</if>
+		<if test="overday=='3-10天'.toString()">
+			AND fp_plan_node.overday_num &gt;=3  and   fp_plan_node.overday_num &lt;=10
+		</if>
+		<if test="overday=='10天以上'.toString()">
+			AND  fp_plan_node.overday_num &gt;= 10
+		</if>
+		GROUP BY plan.project_id) AS tb2
+		ON tb.node_level = tb2.this_node
+		GROUP BY tb.node_level
+	</select>
+	<select id="statisticsStatusData" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+		count(*) AS statusNum,
+		CASE light_stuat
+		WHEN '1' THEN
+		'待填报'
+		WHEN '2' THEN
+		'审批中'
+		WHEN '3' THEN
+		'按时完成'
+		WHEN '4' THEN
+		'逾期完成'
+		WHEN '5' THEN
+		'逾期未完成' ELSE '未知状态'
+		END AS 'statusName',
+		light_stuat AS statusCode
+		FROM
+		fp_plan_node
+		INNER JOIN fp_plan plan ON plan.id = fp_plan_node.plan_id
+		WHERE
+		fp_plan_node.is_del = 0
+		AND fp_plan_node.is_effective = 0
+		<if test="nodeName!=null and nodeName!=''">
+			AND fp_plan_node.node_name=#{nodeName}
+		</if>
+		<if test="areaName!=null and areaName!=''">
+			AND plan.area_name like '%#{areaName}%'
+		</if>
+		<if test="projectName!=null and projectName!=''">
+			AND plan.project_name like '%#{projectName}%'
+		</if>
+		<if test="openTime1!=null and openTime1!='' and openTime2!=null and openTime2!='' ">
+			AND  #{openTime1} &lt;= plan.open_time &lt;= #{openTime2}
+		</if>
+		<if test="nodeStuat=='1'">
+			AND  fp_plan_node.light_stuat in (4,5);
+		</if>
+		<if test="nodeStuat=='0'">
+			AND  fp_plan_node.light_stuat in (1,2,3);
+		</if>
+		<if test="overday=='一天内'">
+			AND  fp_plan_node.overday_num  &lt; 1
+		</if>
+		<if test="overday=='1-3天'">
+			AND  1 &lt;= fp_plan_node.overday_num &lt;=3
+		</if>
+		<if test="overday=='3-10天天'">
+			AND  3 &lt;= fp_plan_node.overday_num &lt;=10
+		</if>
+		<if test="overday=='10天以上'">
+			AND  fp_plan_node.overday_num &gt; 10
+		</if>
+		GROUP BY
+		light_stuat
+	</select>
+	<select id="getProjectData" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+		plan.project_Name as projectName,
+		project.projectCode,
+		plan.area_name AS areaName,
+		plan.id	 as plan_id,
+		fp_plan_node.id as plan_node_id,
+		plan.project_id,
+		fp_plan_node.node_level,
+		plan.this_node,
+		orgname as cityName
+		FROM
+		t_mm_project project
+		INNER JOIN fp_plan plan ON plan.project_id = project.projectID
+		INNER JOIN fp_plan_node on fp_plan_node.plan_id=plan.id
+		INNER JOIN        ( select project_id from (
+		SELECT project_id,1 is_manage from s_user_project_rel
+		where userId=#{userID}
+		UNION
+		SELECT a.project_id,0 is_manage from mm_idm_business_unit_project_rel a
+		INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+		where userId=#{userID}
+		) userproject GROUP BY project_id) s
+		on s.project_id=plan.project_id
+		AND (project.isDelete &lt;&gt;1 or project.isDelete is null)
+		AND plan.is_del = 0
+		AND plan.is_effective = 0
+		AND fp_plan_node.is_effective = 0
+		AND fp_plan_node.is_del=0
+		<if test="thisNode!=null and thisNode!=''">
+			AND plan.this_node=#{thisNode}
+		</if>
+		<if test="nodeName!=null and nodeName!=''">
+			AND fp_plan_node.node_name=#{nodeName}
+		</if>
+		<if test="areaName!=null and areaName!=''">
+			AND plan.area_name like concat('%',#{areaName},'%')
+		</if>
+		<if test="projectName!=null and projectName!=''">
+			AND plan.project_name like concat('%',#{projectName},'%')
+		</if>
+		<if test="openTime1!=null and openTime1!='' and openTime2!=null and openTime2!='' ">
+			AND   plan.open_time BETWEEN date_format(#{openTime1}, '%Y-%m-%d') AND date_format(#{openTime2}, '%Y-%m-%d')
+		</if>
+		<if test="nodeStatus!=null  and nodeStatus=='是'.toString()">
+			AND  fp_plan_node.light_stuat in (4,5)
+		</if>
+		<if test="nodeStatus!=null  and nodeStatus=='否'.toString()">
+			AND  fp_plan_node.light_stuat in (1,2,3)
+		</if>
+		<if test="overday=='1天内'.toString()">
+			AND  fp_plan_node.overday_num  &lt;= 1
+		</if>
+		<if test="overday=='1-3天'.toString()">
+			AND fp_plan_node.overday_num &gt;=1  and   fp_plan_node.overday_num &lt;=3
+		</if>
+		<if test="overday=='3-10天'.toString()">
+			AND fp_plan_node.overday_num &gt;=3  and   fp_plan_node.overday_num &lt;=10
+		</if>
+		<if test="overday=='10天以上'.toString()">
+			AND  fp_plan_node.overday_num &gt;= 10
+		</if>
+		GROUP BY plan.project_id
+		ORDER BY abs(DATEDIFF(plan.open_time,now())),open_time
+		LIMIT #{pageIndex},#{pageSize}
+	</select>
+	<select id="getProjectDataCount" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT COUNT(*) as total FROM(
+		SELECT
+		plan.project_Name as projectName,
+		project.projectCode,
+		plan.area_name AS areaName,
+		plan.id	 as planID
+		FROM
+		t_mm_project project
+		INNER JOIN fp_plan plan ON plan.project_id = project.projectID
+		INNER JOIN fp_plan_node on fp_plan_node.plan_id=plan.id
+		INNER JOIN        ( select project_id from (
+		SELECT project_id,1 is_manage from s_user_project_rel
+		where userId=#{userID}
+		UNION
+		SELECT a.project_id,0 is_manage from mm_idm_business_unit_project_rel a
+		INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+		where userId=#{userID}
+		) userproject GROUP BY project_id) s
+		on s.project_id=plan.project_id
+		AND (project.isDelete &lt;&gt;1 or project.isDelete is null)
+		AND plan.is_del = 0
+		AND plan.is_effective = 0
+		AND fp_plan_node.is_effective = 0
+		AND fp_plan_node.is_del=0
+		<if test="thisNode!=null and thisNode!='' and thisNode!='0'">
+			AND plan.this_node=#{thisNode}
+		</if>
+		<if test="nodeName!=null and nodeName!=''">
+			AND fp_plan_node.node_name=#{nodeName}
+		</if>
+		<if test="areaName!=null and areaName!=''">
+			AND plan.area_name like concat('%',#{areaName},'%')
+		</if>
+		<if test="projectName!=null and projectName!=''">
+			AND plan.project_name like concat('%',#{projectName},'%')
+		</if>
+		<if test="openTime1!=null and openTime1!='' and openTime2!=null and openTime2!='' ">
+			AND   plan.open_time BETWEEN date_format(#{openTime1}, '%Y-%m-%d') AND date_format(#{openTime2}, '%Y-%m-%d')
+		</if>
+		<if test="nodeStatus=='是'.toString()">
+			AND  fp_plan_node.light_stuat in (4,5)
+		</if>
+		<if test="nodeStatus=='否'.toString()">
+			AND  fp_plan_node.light_stuat in (1,2,3)
+		</if>
+		<if test="overday=='1天内'.toString()">
+			AND  fp_plan_node.overday_num  &lt;= 1
+		</if>
+		<if test="overday=='1-3天'.toString()">
+			AND fp_plan_node.overday_num &gt;=1  and   fp_plan_node.overday_num &lt;=3
+		</if>
+		<if test="overday=='3-10天'.toString()">
+			AND fp_plan_node.overday_num &gt;=3  and   fp_plan_node.overday_num &lt;=10
+		</if>
+		<if test="overday=='10天以上'.toString()">
+			AND fp_plan_node.overday_num &gt;=10
+		</if>
+		GROUP BY plan.project_id) S
+	</select>
+	<!--根据计划获取计划下所有节点-->
+	<select id="getPlanNodeByPlan" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT * from (SELECT
+	node_name AS nodeName,
+	date_format(plan_end_time, '%y-%m-%d') AS planEndTime,
+	date_format(actual_finish_time, '%y-%m-%d') AS actualFinishTime,
+	IFNULL(light_stuat,1) AS lightStatus,
+	node_level AS nodeLevel,
+	date_format(delay_open_time, '%y-%m-%d') AS delay_open_time,
+	node_order
+	from fp_plan_node where
+        plan_id=#{planID}
+        and is_del=0
+        ORDER BY is_effective limit 100
+        ) tb GROUP BY tb.nodeLevel  ORDER BY  node_order,planEndTime
+
+	</select>
+	<!--定时更改节点状态sql-->
+	<!--获取每个计划的当前节点-->
+	<select id="selectAllPlanNowNode" resultType="java.util.Map">
+SELECT
+id,this_node
+FROM fp_plan
+where is_del=0
+	</select>
+	<!--查询出各个计划对应的当前节点-->
+	<select id="selectAllNodeByPlan" resultType="java.util.Map">
+SELECT
+	fp_plan_node.id AS node_id,
+	light_stuat,
+	template_node_id,
+	UNIX_TIMESTAMP(plan_end_time)*1000 as plan_end_time,
+	UNIX_TIMESTAMP(actual_finish_time)*1000 as actual_finish_time,
+	plan_approval,
+	warning_day
+FROM
+	fp_plan_node
+
+WHERE
+	fp_plan_node.plan_id = #{id}  and fp_plan_node.node_level=#{this_node} and  fp_plan_node.is_del=0 and fp_plan_node.is_effective=0
+	</select>
+	<!--更改节点的亮灯状态-->
+	<update id="updateNodeLightStatus">
+		<!--节点灯的颜色-->
+		update fp_plan_node set light_stuat=case when CURDATE() between plan_start_time and plan_end_time then 6
+		when plan_end_time &lt; CURDATE() then 5 end where
+		light_stuat not in(3,4) or light_stuat is NULL and actual_finish_time is null
+	</update>
+	<select id="getIdmBuinessData" resultType="java.util.Map">
+SELECT
+	business_unit_id,
+	business_unit_name
+FROM
+	mm_idm_business_unit_project_rel
+	GROUP BY business_unit_name
+ORDER BY
+	business_unit_sort	</select>
+
+
+	<select id="selectProjectRelationship" resultType="java.lang.String">
+		SELECT project_id from fp_project_relationship;
+	</select>
+	<select id="selectMainDataProject" resultType="java.util.Map">
+		SELECT projectID as project_id,projectCode as project_code,projectName as project_name from t_mm_project where
+		projectID not in
+		<foreach collection="projectIdList" item="project_id" index="index" open="(" close=")" separator=",">
+			#{project_id}
+		</foreach>
+		;
+	</select>
+
+	<!--同步项目关系表数据-->
+	<insert id="addProjectRelationship" parameterType="java.util.Map">
+		INSERT INTO `saleman`.`fp_project_relationship` ( `id`, `project_name`, `project_id`, `pid`, `level`, `create_time`, `project_code` )
+		VALUES
+		( UUID(), #{project_name}, #{project_id}, '-1', 1, NOW(), #{project_code});
+	</insert>
+	<update id="updatePlanProjectName">
+UPDATE fp_plan f
+INNER JOIN t_mm_project t ON t.projectID = f.project_id
+SET f.project_name = t.projectName;
+	</update>
+	<update id="updateProjectFlagName">
+	UPDATE mm_sell_project f
+	INNER JOIN t_mm_project t ON t.projectID = f.project_id
+	SET f.project_name = t.projectName;
+	</update>
+
+	<update id="updatePlanAreaData">
+	UPDATE fp_plan p,
+	mm_idm_business_unit_project_rel b
+	SET p.area_id=b.business_unit_id,
+	p.area_name=b.business_unit_name
+	WHERE p.project_id=b.project_id
+	</update>
+
+
+
+
+	<!--查询当前最新节点的plan_node_id-->
+	<select id="getNewestPlanNode" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	plan_end_time,
+	actual_finish_time,
+	TIMESTAMPDIFF(DAY,plan_end_time,actual_finish_time) beOverdue_days,
+	id
+FROM
+	fp_plan_node
+WHERE
+	node_level = #{node_level}
+	AND is_effective = 0
+	AND is_del = 0
+	AND plan_id = #{plan_id}
+	ORDER  BY create_time  desc limit 1
+	</select>
+
+	<!--获取当前节点的目标数据-->
+	<select id="getThisNodePlanData" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+	nide_name,
+	node_level,
+	IFNULL( visit_num, 0 ) AS plan_visit_num,
+	IFNULL( little_num, 0 ) AS plan_little_num,
+	IFNULL( big_num, 0 ) AS plan_big_num,
+	CONCAT(IFNULL( little_per, 0.00 ),'%') AS plan_little_per,
+	CONCAT(IFNULL( big_per, 0.00 ),'%') AS plan_big_per
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+		SELECT id
+		FROM fp_guest_storage_flow
+		WHERE approval_stuat = 4
+		and plan_id=#{plan_id}
+		ORDER BY node_level DESC, create_time desc LIMIT 1
+	)
+	AND node_level = #{node_level}
+	AND `level` = 1 limit 1
+	</select>
+	<!--获取当前节点的实际达成数据-->
+
+	<select id="getThisNodeActualData" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+	nide_name,
+	node_level,
+		IFNULL( visit_num, 0 ) AS actual_visit_num,
+	IFNULL( little_num, 0 ) AS actual_little_num,
+	IFNULL( big_num, 0 ) AS actual_big_num,
+	CONCAT(IFNULL( little_per, 0.00 ),'%') AS actual_little_per,
+	CONCAT(IFNULL( big_per, 0.00 ),'%') AS actual_big_per
+	/*IFNULL( little_per, 0.00 ) AS actual_little_per,
+	IFNULL( big_per, 0.00 ) AS actual_big_per*/
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+SELECT id
+		FROM fp_guest_storage_flow
+		WHERE approval_stuat = 4
+		and plan_id=#{plan_id}
+		ORDER BY node_level DESC, create_time desc LIMIT 1
+	)
+	AND node_level = #{node_level}
+	AND `level` = 2
+	limit 1;
+	</select>
+
+	<select id="getOpenPlanData" resultType="java.util.Map" parameterType="java.util.Map">
+				SELECT
+	nide_name,
+	node_level,
+		IFNULL( visit_num, 0 ) AS plan_open_visit_num,
+	IFNULL( little_num, 0 ) AS plan_open_little_num,
+	IFNULL( big_num, 0 ) AS plan_open_big_num,
+	IFNULL( little_per, 0.00 ) AS plan_open_little_per,
+	IFNULL( big_per, 0.00 ) AS plan_open_big_per
+	/*IFNULL( little_per, 0.00 ) AS actual_little_per,
+	IFNULL( big_per, 0.00 ) AS actual_big_per*/
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+SELECT id
+		FROM fp_guest_storage_flow
+		WHERE approval_stuat = 4
+		and plan_id=#{plan_id}
+		ORDER BY node_level DESC, create_time desc LIMIT 1
+	)
+	AND node_level = #{node_level}
+	AND `level` = 1
+	LIMIT 1
+	</select>
+
+
+	<select id="getPlanData" resultType="java.lang.String">
+SELECT
+id as plan_id
+from fp_plan
+WHERE is_del=0
+GROUP BY id
+	</select>
+	<!--更改即将填报的节点-->
+	<update id="updateSoonNode" parameterType="java.lang.String">
+UPDATE fp_plan p SET this_node=(
+SELECT
+ node_level+1
+FROM fp_plan_node
+ where is_effective=0 AND is_del=0
+ AND plan_id=#{plan_id}
+ AND plan_approval=4
+ AND actual_finish_time IS NOT NULL
+order by node_level
+desc
+LIMIT 1
+) WHERE p.id=#{plan_id}
+	</update>
+</mapper>

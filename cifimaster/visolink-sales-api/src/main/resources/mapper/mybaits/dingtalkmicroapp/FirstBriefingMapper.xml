@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.dingtalkmicroapp.dao.FirstBriefingDao">
+
+    <!--获取当前用户拥有的项目权限-->
+    <select id="getUserProjectData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT a.project_id as projectid
+from mm_idm_business_unit_project_rel a
+INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+where userId=#{user_id}
+    </select>
+    <!--校验用户权限信息-->
+    <select id="getUserFunctionPermission" resultType="java.util.Map" parameterType="java.util.Map">
+select * from (
+select
+ menu.`ID`, menu.`PID`, menu.`MenuName` title, menu.`Url` path, menu.MenuSysName as name,menu.`ImageUrl` icon, menu.`IsShow` isshow,
+     menu.`redirect`, menu.`component`, menu.`alwaysShow`,menu.`levels`
+    ,menu.menusType,menu.ListIndex
+from s_jobsuserrel josr
+INNER JOIN s_jobs job on josr.JobID=job.ID
+INNER JOIN s_commonjobs con on con.ID=job.CommonJobID
+INNER JOIN s_jobsmenurel  jom on jom.JobID=job.ID
+INNER JOIN s_menus menu on menu.ID=jom.MenuID
+INNER JOIN b_account ac on ac.ID=josr.AccountID
+WHERE josr.AccountID=#{user_id} and menu.`Status`=1 and menu.IsDel=0
+union
+select
+ menu.`ID`, menu.`PID`, menu.`MenuName` title, menu.`Url` path, menu.MenuSysName as name,menu.`ImageUrl` icon, menu.`IsShow` isshow,
+     menu.`redirect`, menu.`component`, menu.`alwaysShow`,menu.`levels`
+    ,menu.menusType,menu.ListIndex
+from s_jobsuserrel josr
+INNER JOIN s_jobs job on josr.JobID=job.ID
+INNER JOIN s_commonjobs con on con.ID=job.CommonJobID
+INNER JOIN  s_commonjobsmenurel cc on con.id=cc.jobid
+INNER JOIN s_menus menu on menu.ID=cc.MenuID
+INNER JOIN b_account ac on ac.ID=josr.AccountID
+WHERE josr.AccountID=#{user_id} and menu.`Status`=1 and menu.IsDel=0
+) temp
+WHERE title=#{function_name}
+ORDER BY temp.ListIndex
+    </select>
+
+    <!-- bql 2020-09-29 优化 -->
+    <select id="getUserFunctionPermissionOptimiza"  resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT * FROM (
+            SELECT menu.`ID`, menu.`PID`, menu.`MenuName` title, menu.`Url` path, menu.MenuSysName as name,menu.`ImageUrl` icon, menu.`IsShow` isshow,
+                 menu.`redirect`, menu.`component`, menu.`alwaysShow`,menu.`levels`
+                ,menu.menusType,menu.ListIndex
+            FROM v_user_menuid_job  jm
+            INNER JOIN s_menus menu on menu.ID=jm.MenuID
+            WHERE accountid = #{user_id} and menu.`Status`=1 and menu.IsDel=0
+            UNION
+            SELECT menu.`ID`, menu.`PID`, menu.`MenuName` title, menu.`Url` path, menu.MenuSysName as name,menu.`ImageUrl` icon, menu.`IsShow` isshow,
+                 menu.`redirect`, menu.`component`, menu.`alwaysShow`,menu.`levels`
+                ,menu.menusType,menu.ListIndex
+            FROM v_user_menuid_cjob jm
+            INNER JOIN s_menus menu on menu.ID=jm.MenuID
+            WHERE AccountID = #{user_id} and menu.`Status`=1 and menu.IsDel=0
+        ) t
+        WHERE title=#{function_name}
+    </select>
+
+</mapper>

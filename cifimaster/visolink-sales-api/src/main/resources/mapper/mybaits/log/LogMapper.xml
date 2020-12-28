@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.system.logs.dao.LogsMapper">
+    <!--查询日志监控信息-->
+    <select id="queryLogInfo" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        id,
+        create_time AS createTime,
+        description,
+        exception_detail AS exception,
+        (
+        CASE log_type
+        WHEN "INFO" THEN
+        "正常"
+        WHEN "ERROR" THEN
+        "错误"
+        WHEN "WARING" THEN
+        "警告"
+        ELSE
+        "未知"
+        END
+        ) logTypeDesc,
+        request_ip AS IP,
+        time,
+        username
+        FROM
+        log
+      WHERE 1=1 and username is not NULL and username!=''
+      <if test="userName!=null and userName!=''">
+           AND  userName like '%${userName}%'
+     </if>
+     <if test="startTime!=null and startTime!=''">
+           AND  create_Time >= #{startTime}
+     </if>
+     <if test="endTime!=null and endTime!=''">
+         AND  create_Time &lt;= #{endTime}
+     </if>
+        ORDER BY
+        create_time DESC
+        LIMIT #{pageIndex},#{pageSize};
+    </select>
+  <!--查询日志监控信息总记录数-->
+    <select id="queryLogInfoCount" resultType="java.lang.String" parameterType="java.util.Map">
+        SELECT
+      COUNT(1) AS total
+      FROM
+      log
+      WHERE 1=1 and username is not NULL and username!=''
+      <if test="userName!=null and userName!=''">
+            AND userName like '%${userName}%'
+     </if>
+     <if test="startTime!=null and startTime!=''">
+         AND  create_Time >= #{startTime}
+     </if>
+     <if test="endTime!=null and endTime!=''">
+         AND create_Time &lt;= #{endTime}
+     </if>
+        ORDER BY
+        create_time DESC
+    </select>
+
+
+</mapper>

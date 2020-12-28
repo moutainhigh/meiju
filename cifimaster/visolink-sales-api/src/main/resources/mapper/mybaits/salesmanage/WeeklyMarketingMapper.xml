@@ -1,0 +1,1472 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.weeklymarketingplan.dao.WeeklyMarketingDao">
+
+    <!--营销周计划详情月度目标部分字段-->
+    <select id="WeeklyPlanMonthsTarget" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT IFNULL( come_client_quantity ,0) come_client_quantity, -- 月度目标 来人量（组）
+ IFNULL( total_sign_funds ,0) total_sign_funds,  -- 月度目标 -- 签约（万元）
+ t.`projectCode` project_id
+
+FROM  mm_monthly_plan_index mpi
+
+
+INNER JOIN t_mm_project t ON mpi.prepared_by_unit_org_id =t.projectID
+ INNER JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = mpi.prepared_by_unit_org_id AND mpi.months = mpb.`months`
+
+ LEFT JOIN (SELECT come_client_quantity,detail.project_id,detail.months FROM   mm_monthly_plan_index_detail detail
+ INNER JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = detail.project_id AND detail.months = mpb.`months`
+ WHERE mpb.plan_status>=4   ) detail
+ON detail.project_id=mpi.prepared_by_unit_org_id AND detail.months=mpi.months
+WHERE
+
+DATE_FORMAT( mpi.months,'%Y-%m-%d')=#{months}
+AND prepared_by_unit_type=3
+    AND mpb.plan_status>=2
+ GROUP BY mpi.prepared_by_unit_org_id
+
+
+</select>
+    <!--营销周计划详情月度目标部分字段-->
+    <select id="WeeklyPlanWeekklyTarget" resultType="java.util.Map">
+       SELECT
+  sum(IFNULL( sign_target,0)) sign_target, -- 周目标签约金额
+  sum(IFNULL( visit_quantity,0)) visit_quantity,-- 周来人量（组）
+  t.`projectCode` project_id
+FROM
+mm_monthly_plan_weekly_plan plan
+INNER JOIN t_mm_project t ON plan.project_id =t.projectID
+ INNER JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = plan.project_id AND plan.months = mpb.`months`
+
+WHERE  plan.months=#{months}
+<if test="weekSerialNumber==12">
+    AND (week_serial_number=1 or week_serial_number=2)
+</if>
+<if test="weekSerialNumber!=12">
+    AND week_serial_number=#{weekSerialNumber}
+</if>
+ AND plan.is_effective>=1
+ AND mpb.plan_status>=4
+ GROUP BY plan.project_id
+ </select>
+
+
+    <!--营销周计划详情月度累计来人量（组）或周度来人量组-->
+    <select id="WeeklyPlanCnt" parameterType="java.util.Map" resultType="java.util.Map">
+
+      SELECT
+     IFNULL( SUM(GJCount) ,0 ) visitCount ,ProjectID project_id  -- 来人量
+     FROM  vs_xsgl_visits
+      WHERE  GjDate
+       BETWEEN #{BeginDate} AND #{EndDate}
+GROUP BY ProjectID
+ </select>
+
+
+    <!--营销周计划详情月度签约金额（系统签约）或 周度签约金额（万元）-->
+    <select id="WeeklyPlanRmbTotal" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT IFNULL( ROUND(SUM(cjRmbTotal)/10000,0) ,0)  cjRmbTotal,projectid project_id -- 营销周计划详情月度签约金额（系统签约）或 周度签约金额（万元）
+FROM
+vs_xsgl_contract
+WHERE
+ qsDate
+ BETWEEN #{BeginDate} AND #{EndDate}
+ AND Status = '激活'
+ GROUP BY projectid
+ </select>
+
+    <!--营销周计划详情上月未转签约认购金额（万元）或 大定未签（万元）月,本月只取激活-->
+    <select id="WeeklyPlanRoomTotal" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+IFNULL( ROUND(SUM(cjRoomTotal)/10000,2) ,0) cjRoomTotal, projectId project_id
+-- 上月未转签约认购金额（万元）或 大定未签（万元）月
+FROM
+vs_xsgl_order
+WHERE
+1=1
+
+<if test="time==2">
+    AND YwgsDate <![CDATA[ <]]>  #{BeginDate}
+
+    AND ( STATUS = '激活'
+    OR  CloseReason IN ( '退房', '换房', '转签约' )
+    AND CloseDate >= #{BeginDate}
+    )
+</if>
+        <if test="time==1 ">
+            AND YwgsDate  <![CDATA[ <]]>  #{EndDate}
+            AND (Status = '激活'
+           OR CloseDate >= #{EndDate})
+        </if>
+        GROUP BY project_id
+ </select>
+
+    <!--插入之前先确认数据库是否有数据-->
+<select id="deleteBeforeInsert" parameterType="java.util.Map"   resultType="java.util.Map">
+
+   select project_id FROM
+ mm_week_marketing_plan
+ WHERE this_time=#{this_time}
+ AND how_week=#{how_week}
+
+</select>
+<!--若有数据，则把初始化改为更新-->
+
+  <update id="updateBeforeInsert" parameterType="java.util.Map">
+UPDATE mm_week_marketing_plan
+
+SET
+
+trader_id=#{trader_id},
+trader_name=#{trader_name},
+islast=#{islast},
+issales_trade=#{issales_trade},
+subscribe_price=#{subscribe_price},
+target_month_bearer=#{target_month_bearer},
+target_month_sign=#{target_month_sign},
+target_week_bearer=#{target_week_bearer},
+target_week_sign=#{target_week_sign},
+target_week_bearer_per=#{target_week_bearer_per},
+target_week_sign_per=#{target_week_sign_per},
+fact_month_bearer_total=#{fact_month_bearer_total},
+fact_month_bearer_per=#{fact_month_bearer_per},
+fact_week_bearer=#{fact_week_bearer},
+fact_week_bearer_per=#{fact_week_bearer_per},
+fact_month_sign=#{fact_month_sign},
+fact_month_sign_per=#{fact_month_sign_per},
+fact_week_sign=#{fact_week_sign},
+fact_week_sign_per=#{fact_week_sign_per},
+fact_signed=#{fact_signed},
+plan_week_bearer_gap=#{plan_week_bearer_gap},
+plan_week_sign_gap=#{plan_week_sign_gap},
+update_time=NOW()
+WHERE project_id=#{project_id} AND this_time=#{this_time} AND how_week=#{how_week}
+
+  </update>
+
+
+    <!--初始化营销周计划详情表-->
+    <insert id="weekMarketingPlanInitial" parameterType="java.util.Map"  >
+
+
+
+     INSERT INTO mm_week_marketing_plan (
+    id,
+  project_id,
+  project_code,
+  project_name,
+  trader_id,
+  trader_name,
+  islast,
+  issales_trade,
+  subscribe_price,
+  target_month_bearer,
+  target_month_sign,
+  target_week_bearer,
+  target_week_sign,
+  target_week_bearer_per,
+  target_week_sign_per,
+  fact_month_bearer_total,
+  fact_month_bearer_per,
+  fact_week_bearer,
+  fact_week_bearer_per,
+  fact_month_sign,
+  fact_month_sign_per,
+  fact_week_sign,
+  fact_week_sign_per,
+  fact_signed,
+  plan_reserve,
+  plan_signed,
+  plan_month_lock_price,
+  plan_month_lock_per,
+  plan_month_newsign,
+  plan_month_sign,
+  plan_week_bearer_gap,
+  plan_week_sign_gap,
+  plan_month_sign_gap,
+  gap_cause,
+  is_effective,
+  this_time,
+  how_week,
+  start_time,
+  end_time,
+  create_time,
+  creator,
+  editor,
+  update_time,
+  area_id,
+ plan_status,
+  is_self_write,
+  type,
+  checkeds
+)
+VALUES
+  (
+    UUID(),
+    #{project_id},
+    #{project_code},
+    #{project_name},
+    #{trader_id},
+    #{trader_name},
+    #{islast},
+    #{issales_trade},
+    #{subscribe_price},
+    #{target_month_bearer},
+    #{target_month_sign},
+    #{target_week_bearer},
+    #{target_week_sign},
+    #{target_week_bearer_per},
+    #{target_week_sign_per},
+    #{fact_month_bearer_total},
+    #{fact_month_bearer_per},
+    #{fact_week_bearer},
+    #{fact_week_bearer_per},
+    #{fact_month_sign},
+    #{fact_month_sign_per},
+    #{fact_week_sign},
+    #{fact_week_sign_per},
+    #{fact_signed},
+    #{plan_reserve},
+    #{plan_signed},
+    #{plan_month_lock_price},
+    #{plan_month_lock_per},
+    #{plan_month_newsign},
+    #{plan_month_sign},
+    #{plan_week_bearer_gap},
+    #{plan_week_sign_gap},
+    #{plan_month_sign_gap},
+    #{gap_cause},
+    #{is_effective},
+    #{this_time},
+    #{how_week},
+    #{start_time},
+    #{end_time},
+    NOW(),
+    #{creator},
+    #{editor},
+    #{update_time},
+    #{area_id},
+    #{plan_status},
+    #{is_self_write},
+    #{type},
+    #{checkeds}
+  )
+ </insert>
+
+
+    <!--提报营销周计划详情表-->
+    <update id="weekMarketingPlanEffective" parameterType="java.util.Map">
+            UPDATE
+  `mm_week_marketing_plan`
+SET
+
+  `is_effective` = #{is_effective},
+  <if test="plan_status!=null and plan_status!=''">
+     plan_status =#{plan_status},
+      <if test="plan_status>0">
+            report_time=NOW(),
+      </if>
+
+  </if>
+  `update_time` = now()
+
+WHERE `how_week` = #{how_week}
+        <if test="project_id!=null and project_id!=''" >
+            AND `project_id` = #{project_id}
+        </if>
+
+ AND  DATE_FORMAT( this_time,'%Y-%m-%d') = #{this_time}
+        <if test="area_id!=null and area_id!=''">
+            AND  area_id = #{area_id}
+        </if>
+   </update>
+
+    <!--跟新营销周计划详情表-->
+    <update id="weekMarketingPlanUpdate" parameterType="java.util.Map">
+    SET NAMES utf8mb4;
+        UPDATE
+  `mm_week_marketing_plan`
+SET
+  `plan_reserve` = #{plan_reserve},
+  `plan_signed` = #{plan_signed},
+  `plan_month_lock_price` = #{plan_signed}+#{plan_reserve}+#{fact_month_sign},
+  `plan_month_lock_per` =  (CASE #{target_month_sign} WHEN 0 THEN 0 ELSE  (#{plan_signed}+#{plan_reserve}+#{fact_month_sign})/#{target_month_sign} END),
+  `plan_month_newsign` = #{plan_month_newsign},
+  `plan_month_sign` = #{plan_month_newsign}+#{plan_signed}+#{plan_reserve}+#{fact_month_sign},
+
+  `plan_month_sign_gap` = #{target_month_sign}-#{plan_month_sign},
+
+  `gap_cause` = #{gap_cause},
+
+  `cause_details` = #{cause_details},
+  `minor_details` = #{minor_details},
+`detailed_description` = #{detailed_description},
+policy_for_target=#{policy_for_target},
+remarks=#{remarks},
+  `update_time` = now()
+
+  WHERE `area_id` = #{area_id}
+AND `project_id` = #{project_id}
+AND `how_week` = #{how_week}
+ AND DATE_FORMAT(  this_time,'%Y-%m-%d') = #{this_time}
+
+    </update>
+
+<!--跟新已阅或未阅状态-->
+    <update id="updateCheckeds" parameterType="java.util.Map">
+  UPDATE
+  `mm_week_marketing_plan`
+  set
+        `checkeds` = #{checkeds},
+        toexamine_time=now()
+        where
+        1=1
+
+        <if test="projectId!=null and projectId!='' ">
+            AND `project_id` = #{projectId}
+        </if>
+        <if test="areaId!=null and areaId!='' ">
+            AND    `area_id` = #{areaId}
+        </if>
+AND `how_week` = #{how_week}
+ AND DATE_FORMAT(  this_time,'%Y-%m-%d') = #{this_time}
+    </update>
+
+    <!--当定时器启动时启动该接口，得到时间-->
+    <select id="weekMarketingWeekRule"  resultType="java.util.Map">
+SELECT * FROM mm_common_week_rule a
+INNER JOIN
+(
+SELECT DATE_SUB(start_time,INTERVAL 1 DAY) start_time  FROM mm_common_week_rule
+WHERE DATE_FORMAT(start_time,'%Y-%m-%d')=   DATE_FORMAT(NOW(),'%Y-%m-%d %H')
+) b
+ON this_time =b.start_time
+</select>
+
+    <select id="weekMarketingWeekRuleReal"  resultType="java.util.Map">
+        SELECT * FROM mm_common_week_plan
+        WHERE
+        (DATE_FORMAT(DATE_ADD(start_time,INTERVAL 1 DAY),'%Y-%m-%d') &lt;=DATE_FORMAT(NOW(),'%Y-%m-%d')
+
+      )
+        and
+        (end_time &gt;=DATE_FORMAT(NOW(),'%Y-%m-%d')
+         )
+    </select>
+
+
+
+
+    <!--寻找某一个月的所有周，得到时间-->
+    <select id="weekMarketingWeekSelect" parameterType="java.util.Map" resultType="java.util.Map">
+
+    SELECT
+CONCAT(DATE_FORMAT(this_time,'%m'),'月第',how_week,'周' )weeklyname,
+  `how_week`
+   FROM mm_common_week_plan
+WHERE DATE_FORMAT(this_time,'%Y-%m')=#{this_time}
+
+</select>
+
+    <!--查找所有区域和项目ID和名称-->
+    <select id="weekMarketingbusinessName" resultType="java.util.Map">
+            SELECT unit.business_id,
+         unit.business_name,
+         unit.region_org_id,
+          unit.type,
+         t.business_id fatherid,
+           t.business_name fathername,
+            t.type fathertype,
+		rel.project_code
+            FROM  mm_business_unit unit
+      INNER JOIN  (
+SELECT * FROM  mm_business_unit
+    WHERE TYPE=2
+)t ON  unit.region_org_id=t.business_id
+  INNER JOIN
+  mm_idm_business_unit_project_rel
+rel ON unit.business_id = rel.project_id
+WHERE unit.TYPE=3
+ ORDER BY  t.business_id
+ </select>
+    <!--查找集团项目名称-->
+ <select id="weekMarketingGroupName" resultType="java.util.Map">
+    SELECT business_id,
+    business_name,
+    type
+    FROM  mm_business_unit
+    WHERE TYPE=1
+    </select>
+       <!--项目查看周详情-->
+    <select id="ProjectSelectWeekly" parameterType="java.util.Map"  resultType="java.util.Map">
+
+        -- 集团详情可以看所以月份所在周的区域
+        SELECT
+
+        wmp. id,
+        bu.`business_name`,
+        bu.`father_id`,
+        bu.`business_id`,
+        bu.`guid` AS business_unit_id,
+        wmp. `project_id`,
+        wmp. `project_code`,
+        wmp. `project_name`,
+        wmp.plan_status,
+        wmp.type,
+        wmp. `is_effective`,
+        DATE_FORMAT( wmp. this_time,'%Y-%m-%d') this_time,
+        CONCAT('第',(
+        CASE
+        how_week
+        WHEN '1' THEN '一'
+        WHEN '2' THEN '二'
+        WHEN '3' THEN '三'
+        WHEN '4' THEN '四'
+        ELSE     '五'       END
+        )
+        ,'周' )weeklyname,
+        wmp. `how_week`,
+        CASE how_week WHEN 1 THEN  DATE_FORMAT(wmp.start_time,'%Y-%m-%d')
+        ELSE  date_add( DATE_FORMAT(wmp.start_time,'%Y-%m-%d') , interval 1 day) END start_time,
+        DATE_FORMAT( wmp. end_time,'%Y-%m-%d') end_time,
+        DATE_FORMAT( IFNULL(wmp. update_time,wmp. create_time),'%Y-%m-%d %H:%i:%S') create_time,
+        wmp. `area_id`,
+        wmp. `type`,
+        wmp.is_self_write,
+        DATE_FORMAT( wmp.report_time,'%Y-%m-%d %H:%i:%S') report_time,
+        DATE_FORMAT( wmp.toexamine_time,'%Y-%m-%d %H:%i:%S') toexamine_time
+        ,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+        FROM mm_week_marketing_plan wmp
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = `project_id`
+        INNER JOIN
+        (
+        SELECT project_id from s_user_project_rel
+        where userId=#{userId}
+        ) J on j.project_id=bu.business_id where bu.type=3
+          AND business_id IS NOT NULL
+
+        <if test="plan_status!='' and plan_status!=null">
+            <if test='plan_status=="1"'>
+                AND wmp.plan_status IN (1,2)
+            </if>
+            <if test='plan_status!="1"'>
+                AND wmp.plan_status=#{plan_status}
+            </if>
+        </if>
+        <if test="type!='' and type!=null">
+            AND  wmp.type=#{type}
+        </if>
+        <if test="area_id!='' and area_id!=null">
+            AND wmp.area_id=#{area_id}
+        </if>
+
+        <if test="is_effective!='' and is_effective!=null">
+            AND wmp.is_effective=#{is_effective}
+        </if>
+        <if test="how_week!='' and how_week!=null and how_week!=0">
+            AND wmp.how_week=#{how_week}
+        </if>
+        <if test="how_week!=0 and how_week=='' or how_week ==null">
+            AND wmp.how_week=(select how_week from mm_week_marketing_plan where DATE_FORMAT(this_time,'%Y-%m')=DATE_FORMAT(now(),'%Y-%m') ORDER BY end_time desc limit 1)
+        </if>
+        <if test="this_time!='' and this_time!=null">
+            AND DATE_FORMAT(wmp.this_time,'%Y-%m')=#{this_time}
+        </if>
+        <if test="project_id!='' and project_id!=null">
+            AND wmp.project_id=#{project_id}
+        </if>
+        <if test="project_name!='' and project_name!=null">
+            AND wmp.project_name like concat('%', #{project_name}, '%')
+        </if>
+        <if test="report_time!='' and report_time!=null">
+            AND wmp.report_time  between #{startTime1} and #{endTime1}
+        </if>
+        <if test="toexamine_time!='' and toexamine_time!=null">
+            AND wmp.toexamine_time  between #{startTime2} and #{endTime2}
+        </if>
+        GROUP BY j.project_id, wmp.`how_week`
+        ORDER BY wmp.`how_week` DESC
+    </select>
+    <!--集团查看周计划-->
+    <select id="groupSelectWeekly" parameterType="java.util.Map"  resultType="java.util.Map">
+              -- 集团详情可以看所以月份所在周的区域
+
+        SELECT
+        wmp. id,
+        wmp.type,
+        bu.`business_name`,
+        bu.`father_id`,
+        bu.`business_id`,
+        bu.`guid` AS business_unit_id,
+        wmp. `project_id`,
+        wmp. `project_code`,
+        wmp. `project_name`,
+        wmp.plan_status,
+
+        wmp. `is_effective`,
+
+        DATE_FORMAT( wmp. this_time,'%Y-%m-%d') this_time,
+        CONCAT('第',(
+        CASE
+        how_week
+        WHEN '1' THEN '一'
+        WHEN '2' THEN '二'
+        WHEN '3' THEN '三'
+        WHEN '4' THEN '四'
+        ELSE     '五'       END
+        )
+        ,'周' )weeklyname,
+         wmp. `how_week`,
+        CASE how_week WHEN 1 THEN  DATE_FORMAT(wmp.start_time,'%Y-%m-%d')
+        ELSE  date_add( DATE_FORMAT(wmp.start_time,'%Y-%m-%d') , interval 1 day) END start_time,
+        DATE_FORMAT( wmp. end_time,'%Y-%m-%d') end_time,
+        DATE_FORMAT( wmp. create_time,'%Y-%m-%d') create_time,
+        wmp.is_self_write,
+        wmp. `area_id`,
+        wmp. `type`
+        ,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+        FROM mm_week_marketing_plan wmp
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = `project_id`
+        INNER JOIN
+        (
+        SELECT project_id,1 is_manage from s_user_project_rel
+        where userId=#{userId}
+        ) temp on temp.project_id=bu.business_id where bu.type=1
+
+
+        <if test="type!='' and type!=null">
+            AND  wmp.type=#{type}
+        </if>
+        <if test="area_id!='' and area_id!=null">
+            AND wmp.area_id=#{area_id}
+        </if>
+
+        <if test="is_effective!='' and is_effective!=null">
+            AND wmp.is_effective=#{is_effective}
+        </if>
+
+        <if test="plan_status!='' and plan_status!=null">
+            <if test='plan_status=="1"'>
+                AND wmp.plan_status IN (1,2)
+            </if>
+            <if test='plan_status!="1"'>
+                AND wmp.plan_status=#{plan_status}
+            </if>
+        </if>
+        <if test="how_week!='' and how_week!=null">
+            AND wmp.how_week=#{how_week}
+        </if>
+        <if test="this_time!='' and this_time!=null">
+            AND DATE_FORMAT(wmp.this_time,'%Y-%m')= #{this_time}
+        </if>
+        <if test="project_id!='' and project_id!=null">
+            AND wmp.project_id=#{project_id}
+        </if>
+        <if test="project_name!='' and project_name!=null">
+            AND wmp.project_name like concat('%', #{project_name}, '%')
+        </if>
+        GROUP BY  wmp. id
+        ORDER BY wmp.`how_week` DESC
+
+    </select>
+    <!--区域查看周计划-->
+    <select id="regionSelectWeekly" parameterType="java.util.Map"  resultType="java.util.Map">
+
+        SELECT
+
+        wmp. id,
+        wmp.type,
+        bu.`business_name`,
+        bu.`father_id`,
+        bu.`business_id`,
+        bu.`guid` AS business_unit_id,
+        wmp. `project_id`,
+        wmp. `project_code`,
+        wmp. `project_name`,
+        wmp.plan_status,
+        DATE_FORMAT( wmp. report_time,'%Y-%m-%d %H:%i') report_time,
+        wmp. `is_effective`,
+        regionwmp.region_sort,
+        DATE_FORMAT( wmp. this_time,'%Y-%m-%d') this_time,
+        CONCAT('第',(
+        CASE
+        how_week
+        WHEN '1' THEN '一'
+        WHEN '2' THEN '二'
+        WHEN '3' THEN '三'
+        WHEN '4' THEN '四'
+        ELSE     '五'       END
+        )
+        ,'周' )weeklyname,
+         wmp. `how_week`,
+
+         CASE how_week WHEN 1 THEN  DATE_FORMAT(wmp.start_time,'%Y-%m-%d')
+        ELSE  date_add( DATE_FORMAT(wmp.start_time,'%Y-%m-%d') , interval 1 day) END start_time,
+        DATE_FORMAT( wmp. end_time,'%Y-%m-%d') end_time,
+        DATE_FORMAT( wmp. create_time,'%Y-%m-%d') create_time,
+
+        wmp. `area_id`,
+        wmp. `type`,
+        wmp.is_self_write
+        ,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+        FROM mm_week_marketing_plan wmp
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = `project_id`
+        LEFT JOIN
+        (SELECT
+
+        `region_id`,
+        `region_sort`
+        FROM
+        `saleman`.`mm_idm_region`)regionwmp
+
+        ON regionwmp.region_id=wmp.project_id
+        INNER JOIN
+        (
+        SELECT project_id,1 is_manage from s_user_project_rel
+        where userId=#{userId}
+        ) temp on temp.project_id=bu.business_id where bu.type=2
+
+        AND  wmp.type=2
+        AND DATE_FORMAT(wmp.this_time,'%Y-%m')= #{this_time}
+
+
+        <if test="plan_status!='' and plan_status!=null">
+            <if test='plan_status=="1"'>
+                AND wmp.plan_status IN (1,2)
+            </if>
+            <if test='plan_status!="1"'>
+                AND wmp.plan_status=#{plan_status}
+            </if>
+        </if>
+        <if test="area_id!='' and area_id!=null">
+            AND wmp.area_id=#{area_id}
+        </if>
+
+        <if test="is_effective!='' and is_effective!=null">
+            AND wmp.is_effective=#{is_effective}
+        </if>
+        <if test="how_week!='' and how_week!=null and how_week!=0">
+            AND wmp.how_week=#{how_week}
+        </if>
+        <if test="how_week!=0 and how_week=='' or how_week ==null">
+            AND wmp.how_week=(select how_week from mm_week_marketing_plan where DATE_FORMAT(this_time,'%Y-%m')=DATE_FORMAT(now(),'%Y-%m') ORDER BY end_time desc limit 1)
+        </if>
+        <if test="project_id!='' and project_id!=null">
+            AND wmp.project_id=#{project_id}
+        </if>
+        <if test="project_name!='' and project_name!=null">
+            AND wmp.project_name like concat('%', #{project_name}, '%')
+        </if>
+        GROUP BY   wmp. id
+        ORDER BY wmp.`how_week` DESC,  regionwmp.region_sort ASC
+    </select>
+
+    <!--区域营销周计划的查看-->
+    <!--<select id="regionExamineWeekly" parameterType="java.util.Map"  resultType="java.util.Map">
+             SELECT
+        wmp. id,
+        bu.`business_name`,
+        bu.`father_id`,
+        bu.`business_id`,
+        bu.`guid` AS business_unit_id,
+        wmp. `project_id`,
+        wmp. `project_code`,
+        wmp. `project_name`,
+        wmp. `trader_id`,
+        wmp. `trader_name`,
+         (case wmp. `islast`
+            when 1 then '是'
+             when 0 then '否' end )islast
+            ,
+                  (CASE wmp. `issales_trade`
+        WHEN 1 THEN '营销操盘'
+        WHEN 0 THEN '营销不操盘'
+         WHEN 2 THEN '联合操盘' END  )issales_trade
+        ,
+        wmp. `subscribe_price`,
+        wmp. `target_month_bearer`,
+        wmp. `target_month_sign`,
+        wmp. `target_week_bearer`,
+        wmp. `target_week_sign`,
+        wmp. `target_week_bearer_per`,
+        wmp. `target_week_sign_per`,
+        wmp. `fact_month_bearer_total`,
+        wmp. `fact_month_bearer_per`,
+        wmp. `fact_week_bearer`,
+        wmp. `fact_week_bearer_per`,
+        wmp. `fact_month_sign`,
+        wmp. `fact_month_sign_per`,
+        wmp. `fact_week_sign`,
+        wmp. `fact_week_sign_per`,
+        wmp. `fact_signed`,
+        wmp. `plan_reserve`,
+        wmp. `plan_signed`,
+        wmp. `plan_month_lock_price`,
+        wmp. `plan_month_lock_per`,
+        wmp. `plan_month_newsign`,
+        wmp. `plan_month_sign`,
+        wmp. `plan_week_bearer_gap`,
+        wmp. `plan_week_sign_gap`,
+        wmp. `plan_month_sign_gap`,
+        wmp. `gap_cause`,
+        wmp. `is_effective`,
+        DATE_FORMAT( wmp. this_time,'%Y-%m-%d') this_time,
+        CONCAT(DATE_FORMAT( wmp. this_time,'%m'),'月第',how_week,'周' )weeklyname,
+        wmp. `how_week`,
+        DATE_FORMAT( wmp. start_time,'%Y-%m-%d') start_time,
+        DATE_FORMAT( wmp. end_time,'%Y-%m-%d') end_time,
+        DATE_FORMAT( wmp. create_time,'%Y-%m-%d') create_time,
+        wmp. `creator`,
+        wmp. `editor`,
+        DATE_FORMAT(wmp. `update_time`,'%Y-%m-%d') update_time,
+        wmp. `area_id`,
+        wmp. `type`,
+         wmp.`checkeds`,
+  wmp.`cause_details`,
+  wmp.`minor_details`,
+  wmp.`detailed_description`,
+  wmp.policy_for_target,
+    wmp.is_self_write
+        ,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+      ,bu.region_org_id
+        FROM mm_week_marketing_plan wmp
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = `project_id`
+
+        WHERE 1=1
+
+  AND (  bu.region_org_id = #{project_id}  OR   bu.`business_id` = #{project_id}  )
+  AND DATE_FORMAT(wmp.this_time,'%Y-%m') = #{this_time}
+
+  AND wmp.how_week = #{how_week}
+   GROUP BY   wmp. id
+    </select>-->
+
+    <!--营销周计划的查看-->
+
+
+    <select id="ProjectExamineWeekly" parameterType="java.util.Map"  resultType="java.util.Map">
+
+
+
+        -- 集团详情可以看所以月份所在周的区域
+        SELECT
+
+        wmp. id,
+        bu.`business_name`,
+        bu.`father_id`,
+        bu.`business_id`,
+        bu.`guid` AS business_unit_id,
+        wmp. `project_id`,
+        wmp. `project_code`,
+        wmp. `project_name`,
+        wmp. `trader_id`,
+        wmp. `trader_name`,
+        DATE_FORMAT( wmp.report_time,'%Y-%m-%d %H:%i:%S') report_time,
+        (CASE wmp. `islast`
+        WHEN 1 THEN '是'
+        WHEN 0 THEN '否' END )islast
+        ,
+        (CASE wmp. `issales_trade`
+        WHEN 1 THEN '营销操盘'
+        WHEN 0 THEN '营销不操盘' WHEN 2 THEN '联合操盘' END )issales_trade
+        ,
+
+        CAST( wmp. `subscribe_price` AS CHAR) subscribe_price
+
+        ,wmp. `target_month_bearer`
+        ,  CAST( wmp. `target_month_sign` AS CHAR) target_month_sign
+        ,   wmp. `target_week_bearer`
+        ,  CAST(  wmp. `target_week_sign` AS CHAR) target_week_sign
+
+        ,IFNULL(   CONCAT (ROUND ( wmp. `target_week_bearer_per` *100,2),'%')  ,0) target_week_bearer_per
+        ,IFNULL( CONCAT (  ROUND ( wmp. `target_week_sign_per` *100,2),'%')  ,0) target_week_sign_per
+        ,   wmp. `fact_month_bearer_total`
+        ,IFNULL(CONCAT ( ROUND ( wmp. `fact_month_bearer_per` *100,2),'%')  ,0) fact_month_bearer_per
+        ,wmp. `fact_week_bearer`
+        ,IFNULL(CONCAT (  ROUND ( wmp. `fact_week_bearer_per` *100,2),'%') ,0) fact_week_bearer_per
+        ,  CAST( wmp. `fact_month_sign`AS CHAR) fact_month_sign
+        , IFNULL( CONCAT ( ROUND (wmp. `fact_month_sign_per`*100,2),'%') ,0) fact_month_sign_per
+        , CAST( wmp. `fact_week_sign` AS CHAR) fact_week_sign
+
+        ,IFNULL( CONCAT ( ROUND ( wmp. `fact_week_sign_per` *100,2),'%') ,0) fact_week_sign_per
+
+        , CAST( wmp. fact_signed AS CHAR) fact_signed
+        , CAST( IFNULL(app. `plan_reserve` ,0) AS CHAR) plan_reserve
+        ,  CAST(IFNULL(app. `plan_signed` ,0) AS CHAR) plan_signed
+        ,CAST( IFNULL(app. `plan_signed`+app. `plan_reserve`,0) +wmp. `fact_month_sign` AS CHAR) plan_month_lock_price
+        ,CONCAT( ROUND( ((IFNULL(app. `plan_signed`+app. `plan_reserve`,0)+wmp. `fact_month_sign`)/wmp.target_month_sign)*100,2) ,'%') plan_month_lock_per
+        ,CAST(IFNULL(app.`plan_month_newsign` ,0)  AS CHAR) plan_month_newsign
+        ,CAST(IFNULL(app.`plan_month_newsign`+app.`plan_signed`+app.`plan_reserve`,0)+wmp.`fact_month_sign`   AS CHAR) plan_month_sign
+        ,CAST( wmp.plan_week_bearer_gap AS CHAR) plan_week_bearer_gap
+        ,CAST( wmp.plan_week_sign_gap AS CHAR) plan_week_sign_gap
+        ,CAST(IFNULL( app. `plan_month_newsign`+app. `plan_signed`+app. `plan_reserve`,0)+wmp. `fact_month_sign`-wmp.target_month_sign  AS CHAR) plan_month_sign_gap
+        ,       app.gap_cause,
+        wmp.plan_status,
+        wmp.is_effective,
+        DATE_FORMAT( wmp. this_time,'%Y-%m-%d') this_time,
+        CONCAT(DATE_FORMAT( wmp. this_time,'%m'),'月第', wmp. how_week,'周' )weeklyname,
+        wmp. `how_week`,
+        DATE_FORMAT( wmp. start_time,'%Y-%m-%d') start_time,
+        DATE_FORMAT( wmp. end_time,'%Y-%m-%d') end_time,
+
+        wmp. `area_id`,
+        wmp. `type`,
+        wmp.`checkeds`,
+        app.`cause_details`,
+        app.`minor_details`,
+        app.`detailed_description`,
+        app.policy_for_target,
+        wmp.is_self_write,
+        app.remarks,
+        regionwmp .region_sort,
+        targetwmp.target_month_sign  targetwmp_month_sign,
+
+        targetwmp.target_week_sign   targetwmp_week_sign
+
+        ,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+        FROM mm_week_marketing_plan wmp
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = `project_id`
+        LEFT JOIN (
+        SELECT project_name,this_time,how_week,project_id ,business_id
+
+        ,CONVERT ( wmp. `plan_reserve` ,DECIMAL(10,2)) plan_reserve
+        ,CONVERT ( wmp. `plan_signed` ,DECIMAL(10,2)) plan_signed
+        ,CONVERT ( wmp. `plan_month_lock_price` ,DECIMAL(10,2)) plan_month_lock_price
+        ,ROUND ( wmp. `plan_month_lock_per` *100,2) plan_month_lock_per
+        ,CONVERT ( wmp. `plan_month_newsign` ,DECIMAL(10,2)) plan_month_newsign
+        ,CONVERT ( wmp. `plan_month_sign` ,DECIMAL(10,2)) plan_month_sign
+
+        ,CONVERT ( wmp. `plan_month_sign_gap` ,DECIMAL(10,2)) plan_month_sign_gap
+
+        ,wmp.`gap_cause`,
+
+        wmp.`cause_details`,
+        wmp.`minor_details`,
+        wmp.`detailed_description`,
+        wmp.policy_for_target,
+        wmp.remarks
+        FROM mm_week_marketing_plan wmp
+
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` =wmp.`project_id`
+        WHERE 1=1
+          <if test='type=="1"'>
+              AND (area_id   IN (SELECT project_id FROM mm_week_marketing_plan WHERE plan_status>=1 AND TYPE=2) OR wmp.TYPE=2 AND plan_status>=1 OR wmp.TYPE=1
+               )
+          </if>
+        <if test='type=="2"'>
+              AND ( plan_status>=1   OR wmp.TYPE=2)
+        </if>
+
+        AND wmp.how_week=#{how_week}
+
+        AND DATE_FORMAT( wmp. this_time,'%Y-%m-%d') =#{this_time}
+            AND
+        ( wmp.project_id=#{project_id}   OR bu.`region_org_id` = #{project_id}  OR '00000001' = #{project_id}  )
+        ) app
+
+        ON app.project_id=wmp.project_id AND app.how_week=wmp.how_week  AND DATE_FORMAT( app. this_time,'%Y-%m-%d')=DATE_FORMAT( wmp. this_time,'%Y-%m-%d')
+        LEFT JOIN (SELECT project_id,how_week,this_time, target_month_sign,target_week_sign FROM mm_week_marketing_plan WHERE target_month_sign>0 AND target_week_sign>0 AND fact_week_sign  <![CDATA[ <]]> 1
+        AND fact_month_sign  <![CDATA[ <]]>  1
+        )targetwmp
+        ON targetwmp.project_id=wmp.project_id AND targetwmp.how_week=wmp.how_week  AND DATE_FORMAT( targetwmp. this_time,'%Y-%m-%d')=DATE_FORMAT( wmp. this_time,'%Y-%m-%d')
+        LEFT JOIN (SELECT
+
+        `region_id`,
+        `region_sort`
+        FROM
+        `saleman`.`mm_idm_region`)regionwmp
+
+        ON regionwmp.region_id=wmp.project_id
+
+        WHERE 1=1
+
+            AND wmp.how_week=#{how_week}
+
+            AND DATE_FORMAT( wmp. this_time,'%Y-%m-%d') =#{this_time}
+
+        <if test='business_unit_id=="f20c7c1f-d941-11e9-abaa-00163e05721e"'>
+            AND
+            (bu.father_id = #{business_unit_id} or wmp.type=1)
+
+        </if>
+
+
+        <if test="business_unit_id!='f20c7c1f-d941-11e9-abaa-00163e05721e' and  business_unit_id!=null ">
+            AND
+           bu.father_id = #{business_unit_id}
+           AND
+            wmp.checkeds>=1
+            AND (area_id   IN (SELECT project_id FROM mm_week_marketing_plan WHERE plan_status>=1 AND TYPE=2
+            AND DATE_FORMAT(this_time,'%Y-%m-%d') =#{this_time}
+            )
+            )
+            AND( wmp.target_month_bearer!=0 OR wmp.target_month_sign!=0 OR wmp. `target_week_bearer`!=0 OR  wmp. `target_week_sign`!=0 OR
+            wmp. `fact_month_bearer_total`!=0 OR wmp. `fact_week_bearer`!=0 OR wmp. `fact_month_sign`
+            !=0 OR wmp. `fact_week_sign`!=0 OR wmp. fact_signed!=0 OR wmp. `subscribe_price`!=0 OR app. `plan_reserve`!=0 OR app. `plan_signed`
+            !=0 OR app.`plan_month_newsign`!=0)
+        </if>
+
+
+            AND
+           ( wmp.project_id=#{project_id}   OR bu.`region_org_id` = #{project_id}  OR '00000001' = #{project_id}  )
+        GROUP BY   wmp. id
+        <if test='type!="1"'>
+        ORDER BY TYPE ASC, wmp. target_month_sign DESC,  wmp. target_week_sign DESC, wmp.fact_month_sign DESC,wmp. fact_week_sign DESC,targetwmp_month_sign DESC,  targetwmp_week_sign DESC
+        </if>
+        <if test='type=="1"'>
+            ORDER BY region_sort ASC
+        </if>
+
+    </select>
+
+    <!--查找某一个区域下所有的已上报的费用等信息-->
+    <update id="ProjectSelectupdatesum" parameterType="java.util.Map"  >
+UPDATE mm_week_marketing_plan plan, (
+
+ SELECT
+
+       IFNULL(SUM(wmp. `plan_reserve`) ,0) plan_reserve
+        , IFNULL(SUM(wmp. `plan_signed`) ,0) plan_signed
+        , IFNULL(SUM(wmp. `plan_month_lock_price`) ,0) plan_month_lock_price
+ , IFNULL(SUM(wmp. `target_month_sign`) ,0) target_month_sign
+ , IFNULL(SUM(wmp. `fact_month_sign`) ,0) fact_month_sign
+        , IFNULL(SUM(wmp. `plan_month_newsign`) ,0) plan_month_newsign
+        , IFNULL(SUM(wmp. `plan_month_sign`) ,0) plan_month_sign
+        , IFNULL(SUM(wmp. `plan_month_sign_gap`) ,0) plan_month_sign_gap
+
+        FROM mm_week_marketing_plan wmp
+        WHERE  wmp.area_id=#{area_id} AND wmp.plan_status>=1  AND wmp.checkeds>=1   AND  DATE_FORMAT( wmp. this_time,'%Y-%m-%d') = #{this_time}   AND wmp.how_week=#{how_week} ) wmp
+        SET
+plan.plan_reserve=wmp.plan_reserve,
+            plan.plan_signed=wmp.plan_signed,
+            plan.plan_month_lock_price=wmp.plan_signed+wmp.plan_reserve+plan.fact_month_sign,
+
+    plan.plan_month_lock_per= (CASE plan.target_month_sign WHEN 0 THEN 0 ELSE  (wmp. `plan_signed`+wmp. `plan_reserve`+plan. `fact_month_sign`)/plan.target_month_sign END),
+
+            plan.plan_month_newsign=wmp.plan_month_newsign,
+            plan.plan_month_sign=wmp.plan_month_newsign+wmp.plan_signed+wmp.plan_reserve+plan.fact_month_sign,
+
+            plan.plan_month_sign_gap=(wmp.plan_month_newsign+wmp.plan_signed+wmp.plan_reserve+plan.fact_month_sign)-plan.target_month_sign
+        WHERE plan.project_id=#{area_id}
+         AND  DATE_FORMAT( plan. this_time,'%Y-%m-%d') = #{this_time}  AND plan.how_week=#{how_week}
+       </update>
+    <!--查找某一个集团下所有的已上报的区域费用等信息-->
+    <update id="AreaSelectupdatesum" parameterType="java.util.Map"  >
+
+        -- 集团详情可以看所以月份所在周的区域
+        UPDATE mm_week_marketing_plan plan, (
+
+ SELECT
+
+       IFNULL(SUM(wmp. `plan_reserve`) ,0) plan_reserve
+        , IFNULL(SUM(wmp. `plan_signed`) ,0) plan_signed
+        , IFNULL(SUM(wmp. `plan_month_lock_price`) ,0) plan_month_lock_price
+ , IFNULL(SUM(wmp. `target_month_sign`) ,0) target_month_sign
+ , IFNULL(SUM(wmp. `fact_month_sign`) ,0) fact_month_sign
+        , IFNULL(SUM(wmp. `plan_month_newsign`) ,0) plan_month_newsign
+        , IFNULL(SUM(wmp. `plan_month_sign`) ,0) plan_month_sign
+
+        , IFNULL(SUM(wmp. `plan_month_sign_gap`) ,0) plan_month_sign_gap
+        FROM mm_week_marketing_plan wmp
+          WHERE  wmp.plan_status>=1    AND  DATE_FORMAT( wmp. this_time,'%Y-%m-%d') = #{this_time}  AND wmp.how_week=#{how_week}  AND wmp.type=2 )wmp
+        SET
+       plan.plan_reserve=wmp.plan_reserve,
+            plan.plan_signed=wmp.plan_signed,
+            plan.plan_month_lock_price=wmp.plan_signed+wmp.plan_reserve+plan.fact_month_sign,
+
+    plan.plan_month_lock_per= (CASE plan.target_month_sign WHEN 0 THEN 0 ELSE  (wmp. `plan_signed`+wmp. `plan_reserve`+plan. `fact_month_sign`)/plan.target_month_sign END),
+
+            plan.plan_month_newsign=wmp.plan_month_newsign,
+            plan.plan_month_sign=wmp.plan_month_newsign+wmp.plan_signed+wmp.plan_reserve+plan.fact_month_sign,
+
+                  plan.plan_month_sign_gap=(wmp.plan_month_newsign+wmp.plan_signed+wmp.plan_reserve+plan.fact_month_sign)-plan.target_month_sign
+
+      WHERE plan.type=1
+         AND  DATE_FORMAT( plan. this_time,'%Y-%m-%d') = #{this_time}  AND plan.how_week=#{how_week}
+    </update>
+
+    <!--根据projectId查询周销售计划数据-->
+    <select id="selectWeeklyMarketPlanByProjectId" parameterType="java.util.Map"  resultType="java.util.Map">
+       SELECT
+        wmp.start_time,
+        wmp.end_time,
+        wmp.how_week,
+        bu.guid,
+        bu.father_id,
+        bu.business_name,
+        wmp.`project_name`,
+         wmp.`project_id` ,
+        wmp.`project_code`,
+        wmp.`trader_name`,
+
+        (CASE wmp. `islast`
+        WHEN 1 THEN '是'
+        WHEN 0 THEN '否' END )islast
+        ,
+        (CASE wmp. `issales_trade`
+        WHEN 1 THEN '营销操盘'
+        WHEN 0 THEN '营销不操盘'  WHEN 2 THEN'联合操盘' END )issales_trade
+        ,CONVERT ( wmp. `subscribe_price` ,DECIMAL(10,2)) subscribe_price
+        , wmp. `target_month_bearer`
+        ,CONVERT ( wmp. `target_month_sign` ,DECIMAL(10,2)) target_month_sign
+        ,wmp. `target_week_bearer`
+        ,CONVERT ( wmp. `target_week_sign` ,DECIMAL(10,2)) target_week_sign
+
+
+
+
+        ,IFNULL( ROUND ( wmp. `target_week_bearer_per` *100,2) ,0) target_week_bearer_per
+        ,IFNULL( ROUND ( wmp. `target_week_sign_per` *100,2),0) target_week_sign_per
+        ,IFNULL(wmp. `fact_month_bearer_total` ,0) fact_month_bearer_total
+        ,IFNULL(  ROUND ( wmp. `fact_month_bearer_per` *100,2) ,0) fact_month_bearer_per
+        ,IFNULL(wmp. `fact_week_bearer` ,0) fact_week_bearer
+        , IFNULL( ROUND ( wmp. `fact_week_bearer_per` *100,2),0) fact_week_bearer_per
+        ,IFNULL(wmp. `fact_month_sign` ,0.00) fact_month_sign
+        ,IFNULL(  ROUND ( wmp. `fact_month_sign_per` *100,2)  ,0) fact_month_sign_per
+        ,IFNULL(wmp. `fact_week_sign` ,0.00) fact_week_sign
+        ,IFNULL(   ROUND ( wmp. `fact_week_sign_per` *100,2)  ,0) fact_week_sign_per
+        ,CONVERT ( wmp. `fact_signed` ,DECIMAL(10,2)) fact_signed
+        ,CONVERT ( wmp. `plan_reserve` ,DECIMAL(10,2)) plan_reserve
+        ,CONVERT ( wmp. `plan_signed` ,DECIMAL(10,2)) plan_signed
+
+         ,CAST( IFNULL(wmp. `plan_signed`+wmp. `plan_reserve`,0) +wmp. `fact_month_sign` AS CHAR) plan_month_lock_price
+
+     ,CONCAT( ROUND( ((IFNULL(wmp. `plan_signed`+wmp. `plan_reserve`,0)+wmp. `fact_month_sign`)/wmp.target_month_sign)*100,2) ,'%') plan_month_lock_per
+       ,CONVERT ( wmp. `plan_month_newsign` ,DECIMAL(10,2)) plan_month_newsign
+
+       ,CAST(IFNULL(wmp.`plan_month_newsign`+wmp.`plan_signed`+wmp.`plan_reserve`,0)+wmp.`fact_month_sign`   AS CHAR) plan_month_sign
+
+        , wmp. `plan_week_bearer_gap`
+        ,CONVERT ( wmp. `plan_week_sign_gap` ,DECIMAL(10,2)) plan_week_sign_gap
+           ,CAST(IFNULL( wmp. `plan_month_newsign`+wmp. `plan_signed`+wmp. `plan_reserve`,0)+wmp. `fact_month_sign`-wmp.target_month_sign  AS CHAR) plan_month_sign_gap,
+
+        wmp.`gap_cause`,
+        wmp.type,
+        wmp.`checkeds`,
+        wmp.`cause_details`,
+        wmp.`minor_details`,
+        wmp.`detailed_description`,
+        wmp.policy_for_target,
+        wmp.is_self_write,
+        wmp.plan_status,
+        wmp.remarks
+        FROM
+            mm_week_marketing_plan wmp
+            LEFT JOIN mm_business_unit bu ON wmp.project_id = bu.business_id
+        WHERE
+
+            project_id = #{project_id}
+            AND DATE_FORMAT(wmp.this_time,'%Y-%m-%d') = #{this_time}
+            AND how_week = #{how_week}
+    </select>
+
+
+    <!--根据projectId查询周销售计划数据,导出专用-->
+    <select id="selectWeeklyMarketPlanByProjectIdByExport" parameterType="java.util.Map"  resultType="cn.visolink.salesmanage.weeklymarketingplan.model.WeekMarkting">
+       SELECT
+        wmp.start_time,
+        wmp.end_time,
+        wmp.how_week,
+
+        DATE_FORMAT( wmp.report_time,'%Y-%m-%d %H:%i:%S') report_time,
+        bu.guid,
+        bu.father_id,
+        bu.business_name,
+        wmp.`project_name`,
+         wmp.`project_id` ,
+        wmp.`project_code`,
+        wmp.`trader_name`,
+
+        (CASE wmp. `islast`
+        WHEN 1 THEN '是'
+        WHEN 0 THEN '否' END )islast
+        ,
+        (CASE wmp. `issales_trade`
+        WHEN 1 THEN '营销操盘'
+        WHEN 0 THEN '营销不操盘'  WHEN 2 THEN'联合操盘' END )issales_trade
+        ,CONVERT ( wmp. `subscribe_price` ,DECIMAL(10,2)) subscribe_price
+        , wmp. `target_month_bearer`
+        ,CONVERT ( wmp. `target_month_sign` ,DECIMAL(10,2)) target_month_sign
+        ,wmp. `target_week_bearer`
+        ,CONVERT ( wmp. `target_week_sign` ,DECIMAL(10,2)) target_week_sign
+
+
+
+
+        ,IFNULL( ROUND ( wmp. `target_week_bearer_per` *100,2) ,0) target_week_bearer_per
+        ,IFNULL( ROUND ( wmp. `target_week_sign_per` *100,2),0) target_week_sign_per
+        ,IFNULL(wmp. `fact_month_bearer_total` ,0) fact_month_bearer_total
+        ,IFNULL(  ROUND ( wmp. `fact_month_bearer_per` *100,2) ,0) fact_month_bearer_per
+        ,IFNULL(wmp. `fact_week_bearer` ,0) fact_week_bearer
+        , IFNULL( ROUND ( wmp. `fact_week_bearer_per` *100,2),0) fact_week_bearer_per
+        ,IFNULL(wmp. `fact_month_sign` ,0.00) fact_month_sign
+        ,IFNULL(  ROUND ( wmp. `fact_month_sign_per` *100,2)  ,0) fact_month_sign_per
+        ,IFNULL(wmp. `fact_week_sign` ,0.00) fact_week_sign
+        ,IFNULL(   ROUND ( wmp. `fact_week_sign_per` *100,2)  ,0) fact_week_sign_per
+        ,CONVERT ( wmp. `fact_signed` ,DECIMAL(10,2)) fact_signed
+        ,CONVERT ( wmp. `plan_reserve` ,DECIMAL(10,2)) plan_reserve
+        ,CONVERT ( wmp. `plan_signed` ,DECIMAL(10,2)) plan_signed
+
+         ,CAST( IFNULL(wmp. `plan_signed`+wmp. `plan_reserve`,0) +IFNULL(wmp. `fact_month_sign`,0) AS CHAR) plan_month_lock_price
+
+     ,IFNULL( ROUND( ((IFNULL(wmp. `plan_signed`+wmp. `plan_reserve`,0)+wmp. `fact_month_sign`)/wmp.target_month_sign)*100,2), 0) plan_month_lock_per
+       ,CONVERT ( wmp. `plan_month_newsign` ,DECIMAL(10,2)) plan_month_newsign
+
+       ,CAST(IFNULL(wmp.`plan_month_newsign`+wmp.`plan_signed`+wmp.`plan_reserve`,0)+wmp.`fact_month_sign`   AS CHAR) plan_month_sign
+
+        , wmp. `plan_week_bearer_gap`
+        ,CONVERT ( wmp. `plan_week_sign_gap` ,DECIMAL(10,2)) plan_week_sign_gap
+           ,CAST(IFNULL( wmp. `plan_month_newsign`+wmp. `plan_signed`+wmp. `plan_reserve`,0)+wmp. `fact_month_sign`-wmp.target_month_sign  AS CHAR) plan_month_sign_gap,
+
+        wmp.`gap_cause`,
+        wmp.type,
+        wmp.`checkeds`,
+        wmp.`cause_details`,
+        wmp.`minor_details`,
+        wmp.`detailed_description`,
+        wmp.policy_for_target,
+        wmp.is_self_write,
+
+        (CASE wmp.plan_status
+        WHEN -1 THEN '已驳回'
+        WHEN 0 THEN '未上报'
+        WHEN 1 THEN '已上报'
+          WHEN 2 THEN'已上报'
+
+           END )plan_status,
+        wmp.remarks
+        FROM
+            mm_week_marketing_plan wmp
+            LEFT JOIN mm_business_unit bu ON wmp.project_id = bu.business_id
+        WHERE
+            project_id = #{project_id}
+            AND DATE_FORMAT(wmp.this_time,'%Y-%m-%d') = #{this_time}
+            AND how_week = #{how_week}
+    </select>
+
+
+    <!--根据projectId查询周销售计划数据子数据,导出专用-->
+    <select id="selectWeekMarketByFatherIdByExport"  resultType="cn.visolink.salesmanage.weeklymarketingplan.model.WeekMarkting">
+        SELECT
+        wmp.start_time,
+        wmp.end_time,
+        wmp.how_week,
+        bu.guid,
+        bu.father_id,
+        wmp.`project_id` ,
+        bu.business_name,
+        wmp.`project_name`,
+        wmp.`project_code`,
+        wmp.type,
+        wmp.`trader_name`,
+        DATE_FORMAT( wmp.report_time,'%Y-%m-%d %H:%i:%S') report_time,
+        (CASE wmp. `islast`
+        WHEN 1 THEN '是'
+        WHEN 0 THEN '否' END )islast
+        ,
+        (CASE wmp. `issales_trade`
+        WHEN 1 THEN '营销操盘'
+        WHEN 0 THEN '营销不操盘'  WHEN 2 THEN'联合操盘' END )issales_trade
+        ,CONVERT ( wmp. `subscribe_price` ,DECIMAL(10,2)) subscribe_price
+        , wmp. `target_month_bearer`
+        ,CONVERT ( wmp. `target_month_sign` ,DECIMAL(10,2)) target_month_sign
+        ,wmp. `target_week_bearer`
+        ,CONVERT ( wmp. `target_week_sign` ,DECIMAL(10,2)) target_week_sign
+
+
+
+        ,IFNULL(ROUND ( wmp. `target_week_bearer_per` *100,2),0) target_week_bearer_per
+        ,IFNULL( ROUND ( wmp. `target_week_sign_per` *100,2),0) target_week_sign_per
+        ,IFNULL(wmp. `fact_month_bearer_total` ,0) fact_month_bearer_total
+        ,IFNULL(ROUND ( wmp. `fact_month_bearer_per` *100,2) ,0) fact_month_bearer_per
+        ,IFNULL(wmp. `fact_week_bearer` ,0) fact_week_bearer
+        , IFNULL(ROUND ( wmp. `fact_week_bearer_per` *100,2),0) fact_week_bearer_per
+        ,IFNULL(wmp. `fact_month_sign` ,0.00) fact_month_sign
+        ,IFNULL(ROUND ( wmp. `fact_month_sign_per` *100,2),0) fact_month_sign_per
+        ,IFNULL(wmp. `fact_week_sign` ,0.00) fact_week_sign
+        ,IFNULL(ROUND ( wmp. `fact_week_sign_per` *100,2),0) fact_week_sign_per
+        ,CONVERT ( wmp. `fact_signed` ,DECIMAL(10,2)) fact_signed
+
+        , CAST( IFNULL(app. `plan_reserve` ,0) AS CHAR) plan_reserve
+        ,  CAST(IFNULL(app. `plan_signed` ,0) AS CHAR) plan_signed
+
+        ,CAST( IFNULL(app. `plan_signed`+app. `plan_reserve`,0) +wmp. `fact_month_sign` AS CHAR) plan_month_lock_price
+        ,IFNULL( ROUND( ((IFNULL(wmp. `plan_signed`+wmp. `plan_reserve`,0)+wmp. `fact_month_sign`)/wmp.target_month_sign)*100,2), 0) plan_month_lock_per
+        ,CAST(IFNULL(app.`plan_month_newsign` ,0)  AS CHAR) plan_month_newsign
+        ,CAST(IFNULL(app.`plan_month_newsign`+app.`plan_signed`+app.`plan_reserve`,0)+wmp.`fact_month_sign`   AS CHAR) plan_month_sign
+        ,CAST( wmp.plan_week_bearer_gap AS CHAR) plan_week_bearer_gap
+        ,CAST( wmp.plan_week_sign_gap AS CHAR) plan_week_sign_gap
+        ,CAST(IFNULL( app. `plan_month_newsign`+app. `plan_signed`+app. `plan_reserve`,0)+wmp. `fact_month_sign`-wmp.target_month_sign  AS CHAR) plan_month_sign_gap
+        ,       app.gap_cause,
+
+        wmp.`checkeds`,
+        app.`cause_details`,
+        app.`minor_details`,
+        app.`detailed_description`,
+        app.policy_for_target,
+        wmp.is_self_write,
+
+
+        (CASE wmp.plan_status
+        WHEN -1 THEN '已驳回'
+        WHEN 0 THEN '未上报'
+        WHEN 1 THEN '已上报'
+          WHEN 2 THEN'已上报'
+
+           END ) plan_status,
+        wmp.remarks,
+        regionwmp.region_sort,
+        targetwmp.target_month_sign  targetwmp_month_sign,
+
+        targetwmp.target_week_sign   targetwmp_week_sign
+        FROM
+        mm_week_marketing_plan wmp
+        LEFT JOIN mm_business_unit bu ON wmp.project_id = bu.business_id
+        LEFT JOIN (
+        SELECT project_name,this_time,how_week,project_id ,business_id
+
+        ,CONVERT ( wmp. `plan_reserve` ,DECIMAL(10,2)) plan_reserve
+        ,CONVERT ( wmp. `plan_signed` ,DECIMAL(10,2)) plan_signed
+        ,CONVERT ( wmp. `plan_month_lock_price` ,DECIMAL(10,2)) plan_month_lock_price
+        ,ROUND ( wmp. `plan_month_lock_per` *100,2) plan_month_lock_per
+        ,CONVERT ( wmp. `plan_month_newsign` ,DECIMAL(10,2)) plan_month_newsign
+        ,CONVERT ( wmp. `plan_month_sign` ,DECIMAL(10,2)) plan_month_sign
+
+        ,CONVERT ( wmp. `plan_month_sign_gap` ,DECIMAL(10,2)) plan_month_sign_gap
+
+        ,wmp.`gap_cause`,
+
+        wmp.`cause_details`,
+        wmp.`minor_details`,
+        wmp.`detailed_description`,
+        wmp.policy_for_target
+        FROM mm_week_marketing_plan wmp
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` =wmp.`project_id`
+
+        WHERE 1=1
+
+        <if test='type=="1"'>
+            AND (area_id   IN (SELECT project_id FROM mm_week_marketing_plan WHERE plan_status>=1 AND TYPE=2) OR wmp.TYPE=2 AND plan_status>=1 OR wmp.TYPE=1
+            )
+        </if>
+        <if test='type=="2"'>
+            AND ( plan_status>=1   OR wmp.TYPE=2)
+        </if>
+
+        AND wmp.how_week=#{how_week}
+
+        AND DATE_FORMAT( wmp. this_time,'%Y-%m-%d') =#{this_time}
+        AND
+        ( wmp.project_id=#{project_id}   OR bu.`region_org_id` = #{project_id} OR '00000001' = #{project_id}  )
+        ) app      ON app.project_id=wmp.project_id AND app.how_week=wmp.how_week  AND DATE_FORMAT( app. this_time,'%Y-%m-%d')=DATE_FORMAT( wmp. this_time,'%Y-%m-%d')
+        LEFT JOIN (SELECT project_id,how_week,this_time, target_month_sign,target_week_sign FROM mm_week_marketing_plan WHERE target_month_sign>0 AND target_week_sign>0 AND fact_week_sign  <![CDATA[ <]]> 1
+        AND fact_month_sign  <![CDATA[ <]]>  1
+        )targetwmp
+        ON targetwmp.project_id=wmp.project_id AND targetwmp.how_week=wmp.how_week  AND DATE_FORMAT( targetwmp. this_time,'%Y-%m-%d')=DATE_FORMAT( wmp. this_time,'%Y-%m-%d')
+        LEFT JOIN
+        (SELECT
+
+        `region_id`,
+        `region_sort`
+        FROM
+        `saleman`.`mm_idm_region`)regionwmp
+
+        ON regionwmp.region_id=wmp.project_id
+        WHERE 1=1
+        AND
+          bu.father_id = #{guid}
+        AND DATE_FORMAT(wmp.this_time,'%Y-%m-%d') = #{this_time}
+        AND wmp.how_week = #{how_week}
+        AND bu.type IN (1,2,3)
+
+        <if test='type!="1"'>
+            <if test='Boss=="true"'>
+                AND (area_id   IN (SELECT project_id FROM mm_week_marketing_plan WHERE plan_status>=1 AND TYPE=2))
+                AND
+                wmp.checkeds>=1
+                AND( wmp.target_month_bearer!=0 OR wmp.target_month_sign!=0 OR wmp. `target_week_bearer`!=0 OR  wmp. `target_week_sign`!=0 OR
+                wmp. `fact_month_bearer_total`!=0 OR wmp. `fact_week_bearer`!=0 OR wmp. `fact_month_sign`
+                !=0 OR wmp. `fact_week_sign`!=0 OR wmp. fact_signed!=0 OR wmp. `subscribe_price`!=0 OR app. `plan_reserve`!=0 OR app. `plan_signed`
+                !=0 OR app.`plan_month_newsign`!=0)
+            </if>
+            <if test="areaReport!='' and areaReport!=null ">
+                AND( wmp.target_month_bearer!=0 OR wmp.target_month_sign!=0 OR wmp. `target_week_bearer`!=0 OR  wmp. `target_week_sign`!=0 OR
+                wmp. `fact_month_bearer_total`!=0 OR wmp. `fact_week_bearer`!=0 OR wmp. `fact_month_sign`
+                !=0 OR wmp. `fact_week_sign`!=0 OR wmp. fact_signed!=0 OR wmp. `subscribe_price`!=0 OR app. `plan_reserve`!=0 OR app. `plan_signed`
+                !=0 OR app.`plan_month_newsign`!=0)
+            </if>
+            ORDER BY TYPE ASC, wmp. target_month_sign DESC,  wmp. target_week_sign DESC, wmp.fact_month_sign DESC,wmp. fact_week_sign DESC,targetwmp_month_sign DESC,  targetwmp_week_sign DESC
+          </if>
+
+        <if test='type=="1"'>
+            ORDER BY region_sort ASC
+        </if>
+        <!--<if test="weeklyType==1"> AND wmp.type = 2</if>-->
+        <!--<if test="weeklyType==2"> AND wmp.type = 3</if>-->
+
+    </select>
+<!--查找缺口原因下拉列表里的数据-->
+<select id="selectGapList" resultType="java.util.Map" >
+SELECT DictCode,DictName
+FROM s_dictionary
+WHERE PID='b635b288-8d5c-4a74-8c0f-9f93082b64cb'
+union all select 0 as DictCode ,' '  as DictName
+ORDER BY DictCode
+</select>
+<!--查找某个区域下所有项目所有未上报的项目-->
+<update id="selectAreaProject" parameterType="java.util.Map" >
+   UPDATE
+    `mm_week_marketing_plan`
+     SET is_effective=#{is_effective}
+    WHERE area_id=#{area_id} AND  DATE_FORMAT( this_time,'%Y-%m-%d') = #{this_time}  AND how_week=#{how_week} AND plan_status<![CDATA[ <]]> 1
+</update>
+
+
+  <select id="selectCode" resultType="java.lang.String" parameterType="java.lang.String">
+      SELECT project_id FROM mm_week_marketing_plan WHERE project_code=#{project_code} LIMIT 0,1
+  </select>
+<!--查找是否复核-->
+ <select id="selectCheckeds" parameterType="java.util.Map" resultType="java.util.Map">
+  SELECT checkeds,plan_status FROM mm_week_marketing_plan WHERE project_id=#{project_id}  AND  DATE_FORMAT( this_time,'%Y-%m-%d') = #{this_time}  AND how_week=#{how_week}
+ </select>
+
+    <select id="getFlowStatus" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	flow_id,flow_json,flow_status,base_id as id,id as kid
+FROM
+	mm_ap_flow_info
+WHERE
+	base_id = #{base_id}
+	ORDER  BY zddate DESC
+	LIMIT 0,1
+    </select>
+
+    <select id="getFlowId" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	flow_status,json_id,flow_id,flow_json,base_id as id,id as kid
+FROM
+	mm_ap_flow_info
+WHERE
+	base_id = #{base_id}
+AND flow_status NOT IN(4,7)
+    </select>
+
+
+
+    <update id="updateFlowData" parameterType="java.util.Map">
+        update mm_ap_flow_info
+        <set>
+            <if test="flowStatus != null">
+                flow_status = #{flowStatus,jdbcType=INTEGER},
+            </if>
+            <if test="projectId != null">
+                project_id = #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowId != null">
+                flow_id = #{flowId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowType != null">
+                flow_type = #{flowType,jdbcType=VARCHAR},
+            </if>
+            <if test="flowCode != null">
+                flow_code = #{flowCode,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                creator = #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editTime != null">
+                edit_time = #{editTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editor != null">
+                editor = #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="isdel != null">
+                isdel = #{isdel,jdbcType=INTEGER},
+            </if>
+            <if test="baseId != null">
+                base_id = #{baseId,jdbcType=VARCHAR},
+            </if>
+
+            <if test="zddate != null">
+                zddate = #{zddate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="zphzZs != null">
+                zphz_Zs = #{zphzZs,jdbcType=DECIMAL},
+            </if>
+            <if test="dpdjZs != null">
+                dpdj_Zs = #{dpdjZs,jdbcType=DECIMAL},
+            </if>
+            <if test="dbzgLr != null">
+                dbzg_Lr = #{dbzgLr,jdbcType=DECIMAL},
+            </if>
+            <if test="dbzgLl != null">
+                dbzg_ll = #{dbzgLl,jdbcType=DECIMAL},
+            </if>
+            <if test="zj != null">
+                zj = #{zj,jdbcType=VARCHAR},
+            </if>
+            <if test="orgname != null">
+                orgName = #{orgname,jdbcType=VARCHAR},
+            </if>
+            <if test="stageId != null">
+                stage_id = #{stageId,jdbcType=VARCHAR},
+            </if>
+            <if test="taskid != null">
+                taskId = #{taskid,jdbcType=VARCHAR},
+            </if>
+            <if test="title != null">
+                title = #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="flowJson != null">
+                flow_json = #{flowJson,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="comcommon != null">
+                comcommon = #{comcommon,jdbcType=LONGVARCHAR},
+            </if>
+        </set>
+        where base_id=#{baseId} AND flow_status!=4
+    </update>
+<!--查找窗口期-->
+    <select id="selectWindowTime" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT windows_start,windows_end,now() nowtime,
+        (CASE WHEN  now()>windows_start AND
+            now() <![CDATA[ <]]> windows_end  THEN 1 ELSE 2 END)
+            is_window
+        FROM mm_common_week_plan
+        WHERE
+        DATE_FORMAT( end_time,'%Y-%m-%d') = #{this_time}
+        AND how_week=#{how_week}
+    </select>
+    <!--查找操盘手-->
+    <select id="selectBasicTrader" resultType="java.util.Map">
+ SELECT temp.usercn trader,temp.projectId project_id,b.is_late_trader,b.is_trader FROM (SELECT tsu.alias,tsu.usercn,SUBSTRING_INDEX(SUBSTRING_INDEX(belongDepFullNo,'-',-2),'-',1) projectId,
+SUBSTRING_INDEX(SUBSTRING_INDEX(belongDepFullName,'-',-2),'-',1) projectname FROM t_sys_post tsp
+INNER JOIN t_sys_userjob_rel tsur
+ON tsp.jobNum=tsur.jobid
+INNER JOIN t_sys_user tsu ON tsu.username=tsur.userid
+WHERE tsp.jobName LIKE '%项目营销PM%' AND tsp.isDel=0
+AND tsu.username IS NOT NULL
+ORDER BY  tsp.jobNum DESC
+) temp
+
+LEFT JOIN  `t_mm_project` p ON p.`projectID`=temp.`projectID`
+LEFT JOIN  mm_basic_trader_mingyuan b ON b.project_id=p.projectCode
+GROUP BY temp.projectId,temp.usercn
+  </select>
+
+
+
+    <!--查找操盘手-->
+    <select id="selectBasicTraderOLD" resultType="java.util.Map">
+        SELECT b.trader,b.is_late_trader,b.is_trader,project_id FROM mm_basic_trader_mingyuan b
+    </select>
+
+
+
+</mapper>

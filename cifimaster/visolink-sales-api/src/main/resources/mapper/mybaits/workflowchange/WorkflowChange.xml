@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.workflowchange.dao.WorkflowChangeDao">
+    <insert id="workflowSend"   parameterType = "java.util.Map">
+        INSERT INTO    mm_ap_flow_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="project_id != null and project_id!=''">
+                project_id,
+            </if>
+            <if test="flow_id != null and flow_id!=''">
+                flow_id,
+            </if>
+            <if test="flow_type != null and flow_type!=''">
+                flow_type,
+            </if>
+            <if test="flow_json != null and flow_json!=''">
+                flow_json,
+            </if>
+            <if test="json_id != null and json_id!=''">
+                json_id,
+            </if>
+            <if test="flow_code != null and flow_code!=''">
+                flow_code,
+            </if>
+            <if test="creator != null and creator!=''">
+                creator,
+            </if>
+            <if test="BUCode != null and BUCode!=''">
+                orgName,
+            </if>
+            <if test="TITLE != null and TITLE!=''">
+                title,
+            </if>
+            <if test="comcommon != null and comcommon!=''">
+                comcommon,
+            </if>
+            <if test="stage_id != null and stage_id!=''">
+                stage_id,
+            </if>
+            <if test="base_id != null and base_id!=''">
+                base_id,
+            </if>
+            id,create_time,isdel
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="project_id != null and project_id!=''">
+                #{project_id},
+            </if>
+            <if test="flow_id != null and flow_id!=''">
+                #{flow_id},
+            </if>
+            <if test="flow_type != null and flow_type!=''">
+                #{flow_type},
+            </if>
+            <if test="flow_json != null and flow_json!=''">
+                #{flow_json},
+            </if>
+            <if test="json_id != null and json_id!=''">
+                #{json_id},
+            </if>
+            <if test="flow_code != null and flow_code!=''">
+                #{flow_code},
+            </if>
+            <if test="creator != null and creator!=''">
+                #{creator},
+            </if>
+            <if test="BUCode != null and BUCode!=''">
+                #{BUCode},
+            </if>
+            <if test="TITLE != null and TITLE!=''">
+                #{TITLE},
+            </if>
+            <if test="comcommon != null and comcommon!=''">
+                #{comcommon},
+            </if>
+            <if test="stage_id != null and stage_id!=''">
+                #{stage_id},
+            </if>
+            <if test="base_id != null and base_id!=''">
+                #{base_id},
+            </if>
+            UUID(),now(),0
+        </trim>
+       <!-- (id,  project_id, flow_id, flow_type, flow_json, flow_code, creator, create_time,   isdel,  json_id)
+        VALUES
+            (UUID(),#{project_id},#{flow_id},#{flow_type},#{flow_json},
+            #{flow_code},#{creator},now(),
+            0,#{json_id})-->
+    </insert>
+
+    <select id="workflowSelect"  resultType="java.util.Map" parameterType = "java.util.Map">
+        select
+        id, flow_status, project_id, flow_id, flow_type,
+
+        REPLACE(REPLACE(flow_json,#{param1},#{param2}),#{fileUrlOld},#{fileUrlNew}) as flow_json, flow_code, creator,
+        DATE_FORMAT(create_time,'%Y-%m-%d') create_time,
+        edit_time, editor, isdel, base_id, json_id,orgName,zj as isTransaction
+        from
+        mm_ap_flow_info
+        where
+        json_id = #{BOID,jdbcType=VARCHAR} order by create_time DESC limit 1
+    </select>
+
+    <update id="workflowUpdate" parameterType = "java.util.Map">
+        update mm_ap_flow_info
+        <trim prefix="set" suffixOverrides=",">
+            <if test="project_id!='' ">project_id=#{project_id},</if>
+            <if test="flow_id!=null and flow_id!='' ">flow_id=#{flow_id},</if>
+            <if test="flow_type!=nul and flow_type!='' ">flow_type=#{flow_type},</if>
+            <if test="flow_json!=null and flow_json!=''">flow_json=#{flow_json},</if>
+            <if test="flow_code!=null and flow_code!=''">flow_code=#{flow_code},</if>
+            <if test="creator!=null and creator!=''">editor=#{creator},</if>
+            <if test="BUCode != null and BUCode!=''">orgName=#{BUCode},</if>
+            <if test="TITLE != null and TITLE!=''">title=#{TITLE},</if>
+            <if test="comcommon != null and comcommon!=''">comcommon=#{comcommon},</if>
+            <if test="stage_id!=''">stage_id=#{stage_id},</if>
+            edit_time=now()
+        </trim>
+        where json_id = #{json_id}
+
+    </update>
+
+    <insert id="workflowLogUpdate"   parameterType = "java.util.Map">
+        INSERT INTO    mm_ap_flow_log
+        (id,   json_id, flow_param, flow_code, creator, ExecutTime)
+        VALUES
+            (UUID(),#{json_id},#{flow_json},#{flow_code},#{creator},
+            now())
+    </insert>
+
+
+    <insert id="workflowParamUpdate"   parameterType = "java.util.Map">
+        INSERT INTO    mm_ap_flow_log
+        (id,  flow_param, ExecutTime)
+        VALUES
+            (UUID(),#{param},now())
+    </insert>
+
+    <select id="queryFlowCode" parameterType="string" resultType="java.util.Map">
+        select id,flow_code,flow_id from mm_ap_flow_info where json_id = #{json_id}
+    </select>
+    <select id="queryFlowDateByBaseID" parameterType="string" resultType="java.util.Map">
+   select
+        id, flow_status, project_id, flow_id, flow_type,
+
+        REPLACE(REPLACE(flow_json,#{param1},#{param2}),#{fileUrlOld},#{fileUrlNew}) as flow_json,
+flow_code, creator,
+        DATE_FORMAT(create_time,'%Y-%m-%d') create_time,
+        edit_time, editor, isdel, base_id, json_id,orgName,zj as isTransaction
+        from
+        mm_ap_flow_info
+        where
+        base_id = #{BOID,jdbcType=VARCHAR} order by create_time DESC limit 1
+     </select>
+    <!--查流程发起需要的字段-->
+    <select id="queryworkflowByBaseId" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+    json_id,
+	zphz_Zs,
+	dpdj_Zs,
+	dbzg_Lr,
+	dbzg_ll,
+	zj,
+	orgName,
+	stage_id,
+	flow_id,
+	taskId,
+	flow_status,
+	title,
+	comcommon,
+	base_id,
+	creator,
+	flow_code,
+	project_id
+         FROM mm_ap_flow_info where base_id = #{BOID} ORDER BY create_time desc limit 1
+    </select>
+
+
+    <select id="getOldFlowCode" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT DictCode, DictName FROM s_dictionary whhere WHERE id =(
+        SELECT pid FROM s_dictionary WHERE DictCode = #{flow_code}
+        AND DictionaryLevel = 2  limit 1 )
+        LIMIT 1
+    </select>
+
+    <!--查询项目-->
+    <select id="getTproject" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	*
+FROM
+	t_mm_project
+WHERE
+	ProjectID =#{project_id}
+	LIMIT 1
+    </select>
+
+
+    <!--查询项目对应的区域集团Id-->
+    <select id="getBuiness_id" resultType="java.lang.String" parameterType="java.lang.String">
+select
+business_unit_id
+from mm_idm_business_unit_project_rel where project_id=#{project_id} LIMIT 1
+    </select>
+
+    <!--添加日志记录-->
+<insert id="addFlowResultInfo" parameterType="java.util.Map">
+INSERT INTO `saleman`.`mm_flow_result` ( `id`, `param`, `url`, `result`, `point`, `create_time` )
+VALUES
+	( UUID(), #{param}, #{url}, #{result}, #{point}, now());
+    </insert>
+</mapper>

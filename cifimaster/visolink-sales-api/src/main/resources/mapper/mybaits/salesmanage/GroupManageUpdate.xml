@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.groupmanagement.dao.GroupManageUpdate">
+
+
+    <!--表一暂存-->
+    <update id="updateMonthlyPlan" parameterType="java.util.Map">
+         UPDATE   `mm_business_unit` bu
+LEFT JOIN `mm_monthly_plan` mp ON  0=0
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3 AND mpi.`months` = mp.`months`
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+
+ SET
+ mpb.reserve_can_sell_set=#{reserve_can_sell_set}
+,mpb.reserve_can_sell_funds=#{reserve_can_sell_funds}
+,mpb.new_reserve_set=#{new_reserve_set}
+,mpb.new_reserve_funds=#{new_reserve_funds}
+,mpb.total_reserve_set=#{total_reserve_set}
+,mpb.total_reserve_funds=#{total_reserve_funds}
+,mpb.year_plan_sign=#{year_plan_sign}
+
+ ,mpi.reserve_sign_set = #{reserve_sign_set}
+ , mpi.reserve_sign_funds = #{reserve_sign_funds}
+  , mpi.new_sign_funds = #{new_sign_funds}
+  , mpi.new_sign_set = #{new_sign_set}
+   , mpi.total_sign_funds = #{reserve_sign_funds}+#{new_sign_funds}
+      , mpi.total_sign_set = #{reserve_sign_set}+#{new_sign_set}
+,mpi.plan_subscription_set= #{plan_subscription_set}
+,mpi.plan_subscription_funds = #{plan_subscription_funds}
+WHERE
+    bu.`business_id` =  #{business_id}
+   AND mp.`months` =  #{months}
+and prepared_by_unit_type = 3
+    </update>
+
+    <select id="getProjectTableOneStatus" parameterType="java.lang.String" resultType="java.lang.String">
+        select plan_status from mm_monthly_plan_basis where prepared_by_unit_org_id=#{projectId} and months=#{months}
+    </select>
+
+    <!--暂存，下达，上报 （修改状态）-->
+    <update id="updatePlanEffective" parameterType="java.util.Map">
+ UPDATE
+  `mm_business_unit` bu
+  LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3
+  LEFT JOIN `mm_monthly_plan` mp ON  0=0
+   LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+
+
+SET
+  mpb.plan_status = #{plan_status},
+
+  mpi.is_effective = #{is_effective}
+  <if test="nowDate!=null">
+      ,mpb.report_time=#{nowDate}
+  </if>
+  <if test="toexamine_time!=null">
+    ,mpb.toexamine_time=#{toexamine_time}
+  </if>
+  WHERE 0=0 AND ( bu. `project_org_id`  = #{business_id}
+   OR bu.`business_id` =  #{business_id}
+   )
+  AND mp.`months` = #{months}  AND prepared_by_unit_type = 3
+
+</update>
+
+
+    <select id="selectAllCode" resultType="java.util.Map">
+        select
+projectName,
+	`projectID`,
+	`myProjectId`,
+	`projectCode`
+
+
+	from
+	t_mm_project
+
+
+    </select>
+
+</mapper>

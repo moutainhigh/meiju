@@ -1,0 +1,869 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.TaskLand.dao.TakeLandDao">
+
+    <!--查询不同的区域-->
+    <select id="queryRegion" resultType="java.util.Map" parameterType="java.util.Map">
+        select distinct business_unit_id as ID,business_unit_name as name,-1 as PID,0 as PPID,0 as Levels from mm_idm_business_unit_project_rel mm join (select * from (
+        SELECT project_id,1 is_manage from s_user_project_rel
+        where userId=#{userid}
+        UNION
+        SELECT a.project_id,0 is_manage from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userid}
+        ) userproject GROUP BY project_id) p on p.project_id = mm.project_id
+        <where>
+            1=1
+            <if test="name != null and name!='' ">
+                and (business_unit_name like "%"#{name}"%" or city_name like "%"#{name}"%" or project_name like "%"#{name}"%")
+            </if>
+        </where>
+        union all
+        select distinct mm.city_id as ID,mm.city_name as name,mm.business_unit_id as PID,0 as PPID,1 as Levels from mm_idm_business_unit_project_rel mm join (select * from (
+        SELECT project_id,1 is_manage from s_user_project_rel
+        where userId=#{userid}
+        UNION
+        SELECT a.project_id,0 is_manage from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userid}
+        ) userproject GROUP BY project_id) p on p.project_id = mm.project_id
+        <where>
+            1=1
+            <if test="name != null and name!='' ">
+                and (business_unit_name like "%"#{name}"%" or city_name like "%"#{name}"%" or project_name like "%"#{name}"%")
+            </if>
+        </where>
+        union all
+        select mm.project_id as ID,mm.project_name as name,0 as PID,mm.city_id as PPID,99 as Levels from mm_idm_business_unit_project_rel mm join (select * from (
+        SELECT project_id,1 is_manage from s_user_project_rel
+        where userId=#{userid} and  project_id in(select project_id from fp_project_relationship where `level`=1 and pid=-1)
+        UNION
+        SELECT a.project_id,0 is_manage from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id and a.project_id in (
+
+        select project_id from fp_project_relationship where `level`=1 and pid=-1
+        )
+        where userId=#{userid}
+        ) userproject GROUP BY project_id) p on p.project_id = mm.project_id
+        <where>
+            1=1
+            <if test="name != null and name!='' ">
+                and (business_unit_name like "%"#{name}"%" or city_name like "%"#{name}"%" or project_name like "%"#{name}"%")
+            </if>
+        </where>
+    </select>
+    <select id="queryCMRegion" resultType="java.util.Map" parameterType="java.util.Map">
+        select bloc_id as ID,bloc_name as name,  -1 as PID,0 as PPID,0 as PPPID,0 as Levels,1 as orgLevel from s_four_level_org group by bloc_id
+        union all
+        select distinct business_unit_id as ID,business_unit_name as name,bloc_id as PID,0 as PPID,0 as PPPID,1 as Levels,2 as orgLevel from s_four_level_org mm
+        <where>
+            1=1
+            and (bloc_id in  (${resOrgId})
+            or business_unit_id in (${resOrgId})
+            or city_id in  (${resOrgId})
+            or project_id in (${resOrgId}))
+            <if test="name != null and name!='' ">
+                and (business_unit_name like "%"#{name}"%" or city_name like "%"#{name}"%" or project_name like "%"#{name}"%")
+            </if>
+        </where>
+        union all
+        select distinct mm.city_id as ID,mm.city_name as name,mm.business_unit_id as PID,mm.business_unit_id as PPID,0 as PPPID,2 as Levels,3 as orgLevel from s_four_level_org mm
+        <where>
+            1=1
+            and (bloc_id in  (${resOrgId})
+            or business_unit_id in (${resOrgId})
+            or city_id in  (${resOrgId})
+            or project_id in (${resOrgId}))
+            <if test="name != null and name!='' ">
+                and (business_unit_name like "%"#{name}"%" or city_name like "%"#{name}"%" or project_name like "%"#{name}"%")
+            </if>
+        </where>
+        union all
+        select mm.project_id as ID,mm.project_name as name,0 as PID,mm.city_id as PPID,mm.city_id as PPPID,99 as Levels,4 as orgLevel from s_four_level_org mm
+
+        <where>
+           1=1
+            and (bloc_id in  (${resOrgId})
+            or business_unit_id in (${resOrgId})
+            or city_id in  (${resOrgId})
+            or project_id in (${resOrgId}))
+            <if test="name != null and name!='' ">
+                and (business_unit_name like "%"#{name}"%" or city_name like "%"#{name}"%" or project_name like "%"#{name}"%")
+            </if>
+        </where>
+    </select>
+    <select id="queryOrgListByOrgId" resultType="java.util.Map" parameterType="java.lang.String">
+        select distinct business_unit_id as ID,business_unit_name as name, -1 as PID,0 as PPID,1 as Levels,2 as orgLevel from s_four_level_org mm
+        <where>
+           bloc_id =#{orgId}
+            or business_unit_id =#{orgId}
+            or city_id =#{orgId}
+            or project_id=#{orgId}
+
+        </where>
+        union all
+        select distinct mm.city_id as ID,mm.city_name as name,mm.business_unit_id as PID,mm.business_unit_id as PPID,2 as Levels,3 as orgLevel from s_four_level_org mm
+        <where>
+          bloc_id =#{orgId}
+            or business_unit_id =#{orgId}
+            or city_id  =#{orgId}
+            or project_id  =#{orgId}
+
+        </where>
+        union all
+        select mm.project_id as ID,mm.project_name as name,0 as PID,mm.city_id as PPID,99 as Levels,4 as orgLevel from s_four_level_org mm
+        <where>
+           1=1
+            and (bloc_id  =#{orgId}
+            or business_unit_id  =#{orgId}
+            or city_id  =#{orgId}
+            or project_id  =#{orgId})
+
+        </where>
+    </select>
+    <select id="queryOrgListByCityOrgId" resultType="java.util.Map" parameterType="java.lang.String">
+        select distinct mm.city_id as ID,mm.city_name as name,-1 as PID,0 as PPID,2 as Levels,3 as orgLevel from s_four_level_org mm
+        <where>
+          bloc_id =#{orgId}
+            or business_unit_id =#{orgId}
+            or city_id  =#{orgId}
+            or project_id  =#{orgId}
+
+        </where>
+        union all
+        select mm.project_id as ID,mm.project_name as name,mm.city_id as PID,0 as PPID,99 as Levels,4 as orgLevel from s_four_level_org mm
+        <where>
+            mm.project_id in (select project_id from fp_project_relationship where `level`=1 and pid=-1)
+            and (bloc_id  =#{orgId}
+            or business_unit_id  =#{orgId}
+            or city_id  =#{orgId}
+            or project_id  =#{orgId})
+
+        </where>
+    </select>
+
+    <!--查询不同的城市-->
+    <select id="queryCitys" resultType="java.util.Map" parameterType="java.util.Map">
+        select distinct city_id,city_name from mm_idm_business_unit_project_rel  where city_id = #{city_id}
+    </select>
+
+    <!--查询不同的项目-->
+    <select id="queryPrpject" resultType="java.util.Map" parameterType="java.util.Map">
+        select project_id,project_name,business_unit_id,business_unit_name,project_code,city_name,city_id from mm_idm_business_unit_project_rel where project_id = #{project_id}
+    </select>
+
+    <!--通过项目查询计划表-->
+    <select id="queryPlan" parameterType="java.util.Map" resultType="java.util.Map">
+        select fp.id as plan_id,fp.template_id as template_id,fpn.id as plan_node_id,fpn.light_stuat,fpn.node_level,
+        fpn.plan_start_time,fpn.plan_end_time,fpn.actual_finish_time,fpn.create_time
+        from fp_plan fp join fp_plan_node fpn on fp.id = fpn.plan_id
+        where fp.project_id = #{project_id} and fp.is_del = 0 and fp.is_effective = 0 and fpn.is_del = 0
+    </select>
+
+    <select id="queryPlanValue" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from fp_plan where project_id = #{project_id}
+    </select>
+
+    <!--添加计划-->
+    <insert id="insertPlan" parameterType = "java.util.Map">
+        INSERT INTO fp_plan(id, template_id, area_id, area_name, project_id, project_name, plan_name, plan_type, is_del,
+        is_effective, creator, create_time, editor, update_time, status, delisting_time, this_node)
+        VALUES (#{plan_id}, #{template_id}, #{area_id}, #{area_name}, #{project_id}, #{project_name}, #{plan_name}, #{plan_type},
+        0, 0, #{creator}, now(), #{editor}, now(), 0, #{delisting_time}, #{this_node})
+    </insert>
+
+    <!--添加计划节点-->
+    <insert id="insertPlNde" parameterType = "java.util.Map">
+        INSERT INTO fp_plan_node(id, template_node_id, plan_id, node_name, offset_type, key_date_type, key_date_name,
+        plan_start_time, plan_end_time, postpone_time, plan_approval, actual_finish_time, creator, create_time, editor,
+        update_time, is_del, is_effective, version, offset, period, node_level, product_set, visit_total, card_total,
+        card_big_per, light_stuat, overday_num,node_order,warning_day,send_post_code,send_post_name,browse_num)
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.planNodeId},#{item.template_node_id},#{item.plan_id},#{item.node_name},#{item.offset_type},#{item.key_date_type},
+            #{item.key_date_name},#{item.plan_start_time},#{item.plan_end_time},#{item.postpone_time},#{item.plan_approval},
+            #{item.actual_finish_time},#{item.creator},#{item.create_time},#{item.editor},#{item.update_time},0,#{item.is_effective},#{item.version}
+            ,#{item.offset},#{item.period},#{item.node_level},#{item.product_set},#{item.visit_total},#{item.card_total}
+            ,#{item.card_big_per},#{item.light_stuat},#{item.overday_num},#{item.node_order},#{item.warning_day},
+            #{item.send_post_code},#{item.send_post_name},#{item.browse_num})
+        </foreach>
+    </insert>
+
+    <!--添加货值结构-->
+    <insert id="insertValueStructure" parameterType="java.util.List">
+        <foreach collection="tructureList" item="list" separator=";">
+        INSERT INTO fp_land_value
+            <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="list.plan_id != null and list.plan_id!=''">plan_id,</if>
+                <if test="list.plan_node_id != null and list.plan_node_id!=''">plan_node_id,</if>
+                <if test="list.operation_type_code != null and list.operation_type_code!=''">operation_type_code,</if>
+                <if test="list.operation_type != null and list.operation_type!=''">operation_type,</if>
+                <if test="list.product_type_code != null and list.product_type_code!=''">product_type_code,</if>
+                <if test="list.product_type != null and list.product_type!=''">product_type,</if>
+                <if test="list.land_front_area != null and list.land_front_area!='' or list.land_front_area== 0 ">land_front_area,</if>
+                <if test="list.land_front_avg_price != null and list.land_front_avg_price!='' or list.land_front_avg_price== 0  ">land_front_avg_price,</if>
+                <if test="list.land_front_value != null and list.land_front_value!='' or list.land_front_value== 0 ">land_front_value,</if>
+                <if test="list.land_front_open_price != null and list.land_front_open_price!='' or list.land_front_open_price== 0 ">land_front_open_price,</if>
+                <if test="list.land_front_cost_standard != null and list.land_front_cost_standard!='' or list.land_front_cost_standard== 0 ">land_front_cost_standard,</if>
+                <if test="list.land_front_avg_flow != null and list.land_front_avg_flow!='' or list.land_front_avg_flow== 0 ">land_front_avg_flow,</if>
+                <if test="list.will_area != null and list.will_area!='' or list.will_area== 0 ">will_area,</if>
+                <if test="list.will_avg_price != null and list.will_avg_price!='' or list.will_avg_price== 0 ">will_avg_price,</if>
+                <if test="list.will_front_value != null and list.will_front_value!='' or list.will_front_value== 0 ">will_front_value,</if>
+                <if test="list.will_front_open_price != null and list.will_front_open_price!='' or list.will_front_open_price== 0 ">will_front_open_price,</if>
+                <if test="list.will_front_cost_standard != null and list.will_front_cost_standard!='' or list.will_front_cost_standard== 0 ">will_front_cost_standard,</if>
+                <if test="list.will_front_avg_flow != null and list.will_front_avg_flow!='' or list.will_front_avg_flow== 0 ">will_front_avg_flow,</if>
+                <if test="list.land_back_area != null and list.land_back_area!='' or list.land_back_area== 0 ">land_back_area,</if>
+                <if test="list.land_back_avg_price != null and list.land_back_avg_price!='' or list.land_back_avg_price== 0 ">land_back_avg_price,</if>
+                <if test="list.land_back_value != null and list.land_back_value!='' or list.land_back_value== 0 ">land_back_value,</if>
+                <if test="list.land_back_open_price != null and list.land_back_open_price!='' or list.land_back_open_price== 0 ">land_back_open_price,</if>
+                <if test="list.land_back_cost_standard != null and list.land_back_cost_standard!='' or list.land_back_cost_standard== 0 ">land_back_cost_standard,</if>
+                <if test="list.land_back_avg_flow != null and list.land_back_avg_flow!='' or list.land_back_avg_flow== 0 ">land_back_avg_flow,</if>
+                id
+            </trim>
+            <trim prefix="values (" suffix=")" suffixOverrides=",">
+                <if test="list.plan_id != null and list.plan_id!=''">#{list.plan_id},</if>
+                <if test="list.plan_node_id != null and list.plan_node_id!=''">#{list.plan_node_id},</if>
+                <if test="list.operation_type_code != null and list.operation_type_code!=''">#{list.operation_type_code},</if>
+                <if test="list.operation_type != null and list.operation_type!=''">#{list.operation_type},</if>
+                <if test="list.product_type_code != null and list.product_type_code!=''">#{list.product_type_code},</if>
+                <if test="list.product_type != null and list.product_type!=''">#{list.product_type},</if>
+                <if test="list.land_front_area != null and list.land_front_area!='' or list.land_front_area== 0 ">#{list.land_front_area},</if>
+                <if test="list.land_front_avg_price != null and list.land_front_avg_price!='' or list.land_front_avg_price== 0 ">#{list.land_front_avg_price},</if>
+                <if test="list.land_front_value != null and list.land_front_value!='' or list.land_front_value== 0 ">#{list.land_front_value},</if>
+                <if test="list.land_front_open_price != null and list.land_front_open_price!='' or list.land_front_open_price== 0 ">#{list.land_front_open_price},</if>
+                <if test="list.land_front_cost_standard != null and list.land_front_cost_standard!='' or list.land_front_cost_standard== 0 ">#{list.land_front_cost_standard},</if>
+                <if test="list.land_front_avg_flow != null and list.land_front_avg_flow!='' or list.land_front_avg_flow== 0 ">#{list.land_front_avg_flow},</if>
+                <if test="list.will_area != null and list.will_area!='' or list.will_area== 0 ">#{list.will_area},</if>
+                <if test="list.will_avg_price != null and list.will_avg_price!='' or list.will_avg_price== 0 ">#{list.will_avg_price},</if>
+                <if test="list.will_front_value != null and list.will_front_value!='' or list.will_front_value== 0 ">#{list.will_front_value},</if>
+                <if test="list.will_front_open_price != null and list.will_front_open_price!='' or list.will_front_open_price== 0 ">#{list.will_front_open_price},</if>
+                <if test="list.will_front_cost_standard != null and list.will_front_cost_standard!='' or list.will_front_cost_standard== 0 ">#{list.will_front_cost_standard},</if>
+                <if test="list.will_front_avg_flow != null and list.will_front_avg_flow!='' or list.will_front_avg_flow== 0 ">#{list.will_front_avg_flow},</if>
+                <if test="list.land_back_area != null and list.land_back_area!='' or list.land_back_area== 0 ">#{list.land_back_area},</if>
+                <if test="list.land_back_avg_price != null and list.land_back_avg_price!='' or list.land_back_avg_price== 0 ">#{list.land_back_avg_price},</if>
+                <if test="list.land_back_value != null and list.land_back_value!='' or list.land_back_value== 0 ">#{list.land_back_value},</if>
+                <if test="list.land_back_open_price != null and list.land_back_open_price!='' or list.land_back_open_price== 0 ">#{list.land_back_open_price},</if>
+                <if test="list.land_back_cost_standard != null and list.land_back_cost_standard!='' or list.land_back_cost_standard== 0 ">#{list.land_back_cost_standard},</if>
+                <if test="list.land_back_avg_flow != null and list.land_back_avg_flow!='' or list.land_back_avg_flow== 0 ">#{list.land_back_avg_flow},</if>
+                UUID()
+            </trim>
+        </foreach>
+    </insert>
+
+    <!--添加户型表-->
+    <insert id="insertRoom" parameterType="java.util.List">
+        <foreach collection="roomList" item="list" separator=";">
+        INSERT INTO fp_land_room
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="list.plan_id != null and list.plan_id!=''">plan_id,</if>
+            <if test="list.plan_node_id != null and list.plan_node_id!=''">plan_node_id,</if>
+            <if test="list.operation_type_code != null and list.operation_type_code!=''">operation_type_code,</if>
+            <if test="list.operation_type != null and list.operation_type!=''">operation_type,</if>
+            <if test="list.product_type_code != null and list.product_type_code!=''">product_type_code,</if>
+            <if test="list.product_type != null and list.product_type!=''">product_type,</if>
+            <if test="list.room_area != null and list.room_area!='' or list.room_area== 0">room_area,</if>
+            <if test="list.room_num != null and list.room_num!='' or list.room_num== 0">room_num,</if>
+            <if test="list.room_per != null and list.room_per!='' or list.room_per== 0">room_per,</if>
+            id
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="list.plan_id != null and list.plan_id!=''">#{list.plan_id},</if>
+            <if test="list.plan_node_id != null and list.plan_node_id!=''">#{list.plan_node_id},</if>
+            <if test="list.operation_type_code != null and list.operation_type_code!=''">#{list.operation_type_code},</if>
+            <if test="list.operation_type != null and list.operation_type!=''">#{list.operation_type},</if>
+            <if test="list.product_type_code != null and list.product_type_code!=''">#{list.product_type_code},</if>
+            <if test="list.product_type != null and list.product_type!=''">#{list.product_type},</if>
+            <if test="list.room_area != null and list.room_area!='' or list.room_area== 0">#{list.room_area},</if>
+            <if test="list.room_num != null and list.room_num!='' or list.room_num== 0">#{list.room_num},</if>
+            <if test="list.room_per != null and list.room_per!='' or list.room_per== 0">#{list.room_per},</if>
+            UUID()
+        </trim>
+        </foreach>
+    </insert>
+
+    <!--保存时间节点-->
+    <insert id="insertTimeNode" parameterType="java.util.Map">
+        INSERT INTO fp_date_node(plan_id, plan_node_id, delisting_time, sales_time, designone_time,
+        sample_open_time, designtwo_time, model_open_time, open_time,id)
+        VALUES ( #{plan_id},#{plan_node_id},#{delisting_time},#{sales_time},
+        #{designone_time},
+        #{sample_open_time},
+        #{designtwo_time},
+        #{model_open_time},
+        #{open_time},
+        UUID()
+        );
+    </insert>
+
+    <!--保存销售目标-->
+    <insert id="insertSales" parameterType="java.util.Map">
+        <foreach collection="salesList" item="list" separator=";">
+            INSERT INTO fp_land_sales_target
+            <trim prefix="(" suffix=")" suffixOverrides=",">
+                <if test="list.plan_id != null and list.plan_id!=''">plan_id,</if>
+                <if test="list.plan_node_id != null and list.plan_node_id!=''">plan_node_id,</if>
+                <if test="list.land_front_price != null and list.land_front_price!='' or list.land_front_price== 0">land_front_price,</if>
+                <if test="list.will_price != null and list.will_price!='' or list.will_price== 0">will_price,</if>
+                <if test="list.land_back_price != null and list.land_back_price!='' or list.land_back_price== 0">land_back_price,</if>
+                <if test="list.sales_time != null and list.sales_time!=''">sales_time,</if>
+                id
+            </trim>
+            <trim prefix="values (" suffix=")" suffixOverrides=",">
+                <if test="list.plan_id != null and list.plan_id!=''">#{list.plan_id},</if>
+                <if test="list.plan_node_id != null and list.plan_node_id!=''">#{list.plan_node_id},</if>
+                <if test="list.land_front_price != null and list.land_front_price!='' or list.land_front_price== 0">#{list.land_front_price},</if>
+                <if test="list.will_price != null and list.will_price!='' or list.will_price== 0">#{list.will_price},</if>
+                <if test="list.land_back_price != null and list.land_back_price!='' or list.land_back_price== 0">#{list.land_back_price},</if>
+                <if test="list.sales_time != null and list.sales_time!=''">#{list.sales_time},</if>
+                UUID()
+            </trim>
+        </foreach>
+    </insert>
+
+    <!--保存费用-->
+    <insert id="insertCost" parameterType="java.util.Map">
+            INSERT INTO fp_land_cost(id, plan_id, plan_node_id, land_front_price, will_price,
+            land_back_price, land_front_per, will_per, land_per)
+            VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{item.plan_id},#{item.plan_node_id},#{item.land_front_price},#{item.will_price},
+            #{item.land_back_price},#{item.land_front_per},
+            #{item.will_per},#{item.land_per})
+        </foreach>
+    </insert>
+
+
+
+    <!--查询所有的计划节点信息-->
+    <select id="selectPlanNode" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from fp_plan p join fp_plan_node fp on p.id = fp.plan_id
+        <where>
+            p.is_del = 0 and fp.is_del = 0
+            <if test="area_id != null and area_id!='' ">and area_id = #{area_id}</if>
+            <if test="plan_id != null and plan_id!='' ">and plan_id = #{plan_id} </if>
+            <if test="project_id != null and project_id!='' ">and project_id = #{project_id} </if>
+        </where>
+        GROUP BY fp.node_level order by fp.version desc
+    </select>
+
+    <!--查询附件表-->
+    <select id="queryAttach" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT *from s_attach where id=#{plan_node_id}
+    </select>
+
+    <!--以下接口皆是查询拿地后数据-->
+    <!--货值结构-->
+    <select id="queryValueStructure" parameterType="java.util.Map" resultType="java.util.Map">
+          select * from fp_land_value where plan_node_id = #{plan_node_id} order by operation_type
+    </select>
+    <!--户型-->
+    <select id="queryApartment" parameterType="java.util.Map" resultType="java.util.Map">
+          select * from fp_land_room where plan_node_id = #{plan_node_id}
+    </select>
+    <!--时间节点-->
+    <select id="queryTimeNode" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from fp_date_node where plan_node_id = #{plan_node_id}
+    </select>
+    <!--销售目标-->
+    <select id="querySalesTarget" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from fp_land_sales_target where plan_node_id = #{plan_node_id} order by sales_time
+    </select>
+    <!--查询费用-->
+    <select id="queryCost" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from fp_land_cost where plan_node_id = #{plan_node_id}
+    </select>
+
+    <!--添加顶设一货值结构-->
+    <insert id="insertTopOneValues" parameterType="java.util.Map">
+        <foreach collection="topOneList" item="list" separator=";">
+        INSERT INTO fp_designone_value
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="list.plan_id != null and list.plan_id!=''">plan_id,</if>
+            <if test="list.plan_node_id != null and list.plan_node_id!=''">plan_node_id,</if>
+            <if test="list.operation_type_code != null and list.operation_type_code!=''">operation_type_code,</if>
+            <if test="list.operation_type != null and list.operation_type!=''">operation_type,</if>
+            <if test="list.product_type_code != null and list.product_type_code!=''">product_type_code,</if>
+            <if test="list.product_type != null and list.product_type!=''">product_type,</if>
+            <if test="list.land_back_area != null and list.land_back_area!='' or list.land_back_area== 0">land_back_area,</if>
+            <if test="list.land_back_avg_price != null and list.land_back_avg_price!='' or list.land_back_avg_price== 0">land_back_avg_price,</if>
+            <if test="list.land_back_value != null and list.land_back_value!='' or list.land_back_value== 0">land_back_value,</if>
+            <if test="list.land_back_open_price != null and list.land_back_open_price!='' or list.land_back_open_price== 0">land_back_open_price,</if>
+            <if test="list.land_back_cost_standard != null and list.land_back_cost_standard!='' or list.land_back_cost_standard== 0">land_back_cost_standard,</if>
+            <if test="list.land_back_avg_flow != null and list.land_back_avg_flow!='' or list.land_back_avg_flow== 0">land_back_avg_flow,</if>
+            <if test="list.designone_area != null and list.designone_area!='' or list.designone_area== 0">designone_area,</if>
+            <if test="list.designone_avg_price != null and list.designone_avg_price!='' or list.designone_avg_price== 0">designone_avg_price,</if>
+            <if test="list.designonel_front_value != null and list.designonel_front_value!='' or list.designonel_front_value== 0">designonel_front_value,</if>
+            <if test="list.designone_front_open_price != null and list.designone_front_open_price!='' or list.designone_front_open_price== 0">designone_front_open_price,</if>
+            <if test="list.designonel_front_cost_standard != null and list.designonel_front_cost_standard!='' or list.designonel_front_cost_standard== 0">designonel_front_cost_standard,</if>
+            <if test="list.designone_front_avg_flow != null and list.designone_front_avg_flow!='' or list.designone_front_avg_flow== 0">designone_front_avg_flow,</if>
+            <if test="list.vs_all_avg_price != null and list.vs_all_avg_price!='' or list.vs_all_avg_price== 0">vs_all_avg_price,</if>
+            <if test="list.vs_value_price != null and list.vs_value_price!='' or list.vs_value_price== 0">vs_value_price,</if>
+            <if test="list.vs_open_price != null and list.vs_open_price!='' or list.vs_open_price== 0">vs_open_price,</if>
+            <if test="list.vs_hardcover_price != null and list.vs_hardcover_price!='' or list.vs_hardcover_price== 0">vs_hardcover_price,</if>
+            <if test="list.takeLandId != null and list.land_back_price!=''">takeLandId,</if>
+            <if test="list.vs_case_info != null and list.vs_case_info!=''">vs_case_info,</if>
+            id
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="list.plan_id != null and list.plan_id!=''">#{list.plan_id},</if>
+            <if test="list.plan_node_id != null and list.plan_node_id!=''">#{list.plan_node_id},</if>
+            <if test="list.operation_type_code != null and list.operation_type_code!=''">#{list.operation_type_code},</if>
+            <if test="list.operation_type != null and list.operation_type!=''">#{list.operation_type},</if>
+            <if test="list.product_type_code != null and list.product_type_code!=''">#{list.product_type_code},</if>
+            <if test="list.product_type != null and list.product_type!=''">#{list.product_type},</if>
+            <if test="list.land_back_area != null and list.land_back_area!='' or list.land_back_area== 0">#{list.land_back_area},</if>
+            <if test="list.land_back_avg_price != null and list.land_back_avg_price!='' or list.land_back_avg_price== 0">#{list.land_back_avg_price},</if>
+            <if test="list.land_back_value != null and list.land_back_value!='' or list.land_back_value== 0">#{list.land_back_value},</if>
+            <if test="list.land_back_open_price != null and list.land_back_open_price!='' or list.land_back_open_price== 0">#{list.land_back_open_price},</if>
+            <if test="list.land_back_cost_standard != null and list.land_back_cost_standard!='' or list.land_back_cost_standard== 0">#{list.land_back_cost_standard},</if>
+            <if test="list.land_back_avg_flow != null and list.land_back_avg_flow!='' or list.land_back_avg_flow== 0">#{list.land_back_avg_flow},</if>
+            <if test="list.designone_area != null and list.designone_area!='' or list.designone_area== 0">#{list.designone_area},</if>
+            <if test="list.designone_avg_price != null and list.designone_avg_price!='' or list.designone_avg_price== 0">#{list.designone_avg_price},</if>
+            <if test="list.designonel_front_value != null and list.designonel_front_value!='' or list.designonel_front_value== 0">#{list.designonel_front_value},</if>
+            <if test="list.designone_front_open_price != null and list.designone_front_open_price!='' or list.designone_front_open_price== 0">#{list.designone_front_open_price},</if>
+            <if test="list.designonel_front_cost_standard != null and list.designonel_front_cost_standard!='' or list.designonel_front_cost_standard== 0">#{list.designonel_front_cost_standard},</if>
+            <if test="list.designone_front_avg_flow != null and list.designone_front_avg_flow!='' or list.designone_front_avg_flow== 0">#{list.designone_front_avg_flow},</if>
+            <if test="list.vs_all_avg_price != null and list.vs_all_avg_price!='' or list.vs_all_avg_price== 0">#{list.vs_all_avg_price},</if>
+            <if test="list.vs_value_price != null and list.vs_value_price!='' or list.vs_value_price== 0">#{list.vs_value_price},</if>
+            <if test="list.vs_open_price != null and list.vs_open_price!='' or list.vs_open_price== 0">#{list.vs_open_price},</if>
+            <if test="list.vs_hardcover_price != null and list.vs_hardcover_price!='' or list.vs_hardcover_price== 0">#{list.vs_hardcover_price},</if>
+            <if test="list.takeLandId != null and list.takeLandId!='' ">#{list.takeLandId},</if>
+            <if test="list.vs_case_info != null and list.vs_case_info!=''">#{list.vs_case_info},</if>
+            UUID()
+        </trim>
+        </foreach>
+    </insert>
+
+    <!--查询工作内容、成果模板-->
+    <select id="queryContent" parameterType="java.util.Map" resultType="java.util.Map">
+        select tp.id as template_id,tp.template_name,ft.id as template_node_id,ft.node_name,ft.work_content,ft.work_guideline,
+        ft.node_level,ft.node_order,ft.warning_day,ft.send_post_code,ft.send_post_name
+        from fp_template tp join fp_template_node ft on tp.id = ft.template_id where tp.status = 0 and tp.is_del = 0
+        and tp.is_effective = 0 and ft.is_del = 0 and ft.is_effective = 0
+    </select>
+
+    <!--查询首页数据-->
+    <select id="queryByProjectId" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from (select fp.id plan_id,fp.template_id,fp.area_id,fp.area_name,fp.project_id,fp.project_name,fp.plan_name,
+        fp.plan_type,fp.is_del,fp.editor,fp.update_time,fp.status,
+        fp.this_node,fp.open_time,fpn.id plan_node_id,fpn.node_name,fpn.plan_start_time,fpn.plan_end_time,
+        fpn.postpone_time,fpn.plan_approval,fpn.version,fpn.node_level,fpn.light_stuat,fpn.is_effective,
+        fpn.actual_finish_time,ftn.work_content,ftn.work_guideline,fpn.template_node_id,fpn.node_order,
+         date_format(fpn.delay_open_time, '%Y-%m-%d')	delay_open_time
+         from  fp_plan fp join fp_plan_node fpn
+        on fp.id = fpn.plan_id left join fp_template_node ftn on ftn.id = fpn.template_node_id
+        where fp.project_id = #{project_id} and fpn.is_del = 0  order by fpn.is_effective limit 1000
+        )tb GROUP BY node_level ORDER BY plan_end_time
+    </select>
+
+    <!--添加顶设一户型表-->
+    <select id="insertTopOneApartment" parameterType="java.util.Map">
+        INSERT INTO fp_designone_room(id, plan_id, plan_node_id, operation_type_code, operation_type, product_type_code,
+        product_type, land_back_room_area, land_back_room_num, land_back_room_per, designone_room_area,
+        designone_room_num, designone_room_per, designone_room_fun, designone_south_num, vs_designone_door_num,
+        vs_designone_room_area, vs_designone_room_num, vs_designone_room_per,takeLandId,
+        vs_case_info)
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{item.plan_id},#{item.plan_node_id},#{item.operation_type_code},#{item.operation_type},#{item.product_type_code},#{item.product_type},
+            #{item.land_back_room_area},#{item.land_back_room_num},#{item.land_back_room_per},#{item.designone_room_area},
+            #{item.designone_room_num},#{item.designone_room_per},#{item.designone_room_fun},#{item.designone_south_num},
+            #{item.vs_designone_door_num},#{item.vs_designone_room_area},#{item.vs_designone_room_num},#{item.vs_designone_room_per},#{item.takeLandId},
+            #{item.vs_case_info})
+        </foreach>
+    </select>
+
+    <!--添加顶设一销售目标-->
+    <insert id="insertTopOneSales" parameterType="java.util.Map">
+        INSERT INTO fp_designone_sales_target(id, plan_id, plan_node_id, operation_type_code, operation_type,
+        product_type_code, product_type, sales_time, land_front_price, will_price, land_back_price)
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{item.plan_id},#{item.plan_node_id},#{item.operation_type_code},#{item.operation_type},
+            #{item.product_type_code},#{item.product_type},#{item.sales_time},
+            #{item.land_front_price},#{item.will_price},#{item.land_back_price})
+        </foreach>
+    </insert>
+
+    <!--查看节点版本-->
+    <select id="selectNodeVersion" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT id as plan_node_id,
+        (case plan_approval
+        when 0 THEN CONCAT(version, '-已删除' )
+        when 1 THEN CONCAT(version, '-未发起' )
+        when 2 THEN CONCAT(version, '-编制中' )
+        when 3 THEN CONCAT(version, '-审批中' )
+        when 5 THEN CONCAT(version, '-驳回-编制中' )
+        when 6 THEN CONCAT(version, '-撤回-编制中' )
+        when 7 THEN CONCAT(version, '-已废弃' )
+        when 8 THEN CONCAT(version, '-专业审核' )
+        when 9 THEN CONCAT(version, '-专业审核撤回-编制中' )
+        when 10 THEN CONCAT(version, '-编制中' )
+        when 4 THEN version
+        else version end)
+        version,
+        plan_approval,is_effective,create_time,browse_num,product_set from fp_plan_node
+        where plan_id = #{plan_id}  and node_order= #{node_level} and  is_del = 0 order by create_time desc
+    </select>
+
+    <!--删除拿地版的数据-->
+    <delete id="deleteTakeLandValue" parameterType="java.util.Map">
+         delete from fp_land_value where plan_node_id= #{plan_node_id}
+    </delete>
+    <delete id="deleteTakeLandRoom" parameterType="java.util.Map">
+         delete from fp_land_room where plan_node_id= #{plan_node_id}
+    </delete>
+    <delete id="deleteTakeLandDate" parameterType="java.util.Map">
+         delete from fp_date_node where plan_node_id= #{plan_node_id}
+    </delete>
+    <delete id="deleteTakeLandSales" parameterType="java.util.Map">
+         delete from fp_land_sales_target where plan_node_id= #{plan_node_id}
+    </delete>
+    <delete id="deleteTakeLandCost" parameterType="java.util.Map">
+         delete from fp_land_cost where plan_node_id= #{plan_node_id}
+    </delete>
+
+    <update id="updateNodeTime" parameterType="java.util.Map">
+        update fp_plan_node
+        <trim prefix="set" suffixOverrides=",">
+            <if test="update_time!=null and update_time!='' ">update_time = #{update_time},</if>
+            <if test="editor!=null and editor!='' ">editor = #{editor},</if>
+            <if test="plan_start_time!=nul and plan_start_time!='' ">plan_start_time = #{plan_start_time},</if>
+            <if test="plan_end_time!=null and plan_end_time!=''">plan_end_time = #{plan_end_time},</if>
+            <if test="actual_finish_time!=null and actual_finish_time!=''">actual_finish_time = #{actual_finish_time},</if>
+            <if test="light_stuat!=null and light_stuat!=''">light_stuat = #{light_stuat},</if>
+            <if test="plan_approval!=null and plan_approval!=''">plan_approval = #{plan_approval},</if>
+        </trim>
+        where node_order = #{node_order} and plan_id = #{plan_id}
+    </update>
+
+    <!--修改计划节点信息-->
+    <update id="updateTakeLandStatus" parameterType="java.util.Map">
+        update fp_plan_node
+        <trim prefix="set" suffixOverrides=",">
+            <if test="update_time!=null and update_time!='' ">update_time = #{update_time},</if>
+            <if test="editor!=null and editor!='' ">editor = #{editor},</if>
+            <if test="plan_start_time!=nul and plan_start_time!='' ">plan_start_time = #{plan_start_time},</if>
+            <if test="plan_end_time!=null and plan_end_time!=''">plan_end_time = #{plan_end_time},</if>
+            <if test="actual_finish_time!=null and actual_finish_time!=''">actual_finish_time = #{actual_finish_time},</if>
+            <if test="light_stuat!=null and light_stuat!=''">light_stuat = #{light_stuat},</if>
+            <if test="plan_approval!=null and plan_approval!=''">plan_approval = #{plan_approval},</if>
+            <if test="is_effective!=null and is_effective!=''">is_effective = #{is_effective},</if>
+            <if test="product_set!=null and product_set!=''">product_set = #{product_set},</if>
+            <if test="browse_num!=''  or browse_num== 0 ">browse_num = #{browse_num},</if>
+        </trim>
+        where id= #{plan_node_id};
+    </update>
+
+    <!--查询拿地后的数据-->
+    <select id="queryPlanNodeId" parameterType="java.util.Map" resultType="java.util.Map">
+        select id as plan_node_id from fp_plan_node where is_del = 0 and is_effective = 0 and plan_id = #{plan_id}
+        and node_level = 1 order by  version desc
+    </select>
+
+    <!--删除顶设一的数据 -->
+    <delete id="deleteDesignoneValue" parameterType="java.util.Map">
+        delete from fp_designone_value where plan_node_id= #{plan_node_id}
+    </delete>
+    <delete id="deletedesignoneRoom" parameterType="java.util.Map">
+        delete from fp_designone_room where plan_node_id= #{plan_node_id}
+    </delete>
+    <delete id="deletedeSalesTarget" parameterType="java.util.Map">
+        delete from fp_designone_sales_target where plan_node_id= #{plan_node_id}
+    </delete>
+
+    <!--顶设一查询拿地户型-->
+    <select id="queryByTopOne" parameterType="java.util.Map" resultType="java.util.Map">
+        select id, plan_id, plan_node_id, operation_type_code, operation_type, product_type_code,
+        product_type, room_area land_back_room_area, room_num land_back_room_num, room_per land_back_room_per
+        from fp_land_room where plan_node_id = #{plan_node_id}
+    </select>
+
+    <!--获取上传文件列表-->
+    <select id="getFileLists" parameterType="java.lang.String" resultType="java.util.Map">
+        select id,ShowName as name,SaveUrl as url,FileNameSuffix,ListIndex as orderIndex from s_attach where BizID=#{id} and  IsDel=0 order by listIndex
+    </select>
+
+    <!--查询顶设一的数据-->
+    <select id="queryTopOneValue" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from fp_designone_value where plan_node_id = #{plan_node_id}
+    </select>
+    <select id="queryTopOneRoom" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from fp_designone_room where plan_node_id = #{plan_node_id}
+    </select>
+    <select id="queryTopOneSales" parameterType="java.util.Map" resultType="java.util.Map">
+        select  * from fp_designone_sales_target where plan_node_id = #{plan_node_id}
+    </select>
+
+    <!--查询有效地数据plan_node_id-->
+    <select id="querytakeLandNdId" parameterType="java.util.Map" resultType="java.util.Map">
+            select id as plan_node_id,plan_end_time,plan_start_time FROM fp_plan_node WHERE plan_id = #{plan_id} and plan_approval = 4
+            and node_level = #{node_level_status} and is_effective = 0 and is_del = 0 order by create_time desc LIMIT 1;
+    </select>
+    <select id="queryTopOneOnly" parameterType="java.util.Map" resultType="java.util.Map">
+         select * from fp_plan_node where id = #{plan_node_id}
+    </select>
+
+    <!--修改文件关联字段-->
+    <update id="updateSattach" parameterType="java.util.Map">
+        update s_attach set BizID = #{BizID},IsDel=0 where id = #{id}
+    </update>
+    <!--删除关联文件-->
+    <update id="delFile" parameterType="java.lang.String">
+        update s_attach set IsDel=1 where BizID=#{BizID}
+    </update>
+
+    <!--修改-->
+    <update id="updateNodeEffective" parameterType="java.util.Map">
+        update fp_plan_node set is_effective = 1 where plan_id = #{plan_id} and node_order = #{node_order}
+    </update>
+
+    <!--查询节点有几条数据-->
+    <select id="queryPlanNodeNum" parameterType="java.util.Map" resultType="java.util.Map">
+        select count(id) as num from fp_plan_node where plan_id = #{plan_id} and node_order = #{node_order}
+    </select>
+
+    <!--查询顶设一节点有没有已经发起的数据-->
+    <select id="queryTopNumber" parameterType="java.util.Map" resultType="java.util.Map">
+         select count(*) as numTopOne from fp_plan_node where plan_id=#{plan_id} and node_order = #{node_order} and plan_approval in ("3","4")
+    </select>
+
+    <!--节点结束审批需要调用的sql-->
+    <update id="updateNdostatus" parameterType="java.util.Map">
+         update fp_plan_node unode,
+        (select * from fp_plan_node where id=#{plan_node_id}) node
+        set unode.is_effective=1 where
+        node.node_level=unode.node_level and node.plan_id=unode.plan_id;
+        update fp_plan_node set plan_approval=4,is_effective=0,
+        update_time=now(),actual_finish_time=NOW(),
+        light_stuat=case when plan_end_time &gt;=CURDATE() then 3
+        when plan_end_time &lt; CURDATE() then 4 end,
+        overday_num=case when plan_end_time &lt; CURDATE() then
+        DATEDIFF(CURDATE(),plan_end_time) end
+        where id=#{plan_node_id}
+    </update>
+
+    <!--添加流程表-->
+    <insert id="insertFlow" parameterType="java.util.Map">
+        INSERT INTO mm_ap_flow_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="project_id != null and project_id!=''"> project_id,stage_id,</if>
+            <if test="flow_id != null and flow_id!=''"> flow_id,</if>
+            <if test="flow_type != null and flow_type!=''"> flow_type,</if>
+            <if test="flow_json != null and flow_json!=''"> flow_json,</if>
+            <if test="json_id != null and json_id!=''"> json_id, </if>
+            <if test="base_id != null and base_id!=''"> base_id, </if>
+            <if test="flow_code != null and flow_code!=''"> flow_code,</if>
+            <if test="creator != null and creator!=''"> creator,editor, </if>
+            <if test="orgName != null and orgName!=''">orgName,</if>
+            <if test="TITLE != null and TITLE!=''">title, </if>
+            <if test="comcommon != null and comcommon!=''">comcommon,</if>
+            <if test="taskId != null and taskId!=''">taskId,</if>
+            <if test="post_name != null and post_name!=''">post_name,</if>
+            id,create_time,edit_time,isdel
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="project_id != null and project_id!=''">#{project_id},#{project_id},</if>
+            <if test="flow_id != null and flow_id!=''">#{flow_id},</if>
+            <if test="flow_type != null and flow_type!=''">#{flow_type},</if>
+            <if test="flow_json != null and flow_json!=''">#{flow_json},</if>
+            <if test="json_id != null and json_id!=''">#{json_id},</if>
+            <if test="base_id != null and base_id!=''"> #{base_id}, </if>
+            <if test="flow_code != null and flow_code!=''">#{flow_code},</if>
+            <if test="creator != null and creator!=''">#{creator},#{creator},</if>
+            <if test="orgName != null and orgName!=''">#{orgName},</if>
+            <if test="TITLE != null and TITLE!=''">#{TITLE},</if>
+            <if test="comcommon != null and comcommon!=''">#{comcommon},</if>
+            <if test="taskId != null and taskId!=''">#{taskId},</if>
+            <if test="post_name != null and post_name!=''">#{post_name},</if>
+            UUID(),now(),now(),0
+        </trim>
+
+    </insert>
+
+    <!--添加流程表-->
+    <update id="updateFlowInfoByJsonId" parameterType="java.util.Map">
+        update mm_ap_flow_info
+        <trim prefix="set" suffixOverrides=",">
+            <if test="project_id != null and project_id!=''"> project_id=#{project_id},stage_id=#{project_id},</if>
+            <if test="flow_id != null and flow_id!=''"> flow_id=#{flow_id},</if>
+            <if test="flow_type != null and flow_type!=''"> flow_type=#{flow_type},</if>
+            <if test="flow_json != null and flow_json!=''"> flow_json=#{flow_json},</if>
+            <if test="flow_code != null and flow_code!=''"> flow_code=#{flow_code},</if>
+            <if test="base_id != null and base_id!=''"> base_id=#{base_id},</if>
+            <if test="creator != null and creator!=''"> editor=#{creator}, </if>
+            <if test="orgName != null and orgName!=''">orgName=#{orgName},</if>
+            <if test="TITLE != null and TITLE!=''">title=#{TITLE}, </if>
+            <if test="comcommon != null and comcommon!=''">comcommon=#{comcommon},</if>
+            <if test="taskId != null and taskId!=''">taskId=#{taskId},</if>
+            <if test="post_name != null and post_name!=''">post_name=#{post_name},</if>
+        </trim>
+        where json_id= #{json_id}
+    </update>
+
+    <insert id="insertflowLog" parameterType="java.lang.String">
+        INSERT INTO mm_ap_flow_log(id, flow_param, ExecutTime)
+        VALUES (UUID(),  #{flow_param}, now());
+    </insert>
+
+    <!--修改计划表相关信息-->
+    <update id="updatePlan" parameterType="java.util.Map">
+         update fp_plan
+        <trim prefix="set" suffixOverrides=",">
+            <if test="this_node!=null and this_node!='' ">this_node = #{this_node},</if>
+            <if test="delisting_time!=null and delisting_time!='' ">delisting_time = #{delisting_time},</if>
+            <if test="designtwo_time!=null and designtwo_time!='' ">designtwo_time = #{designtwo_time},</if>
+            <if test="open_time!=null and open_time!='' ">open_time = #{open_time},</if>
+        </trim>
+        where id= #{plan_id}
+    </update>
+
+    <select id="selectFlowInfoByJsonId" parameterType="java.lang.String" resultType="java.util.Map">
+       select id,flow_status,base_id,json_id from mm_ap_flow_info where json_id=#{json_id}
+    </select>
+
+
+    <select id="selectTmmProjectByProjectId" parameterType="String" resultType="java.util.Map">
+          select * from mm_idm_business_unit_project_rel where project_id=#{project_id} limit 1
+    </select>
+
+    <!--拿地时间排布-->
+    <update id="updateTimeArrangementTakeLand" parameterType="java.util.Map">
+        <!--拿地-->
+        update fp_plan_node set plan_end_time=#{delisting_time} where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,3,5,6,10) or plan_approval is null) and node_order=1;
+        <!--定设1-->
+        update fp_plan_node set plan_end_time=#{designone_time} where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=2;
+    </update>
+    <update id="updateTimeArrangement" parameterType="java.util.Map">
+        <!--定设2-->
+        update fp_plan_node set plan_end_time=#{designtwo_time} where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=3;
+        <!--开盘前三个月-->
+        update fp_plan_node set plan_end_time=DATE_ADD(#{open_time},interval -3 month ) where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=4;
+        <!--开盘前两个月-->
+        update fp_plan_node set plan_end_time=DATE_ADD(#{open_time},interval -2 month ) where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=5;
+        <!--景观样板段开放-->
+        update fp_plan_node set plan_end_time=#{sample_open_time} where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=7;
+        <!--售楼处开放-->
+        update fp_plan_node set plan_end_time=#{sales_time} where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=6;
+        <!--样板房开放-->
+        update fp_plan_node set plan_end_time=#{model_open_time} where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=8;
+        <!--开盘前21天-->
+        update fp_plan_node set plan_end_time=DATE_ADD(#{open_time},interval -21 day) where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=9;
+        <!--开盘前七天-->
+        update fp_plan_node set plan_end_time=DATE_ADD(#{open_time},interval -7 day) where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=10;
+        <!--开盘-->
+        update fp_plan_node set plan_end_time=#{open_time} where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=11;
+        <!--开盘后一个月-->
+        update fp_plan_node set plan_end_time=DATE_ADD(#{open_time},interval 1 month ) where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order=12;
+
+        <!--计划开始时间-->
+        update fp_plan_node set plan_start_time =  DATE_ADD(plan_end_time,interval -warning_day day)
+        where plan_id=#{plan_id} and is_effective=1 and (plan_approval in (2,3,10) or plan_approval is null);
+
+        <!--节点灯的颜色-->
+        update fp_plan_node set light_stuat=case when CURDATE() between plan_start_time and plan_end_time then 6
+        when plan_end_time &lt; CURDATE() then 5 end where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null);
+
+        <!--单独刷一下三个月、两个月、21天的灯-->
+        update fp_plan_node set light_stuat=case when CURDATE() between plan_start_time and plan_end_time then 6
+        when plan_end_time &lt; CURDATE() then 4 end,
+        send_status=case when plan_end_time &lt; CURDATE() then 1 else 0 end
+        where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order in(4,5,9);
+
+        <!--单独刷一下三个月、两个月、21天的完成时间-->
+        update fp_plan_node set actual_finish_time=case when plan_end_time &lt; CURDATE() then NOW() else null end
+        where plan_id=#{plan_id} and is_effective=1
+        and (plan_approval  in (2,10) or plan_approval is null) and node_order in(4,5,9);
+
+    </update>
+
+    <!--查询人员的信息-->
+    <select id="queryPeopleMessage" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        proj.projectName,
+        ba.employeeName,
+        flow.post_Name postName,
+        IFNULL(DATE_FORMAT(flow.zddate, '%Y-%m-%d' ),DATE_FORMAT(NOW(), '%Y-%m-%d' )) zddate
+        FROM
+        fp_plan_node  fa
+        LEFT JOIN mm_ap_flow_info flow ON flow.json_id = fa.id
+        AND fa.id = #{plan_node_id}
+        LEFT JOIN b_account ba ON ba.UserName = flow.creator
+        LEFT JOIN t_mm_project proj ON proj.projectID = flow.project_id limit 1
+    </select>
+
+    <!--查询时间-->
+    <select id="selectIndexTime" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        id,
+        plan_id,
+        plan_node_id,
+        DATE_FORMAT(delisting_time,'%Y-%m-%d') delisting_time,
+        DATE_FORMAT(designone_time,'%Y-%m-%d') designone_time,
+        DATE_FORMAT(sample_open_time,'%Y-%m-%d') sample_open_time,
+        DATE_FORMAT(designtwo_time,'%Y-%m-%d') designtwo_time,
+        DATE_FORMAT(model_open_time,'%Y-%m-%d') model_open_time,
+        DATE_FORMAT(sales_time,'%Y-%m-%d') sales_time,
+        DATE_FORMAT(open_time,'%Y-%m-%d') open_time
+        FROM
+        fp_date_node
+        where
+        plan_node_id=#{plan_node_id}
+  </select>
+
+    <!--查询顶设一节点信息-->
+    <select id="queryPlanNodeMessage" parameterType="java.util.Map" resultType="java.util.Map">
+        select id,template_node_id,plan_id,node_name,offset_type,key_date_type,key_date_name,plan_start_time,plan_end_time,
+        postpone_time,plan_approval,actual_finish_time,creator,create_time,editor,update_time,is_del,is_effective,version,offset,
+        period,node_level,product_set,visit_total,card_total,card_big_per,make_per,light_stuat,overday_num,node_order,send_post_code,
+        send_post_name,warning_day,send_status,browse_num
+        from fp_plan_node where plan_id = #{plan_id} and plan_approval in (2,10)
+        and is_effective = #{is_effective} and is_del = 0 and node_level = #{node_level}
+    </select>
+
+    <!--报错信息添加日志-->
+    <insert id="insertBugLog" parameterType="java.lang.String">
+        INSERT INTO s_logs(ID, BizDesc,CreateTime) VALUES (UUID(), #{messages},now());
+    </insert>
+
+    <!--查询是否符合显示抢开编制按钮的条件:首开前两月是否完成-->
+    <select id="selectTwoMonth" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	*
+FROM
+	fp_plan_node
+WHERE
+	plan_id = #{plan_id}
+	AND node_level = #{node_level}
+	AND is_effective = 0
+	AND is_del = 0
+	AND plan_approval =4
+    </select>
+
+    <!--查询前7天是否已经完成-->
+    <select id="getSevenDay" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT *FROM fp_seven_day_index WHERE plan_node_id =
+(
+	SELECT id from  fp_plan_node WHERE plan_id =#{plan_id}  AND node_level=7 LIMIT 1
+)
+AND approval_stuat  IN (3,4) LIMIT 1
+    </select>
+
+    <select id="getOpenDay" resultType="java.util.Map" parameterType="java.lang.String">
+	SELECT id from  fp_plan_node WHERE plan_id =#{plan_id}  AND node_level=8 AND plan_approval in (3,4) LIMIT 1
+    </select>
+</mapper>

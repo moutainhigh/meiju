@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.system.job.common.dao.CommonJobsDao">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.visolink.system.job.common.model.CommonJobs" autoMapping="true">
+    </resultMap>
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        ID, JobCode, JobName, JobDesc, AuthCompanyID, ProductID, Creator, CreateTime, Editor, EditTime, Status, IsDel
+    </sql>
+    <select id="findListBySystemCommonJobs" parameterType="cn.visolink.system.job.common.model.form.CommonJobsForm" resultType="cn.visolink.system.job.common.model.vo.CommonJobsVO">
+        SELECT
+		cjob.ID,
+		cjob.JobName,
+		cjob.STATUS,
+		case cjob.JobDesc
+		when '区域集团、事业部、直管城市' then '区域层级'
+		when '城市公司' then '城市层级'
+		when '集团总部' then '集团层级'
+		when '事业部层' then '区域层级'
+		when '项目' then '项目层级'
+		when '项目层' then '项目层级'
+		when '区域层级' then '区域层级'
+		when '城市层级' then '城市层级'
+		when '集团层级' then '集团层级'
+		when '区域层级' then '区域层级'
+		when '项目层级' then '项目层级'
+		end JobDesc
+		,
+		cjob.JobCode,
+		( SELECT count( * ) FROM s_jobs job WHERE job.CommonJobID = cjob.ID ) jobNum,
+		cjob.isIdm,
+		cjob.JobType
+		FROM
+		S_CommonJobs cjob
+		WHERE
+		cjob.AuthCompanyID = 'ede1b679-3546-11e7-a3f8-5254007b6f02'
+		AND cjob.ProductID = 'ee3b2466-3546-11e7-a3f8-5254007b6f02'
+		AND cjob.IsDel = 0
+		<if test="jobName!=null and jobName!=''">
+			AND cjob.JobName LIKE "%"#{jobName}"%"
+		</if>
+		<if test="isIdm!=null">
+			AND cjob.isIdm = #{isIdm}
+		</if>
+		ORDER BY
+		cjob.JobName
+</select>
+	<select id="getJobSByCommonJob" parameterType="java.lang.String" resultType="java.util.Map">
+		  SELECT
+	DISTINCT
+	job.ID,
+	job.JobCode,
+	job.JobName,
+	job.JobDesc,
+	org.FullPath,
+CONCAT_WS('-',groupOrgName,areaOrgName,cityOrgName,projectOrgName) as orgFullPath,
+    job.isIdm,
+    job.status as Status
+FROM
+	s_jobs job
+	LEFT JOIN s_organization org ON job.JobOrgID = org.Id
+	left join s_jobsorgrel jr on jr.jobId=job.id
+WHERE
+	CommonJobID=#{commonJobId}
+	</select>
+	<!--查询岗位组明细-->
+
+	<select id="getFourOrgData" resultType="java.util.Map">
+				SELECT DISTINCT
+    bloc_id AS ID,
+    bloc_name AS NAME,-1 AS PID,
+    0 AS PPID,
+    0 AS Levels
+FROM
+    s_four_level_org mm  GROUP BY project_id
+		union all
+		SELECT DISTINCT
+    business_unit_id AS ID,
+    business_unit_name AS NAME,bloc_id AS PID,
+    0 AS PPID,
+    0 AS Levels
+FROM
+    s_four_level_org mm  GROUP BY project_id
+union all
+SELECT DISTINCT
+    mm.city_id AS ID,
+    mm.city_name AS NAME,
+    mm.business_unit_id AS PID,
+    0 AS PPID,
+    1 AS Levels
+FROM
+    s_four_level_org mm
+GROUP BY
+    project_id
+union all
+SELECT
+    mm.project_id AS ID,
+    mm.project_name AS NAME,
+    0 AS PID,
+    mm.city_id AS PPID,
+    99 AS Levels
+FROM
+    mm_idm_business_unit_project_rel mm
+WHERE
+    project_id IN ( SELECT project_id FROM fp_project_relationship WHERE `level` = 1 AND pid =- 1 )
+GROUP BY
+    project_id
+	</select>
+    <!--    查找已授权的菜单-->
+    <select id="findMenusListByPermissions" parameterType="java.util.Map" resultType="java.util.Map">
+    SELECT DISTINCT
+        		m.ID,
+        		m.PID,
+        		m.MenuName,
+        		m.MenuSysName,
+            m.IsLast,
+        		m.Levels,
+        		m.ListIndex,
+        		concat('/',m.FullPath)
+        	FROM (SELECT DISTINCT
+        		jur.JobID,
+        		j.JobName,
+        		j.CommonJobID
+        	FROM b_account a
+        		INNER JOIN S_JobsUserRel jur ON a.ID = jur.AccountID
+        		INNER JOIN S_Jobs j ON jur.JobID = j.ID
+        	WHERE a.ID = #{UserID}
+        		AND j.IsDel = 0 AND j.Status = 1
+        		AND j.AuthCompanyID = #{AuthCompanyID} AND j.ProductID = #{ProductID}) ujd
+
+        		INNER JOIN S_CommonJobs cj ON ujd.CommonJobID = cj.ID
+        		INNER JOIN S_CommonJobsMenuRel cjmr ON cj.ID = cjmr.JobID
+        		INNER JOIN S_Menus m ON cjmr.MenuID = m.ID
+        		INNER JOIN S_ProductMenuRel pmr ON m.ID = pmr.MenuID
+        	WHERE cj.IsDel = 0 AND cj.Status = 1
+        		AND m.IsDel = 0 AND m.Status = 1
+        		AND pmr.ProductID = #{ProductID}
+        		AND m.menusType=#{MenusType}
+
+ union
+
+ SELECT DISTINCT
+        		 m.ID,
+        		 m.PID,
+        		 m.MenuName,
+        		 m.MenuSysName,
+             m.IsLast,
+        		 m.Levels,
+        		 m.ListIndex,
+        		 concat('/',m.FullPath)
+        	FROM (SELECT DISTINCT
+        		jur.JobID,
+        		j.JobName,
+        		j.CommonJobID
+        	FROM b_account a
+        		INNER JOIN S_JobsUserRel jur ON a.ID = jur.AccountID
+        		INNER JOIN S_Jobs j ON jur.JobID = j.ID
+        	WHERE a.ID = #{UserID}
+        		AND j.IsDel = 0 AND j.Status = 1
+        		AND j.AuthCompanyID = #{AuthCompanyID} AND j.ProductID = #{ProductID}) ujs
+
+        		INNER JOIN S_JobsMenuRel jmr ON ujs.JobID = jmr.JobID
+        		INNER JOIN S_Menus m ON jmr.MenuID = m.ID
+        		INNER JOIN S_ProductMenuRel pmr ON m.ID = pmr.MenuID
+        	WHERE m.IsDel = 0 AND m.Status = 1
+        		AND pmr.ProductID = #{ProductID}
+        		        		AND m.menusType=#{MenusType}
+
+    </select>
+    <select id="findFunctionsListByPermissions" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT DISTINCT
+        	f.*
+        FROM S_JobsUserRel jur
+        	INNER JOIN S_Jobs j ON jur.JobID = j.ID
+        	INNER JOIN S_Organization o ON j.JobOrgID = o.ID
+        	INNER JOIN (
+        		SELECT
+        			JobID,
+        			FuncID
+        		FROM S_JobsFunctionsRel
+        		UNION
+        		SELECT
+        			j.ID,
+        			cjfr.FuncID
+        		FROM S_CommonJobsFunctionsRel cjfr
+        			INNER JOIN S_Jobs j ON cjfr.JobID = j.CommonJobID
+        	) temp ON j.ID = temp.JobID
+        	INNER JOIN S_Functions f ON temp.FuncID = f.ID
+        WHERE j.IsDel = 0 AND j.Status = 1
+        	AND o.IsDel = 0 AND o.Status = 1
+        	AND f.IsDel = 0 AND f.Status = 1
+        	AND jur.AccountID = #{UserID}
+        	AND j.AuthCompanyID = #{AuthCompanyID} AND j.ProductID = #{ProductID}
+    </select>
+
+    <select id="findCommonJobFunctionsByPermissions" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        concat(IFNULL((
+        	SELECT DISTINCT
+        		group_concat(cjmr.MenuID separator ',')
+        	FROM S_CommonJobsMenuRel cjmr
+        		INNER JOIN S_Menus m ON cjmr.MenuID = m.ID
+        	WHERE m.Status = 1
+        		AND m.IsDel = 0
+        		AND cjmr.JobID = {JobID}
+        	#FOR XML PATH('')
+        ),'') , IFNULL((
+	      	SELECT DISTINCT
+	      		group_concat(cjfr.FuncID separator ',')
+	      	FROM S_CommonJobsFunctionsRel cjfr
+	      		INNER JOIN S_Functions f ON cjfr.FuncID = f.ID
+	      	WHERE f.Status = 1
+	      		AND f.IsDel = 0
+	      		AND cjfr.JobID = #{JobID}
+	      		#FOR XML PATH('')
+	      ),'') ) AS IDS
+    </select>
+
+	<select id="findOldMenusByPermissions" parameterType="java.util.Map" resultType="java.lang.String">
+      select MenuID from s_commonjobsmenurel  where JobID=#{JobID};
+	</select>
+
+	<!--新增通用岗位-->
+	<insert id="systemCommonJob_Insert" parameterType="cn.visolink.system.job.common.model.form.CommonJobsForm">
+INSERT INTO s_commonjobs
+	            ( ID ,
+	              jobcode ,
+	              JobName ,
+	              JobDesc ,
+	              AuthCompanyID ,
+	              ProductID ,
+	              Creator ,
+	              CreateTime ,
+	              Editor ,
+	              EditTime ,
+	              Status ,
+	              IsDel ,
+	              isIdm,
+	              JobType
+	            )
+	    VALUES  ( UUID() ,
+	              #{jobCode},
+	              #{jobName} ,
+	              #{jobDesc} ,
+	              #{authCompanyId} ,
+	              #{productId} ,
+	              #{creator} ,
+	              now() ,
+	              NULL ,
+	              NULL ,
+	              #{status} ,
+	              0 ,
+	              0,
+	              #{jobType}
+	            )
+	</insert>
+
+	<select id="getJobCodeMax" resultType="java.lang.String">
+		select JobCode  from s_commonjobs where isIdm=0 order by JobCode desc limit 1
+	</select>
+	<!--查询岗位是否存在-->
+	<select id="systemCommonJobNameIsExists_Select">
+      SELECT COUNT(1) AS A FROM s_commonjobs WHERE AuthCompanyID = #{AuthCompanyID}
+      AND ProductID = #{ProductID} AND JobName = #{JobName} AND IsDel = 0
+	</select>
+
+	<!--删除通用岗位-->
+	<update id="systemCommonJobDelete" parameterType="cn.visolink.system.job.common.model.form.CommonJobsForm">
+		UPDATE s_commonjobs SET IsDel = 1 WHERE ID = #{id} AND isIdm = 0
+	</update>
+
+	<!--启用禁用通用岗位-->
+	<update id="systemCommonJobStatusUpdate" parameterType="cn.visolink.system.job.common.model.form.CommonJobsForm">
+		UPDATE s_commonjobs SET Status = #{status} WHERE ID = #{id}
+	</update>
+
+	<!--更新通用岗位-->
+	<update id="systemCommonJobUpdate" parameterType="cn.visolink.system.job.common.model.form.CommonJobsForm">
+		UPDATE s_commonjobs
+      SET
+          JobName = #{jobName},
+          JobDesc = #{jobDesc},
+          Status = #{status},
+          Editor = #{creator},
+          EditTime = now(),
+          JobType=#{jobType}
+      WHERE ID = #{id} AND isIdm = 0
+	</update>
+
+</mapper>

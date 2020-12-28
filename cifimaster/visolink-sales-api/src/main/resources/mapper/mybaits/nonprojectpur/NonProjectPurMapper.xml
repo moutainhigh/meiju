@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.nonprojectpur.mapper.NonProjectPurMapper">
+
+
+    <delete id="deleteNonProjectPur">
+        delete from cm_non_project_pur
+    </delete>
+
+    <delete id="deleteNonProjectPurByCode">
+        delete from cm_non_project_pur where businessCode = #{businessCode}
+    </delete>
+
+    <!-- 旭客试图vs_yxgk_ordercst 表数据添加-->
+    <insert id="initNonProjectPur" >
+        insert into cm_non_project_pur(
+            id,
+            businessCode,
+            name,
+            type,
+            source,
+            status,
+            rkstatus,
+            rktime,
+            rkOrgn,
+            categorys,
+            banks,
+            tyxydb,
+            yyzz,
+            zzjgdmh,
+            swdjh,
+            bgarea,
+            companyType,
+            money,
+            zcarea,
+            zcdate,
+            updateTime,
+            taxPayerInfo,
+            regionOrgn,
+            corpcert,
+            corporation,
+            isDelete
+        )
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (uuid(),
+            #{item.businessCode},
+            #{item.name},
+            #{item.type},
+            #{item.source},
+            #{item.status},
+            #{item.rkstatus},
+            #{item.rktime},
+            #{item.rkOrgn},
+            #{item.categorys},
+            #{item.banks},
+            #{item.tyxydb},
+            #{item.yyzz},
+            #{item.zzjgdmh},
+            #{item.swdjh},
+            #{item.bgarea},
+            #{item.companyType},
+            #{item.money},
+            #{item.zcarea},
+            #{item.zcdate},
+            #{item.updateTime},
+            #{item.taxPayerInfo},
+            #{item.regionOrgn},
+            #{item.corpcert},
+            #{item.corporation},
+            #{item.isDelete}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

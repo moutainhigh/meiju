@@ -1,0 +1,139 @@
+package ${package.ServiceImpl};
+
+import ${package.Entity}.${entity};
+import ${cfg.voPackage}.form.${entity}Form;
+import ${cfg.voPackage}.vo.${entity}VO;
+import ${package.Mapper}.${table.mapperName};
+import ${package.Service}.${table.serviceName};
+import ${superServiceImplClassPackage};
+import java.util.Date;
+import io.cess.CessException;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import java.util.ArrayList;
+import org.springframework.util.CollectionUtils;
+import cn.hutool.core.util.StrUtil;
+import cn.visolink.exception.BaseResultCodeEnum;
+import org.springframework.beans.BeanUtils;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import cn.hutool.core.date.DateUtil;
+import org.springframework.stereotype.Service;
+import java.util.List;
+import io.cess.util.PropertyUtil;
+
+
+/**
+ * <p>
+ * ${entity}服务实现类
+ * </p>
+ *
+ * @author ${author}
+ * @since ${date}
+ */
+@Service
+#if(${kotlin})
+open class ${table.serviceImplName} : ${superServiceImplClass}<${table.mapperName}, ${entity}>(), ${table.serviceName} {
+
+        }
+#else
+public class ${table.serviceImplName} extends ${superServiceImplClass}<${table.mapperName}, ${entity}> implements ${table.serviceName} {
+
+        @Override
+        public Integer save(${entity}Form record) {
+        ${entity} data = this.convertDO(record);
+        data.setCreateTime(new Date());
+        return baseMapper.insert(data);
+        }
+
+        @Override
+        public Integer updateById(${entity}Form record) {
+        ${entity} data = this.convertDO(record);
+        data.setEditTime(new Date());
+        return baseMapper.updateById(data);
+        }
+
+        @Override
+        public Integer deleteById(String id) {
+        if(StrUtil.isBlank(id)){
+            throw new CessException(BaseResultCodeEnum.ExeStats.PARAM_EMPTY.getCode(),BaseResultCodeEnum.ExeStats.PARAM_EMPTY.getMsg());
+        }
+        return baseMapper.deleteById(id);
+        }
+
+        @Override
+        public ${entity}VO selectById(String id) {
+        if(StrUtil.isBlank(id)){
+        throw new CessException(BaseResultCodeEnum.ExeStats.PARAM_EMPTY.getCode(),BaseResultCodeEnum.ExeStats.PARAM_EMPTY.getMsg());
+        }
+        ${entity} data = baseMapper.selectById(id);
+        ${entity}VO result = PropertyUtil.copy(data, ${entity}VO.class);
+        return result;
+        }
+
+        @Override
+        public List<${entity}VO> selectAll(${entity}Form record) {
+        QueryWrapper<${entity}> queryWrapper =  new QueryWrapper<>();
+        queryWrapper.setEntity(PropertyUtil.copy(record, ${entity}.class));
+        List<${entity}> list = baseMapper.selectList(queryWrapper);
+        return this.convert(list);
+        }
+
+        @Override
+        public IPage<${entity}VO> selectPage(${entity}Form record) {
+        // form -> do 转换
+        ${entity} data = PropertyUtil.copy(record, ${entity}.class);
+
+        // 分页数据设置
+        Page<${entity}> page = new Page<>(record.getCurrent(),record.getSize());
+        // 查询条件
+        QueryWrapper<${entity}> queryWrapper =  new QueryWrapper<>();
+        queryWrapper.setEntity(data);
+        IPage<${entity}> list = baseMapper.selectPage(page, queryWrapper);
+        IPage<${entity}VO> iPage = new Page<>();
+        iPage.setRecords(PropertyUtil.copy(list.getRecords(), ${entity}VO.class));
+        iPage.setCurrent(list.getCurrent());
+        iPage.setSize(list.getSize());
+        iPage.setTotal(list.getTotal());
+        iPage.setPages(list.getPages());
+        return iPage;
+        }
+
+
+
+        /**
+        * Form -> Do
+        * @param form 对象
+        * @return Do对象
+        */
+        private ${entity} convertDO(${entity}Form form){
+        ${entity} data = new ${entity}();
+        #foreach($field in ${table.fields})
+        #if(${field.propertyType.equals("Date")})
+                data.set${field.capitalName}(DateUtil.parseTime(form.get${field.capitalName}()));
+        #else
+                data.set${field.capitalName}(form.get${field.capitalName}());
+        #end
+        #end
+        return data;
+        }
+
+        /**
+        * Do -> VO
+        * @param list 对象
+        * @return VO对象
+        */
+        private List<${entity}VO> convert(List<${entity}> list){
+        List<${entity}VO> ${table.entityPath}List = new ArrayList<>();
+        if (CollectionUtils.isEmpty(list)) {
+        return ${table.entityPath}List;
+        }
+        for (${entity} source : list) {
+        ${entity}VO target = new ${entity}VO();
+        BeanUtils.copyProperties(source, target);
+        ${table.entityPath}List.add(target);
+        }
+        return ${table.entityPath}List;
+        }
+
+        }
+#end

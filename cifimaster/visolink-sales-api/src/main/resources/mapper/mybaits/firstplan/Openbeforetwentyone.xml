@@ -1,0 +1,1908 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.openbeforetwentyone.dao.OpenbeforetwentyoneDao">
+    <select id="selectVersionData" parameterType="java.util.Map" resultType="java.util.Map">
+ SELECT
+	id,
+	version,
+	(
+	CASE
+			approval_stuat
+			WHEN 2 THEN
+			CONCAT( '开盘前7天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-编制中' )
+			WHEN 3 THEN
+			CONCAT( '开盘前7天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批中' )
+			WHEN 4 THEN
+			CONCAT( '开盘前7天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version)
+			WHEN 5 THEN
+			CONCAT( '开盘前7天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批拒绝' )
+		END
+		) name
+FROM
+	fp_delay_apply
+WHERE
+	plan_id = #{plan_id}
+	AND plan_node_id =#{plan_node_id} and level=#{node_level} order by create_time  DESC
+   </select>
+    <select id="getVsersionData2" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	id,
+	version,
+	(
+	CASE
+			approval_stuat
+			WHEN 2 THEN
+			CONCAT( '开盘前21天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-编制中' )
+			WHEN 3 THEN
+			CONCAT( '开盘前21天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批中' )
+			WHEN 4 THEN
+			CONCAT( '开盘前21天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version )
+			WHEN 5 THEN
+			CONCAT( '开盘前21天-延期开盘申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批拒绝' )
+		END
+		) name
+FROM
+	fp_delay_apply
+WHERE
+	plan_id = #{plan_id}
+	AND plan_node_id =#{plan_node_id} and level=#{node_level} order by create_time  DESC
+    </select>
+    <select id="selectIsHaveDelayApplyData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+*
+FROM
+	fp_delay_apply
+WHERE
+	plan_id = #{plan_id} and plan_node_id=#{plan_node_id} and level=#{node_level}
+    </select>
+
+    <!--查询延期开盘申请表数据-->
+    <select id="selectExtensionOpenApplyData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	fp_delay_apply.id,
+	DATE_FORMAT(rules_time,'%Y-%m-%d') rules_time,
+	DATE_FORMAT(designtwo_time,'%Y-%m-%d') designtwo_time,
+	DATE_FORMAT(new_applay_21time,'%Y-%m-%d') new_applay_21time,
+	DATE_FORMAT(new_applay_7time,'%Y-%m-%d') new_applay_7time,
+	DATE_FORMAT(new_first_time,'%Y-%m-%d') new_first_time,
+	plan_id,
+	plan_node_id,
+	delay_daynum,
+	delay_reasons,
+	level,
+	approval_stuat,
+	big_model,
+	little_model,
+	version,
+	reach_plan_time,
+	reach_plan_visit_num,
+	reach_plan_little_num,
+	reach_plan_big_num,
+	reach_plan_big_per,
+	reach_plan_little_per,
+	reach_plan_sub_num,
+	reach_plan_take_per,
+	reach_actual_time,
+	reach_actual_visit_num,
+	reach_actual_littel_num,
+	reach_actual_littel_per,
+	reach_actual_big_num,
+	reach_actual_big_per,
+	reach_actual_sub_num,
+	reach_actual_take_per,
+	estimate_plan_time,
+	estimate_plan_visit_num,
+	estimate_plan_little_num,
+	estimate_plan_little_per,
+	estimate_plan_big_per,
+	estimate_plan_big_num,
+	estimate_plan_take_per,
+	estimate_plan_sub_num,
+	sum_time,
+	sum_visit_num,
+	sum_little_num,
+	sum_little_per,
+	sum_big_num,
+	sum_big_per,
+	sum_sub_num,
+	sum_take_per,
+	flow.flow_id
+FROM
+fp_delay_apply
+LEFT JOIN mm_ap_flow_info flow on flow.json_id=fp_delay_apply.id
+WHERE fp_delay_apply.id=#{id}
+    </select>
+    <!--查询客储计划数据-->
+    <select id="selectCustomerStoragePlanData" parameterType="java.lang.String" resultType="java.util.Map">
+    select
+    id,
+	node_name ,
+	node_time ,
+	line_name ,
+	visit_num ,
+	little_num ,
+	big_num ,
+	little_per ,
+	big_per ,
+	sub_num ,
+	make_per
+    from fp_delay_apply_storage where delay_id=#{id} and type=1 order by listIndex desc
+    </select>
+    <!--查询客储节点数据-->
+    <select id="selectCustomerStorageNodeData" parameterType="java.lang.String" resultType="java.util.Map">
+    select
+     	id,
+     	plan_id,
+	nide_name node_name,
+	DATE_FORMAT(node_time,'%Y-%m-%d') node_time,
+	line_name,
+	report_num,
+	visit_num,
+	little_num,
+	big_num,
+	little_per,
+	big_per,
+	sub_num,
+	make_per,
+	level,
+	node_level
+    from fp_guest_storage_node_plan where flow_id=(
+    SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE plan_node_id=#{id}
+    )  ORDER BY node_time ASC,   level ASC
+    </select>
+    <!--获取顶设2战规版开盘日期-->
+    <select id="getDingsheTwoDateData" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+	DATE_FORMAT(date.designtwo_time,'%Y-%m-%d') designtwo_plan_end_time,
+	DATE_FORMAT(ii.rules_time,'%Y-%m-%d') rules_time
+FROM
+	( SELECT id FROM fp_plan_node WHERE plan_id =#{plan_id} AND node_level = 3 AND  is_effective=0    ORDER BY create_time DESC LIMIT 1 ) node
+	LEFT JOIN fp_designtwo_code_index ii ON node.id = ii.plan_node_id
+	LEFT JOIN fp_date_node date on date.plan_node_id=node.id
+	    </select>
+    <!--获取顶设2开盘时间-->
+    <select id="getDingsheTwoOpenTime" resultType="java.util.Map" parameterType="java.util.Map">
+      select
+	 DATE_FORMAT(open_time,'%Y-%m-%d') designtwo_time,
+	 DATE_FORMAT(designtwo_time,'%Y-%m-%d') open_time
+
+	 from fp_plan  where id=#{plan_id} and is_del=0 and is_effective=0
+    </select>
+    <!--查询第一行计划数据-->
+    <select id="getPlanCustomerData" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+	nide_name AS node_name,
+	CONVERT (
+		IFNULL( visit_num, 0 ),
+	DECIMAL ( 10 )) AS reach_plan_visit_num,
+	CONVERT (
+		IFNULL( little_num, 0 ),
+	DECIMAL ( 10 )) AS reach_plan_little_num,
+	CONVERT (
+		IFNULL( little_per, 0 ),
+	DECIMAL ( 10 )) AS reach_plan_little_per,
+	CONVERT (
+		IFNULL( big_num, 0 ),
+	DECIMAL ( 10 )) AS reach_plan_big_num,
+	CONVERT (
+		IFNULL( big_per, 0 ),
+	DECIMAL ( 10 )) AS reach_plan_big_per,
+	CONVERT (
+		IFNULL( sub_num, 0 ),
+	DECIMAL ( 10 )) AS reach_plan_sub_num,
+	CONVERT (
+		IFNULL( make_per, 0 ),
+	DECIMAL ( 10 )) AS reach_plan_take_per
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id = ( SELECT id FROM fp_guest_storage_flow WHERE plan_id = #{plan_id} AND approval_stuat = 4 ORDER BY node_level DESC, version DESC LIMIT 1 )
+	AND node_level = 8
+	AND LEVEL = 1
+	LIMIT 1
+	</select>
+    <!--查询旭客实际客储计划数据-->
+    <select id="getXukeCustomerData" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        reach_actual_time,
+        reach_actual_visit_num,
+        reach_actual_littel_num,
+        reach_actual_big_num,
+        reach_actual_sub_num,
+        #小卡率
+        CONVERT(IFNULL((reach_actual_littel_num / reach_actual_visit_num ),0)*100,DECIMAL(10)) reach_actual_littel_per,
+        #大卡率
+        CONVERT( IFNULL(( reach_actual_big_num / reach_actual_littel_num ),0)*100,DECIMAL(10)) reach_actual_big_per,
+        #认购率
+        CONVERT(IFNULL(( reach_actual_sub_num / reach_actual_visit_num ),0)*100,DECIMAL(10)) reach_actual_take_per
+        FROM
+        (
+        SELECT
+        DATE_FORMAT( MAX( create_time ), '%Y.%m.%d' ) AS reach_actual_time,
+        IFNULL( SUM( visitCnt ), 0 ) AS reach_actual_visit_num,
+        IFNULL( SUM( big_card ), 0 ) AS reach_actual_big_num,
+        IFNULL( SUM( subscribe_num ), 0 ) AS reach_actual_sub_num,
+        IFNULL( SUM( lesser_card ), 0 ) AS reach_actual_littel_num
+        FROM
+        fp_comm_guest_storage
+        WHERE
+         project_id in
+       (
+       SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=#{project_id}  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID )
+       )
+        ) s
+    </select>
+    <select id="selectWeekData" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	id,
+	plan_id,
+	plan_node_id,
+	week,
+	DATE_FORMAT(start_time,'%Y-%m-%d') start_time,
+	DATE_FORMAT(end_time,'%Y-%m-%d') end_time,
+	day_date,
+	plan_add,
+	plan_total,
+	plan_task_per,
+	actual_add,
+	actual_total,
+	actual_task_per,
+	bias_value,
+	week_bais_value,
+	bias_per,
+	bias_cause,
+	node_level,
+	version,
+	create_time,
+	flow_id
+	FROM  fp_guest_storage_week
+	where flow_id=(
+    SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE plan_node_id=#{id}
+    )  ORDER BY start_time
+	</select>
+    <select id="selectWeekDataTotal" resultType="java.lang.String" parameterType="java.lang.String">
+        SELECT
+        sum(plan_add) as plan_total
+	FROM  fp_guest_storage_week
+	where flow_id=(
+    SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE plan_node_id=#{id}
+    )  ORDER BY start_time
+    </select>
+    <insert id="insertDelayApplyData" parameterType="java.util.Map">
+
+        insert into fp_delay_apply
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="plan_id != null">
+                plan_id,
+            </if>
+            <if test="plan_node_id != null">
+                plan_node_id,
+            </if>
+            <if test="rules_time != null">
+                rules_time,
+            </if>
+            <if test="designtwo_time != null">
+                designtwo_time,
+            </if>
+            <if test="new_first_time != null">
+                new_first_time,
+            </if>
+            <if test="delay_daynum != null">
+                delay_daynum,
+            </if>
+            <if test="level != null">
+                level,
+            </if>
+
+            create_time,
+
+            <if test="update_time != null">
+                update_time,
+            </if>
+            <if test="approval_stuat != null">
+                approval_stuat,
+            </if>
+            <if test="version != null">
+                version,
+            </if>
+            <if test="reach_plan_time != null">
+                reach_plan_time,
+            </if>
+            <if test="reach_plan_visit_num != null">
+                reach_plan_visit_num,
+            </if>
+            <if test="reach_plan_little_num != null">
+                reach_plan_little_num,
+            </if>
+            <if test="reach_plan_big_num != null">
+                reach_plan_big_num,
+            </if>
+            <if test="reach_plan_big_per != null">
+                reach_plan_big_per,
+            </if>
+            <if test="reach_plan_little_per != null">
+                reach_plan_little_per,
+            </if>
+            <if test="reach_plan_sub_num != null">
+                reach_plan_sub_num,
+            </if>
+            <if test="reach_plan_take_per != null">
+                reach_plan_take_per,
+            </if>
+            <if test="reach_actual_time != null">
+                reach_actual_time,
+            </if>
+            <if test="reach_actual_visit_num != null">
+                reach_actual_visit_num,
+            </if>
+            <if test="reach_actual_littel_num != null">
+                reach_actual_littel_num,
+            </if>
+            <if test="reach_actual_littel_per != null">
+                reach_actual_littel_per,
+            </if>
+            <if test="reach_actual_big_num != null">
+                reach_actual_big_num,
+            </if>
+            <if test="reach_actual_big_per != null">
+                reach_actual_big_per,
+            </if>
+            <if test="reach_actual_sub_num != null">
+                reach_actual_sub_num,
+            </if>
+            <if test="reach_actual_take_per != null">
+                reach_actual_take_per,
+            </if>
+            <if test="estimate_plan_time != null">
+                estimate_plan_time,
+            </if>
+            <if test="estimate_plan_visit_num != null">
+                estimate_plan_visit_num,
+            </if>
+            <if test="estimate_plan_little_num != null">
+                estimate_plan_little_num,
+            </if>
+            <if test="estimate_plan_little_per != null">
+                estimate_plan_little_per,
+            </if>
+            <if test="estimate_plan_big_per != null">
+                estimate_plan_big_per,
+            </if>
+            <if test="estimate_plan_big_num != null">
+                estimate_plan_big_num,
+            </if>
+            <if test="estimate_plan_take_per != null">
+                estimate_plan_take_per,
+            </if>
+            <if test="sum_time != null">
+                sum_time,
+            </if>
+            <if test="sum_visit_num != null">
+                sum_visit_num,
+            </if>
+            <if test="sum_little_num != null">
+                sum_little_num,
+            </if>
+            <if test="sum_little_per != null">
+                sum_little_per,
+            </if>
+            <if test="sum_big_num != null">
+                sum_big_num,
+            </if>
+            <if test="sum_big_per != null">
+                sum_big_per,
+            </if>
+            <if test="sum_sub_num != null">
+                sum_sub_num,
+            </if>
+            <if test="sum_take_per != null">
+                sum_take_per,
+            </if>
+            <if test="estimate_plan_sub_num != null">
+                estimate_plan_sub_num,
+            </if>
+            <if test="delay_reasons != null">
+                delay_reasons,
+            </if>
+            <if test="big_model != null">
+                big_model,
+            </if>
+            <if test="little_model != null">
+                little_model,
+            </if>
+            <if test="new_applay_21time != null">
+                new_applay_21time ,
+            </if>
+            <if test="new_applay_7time != null">
+                new_applay_7time,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_id != null">
+                #{plan_id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_node_id != null">
+                #{plan_node_id,jdbcType=VARCHAR},
+            </if>
+            <if test="rules_time != null">
+                #{rules_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="designtwo_time != null">
+                #{designtwo_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="new_first_time != null">
+                #{new_first_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="delay_daynum != null">
+                #{delay_daynum,jdbcType=INTEGER},
+            </if>
+            <if test="level != null">
+                #{level,jdbcType=INTEGER},
+            </if>
+            now(),
+            <if test="update_time != null">
+                #{update_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="approval_stuat != null">
+                #{approval_stuat,jdbcType=INTEGER},
+            </if>
+            <if test="version != null">
+                #{version,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_time != null">
+                #{reach_plan_time,jdbcType=VARCHAR},
+            </if>
+            <if test="reach_plan_visit_num != null">
+                #{reach_plan_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_little_num != null">
+                #{reach_plan_little_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_big_num != null">
+                #{reach_plan_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_big_per != null">
+                #{reach_plan_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_plan_little_per != null">
+                #{reach_plan_little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_plan_sub_num != null">
+                #{reach_plan_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_take_per != null">
+                #{reach_plan_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_actual_time != null">
+                #{reach_actual_time,jdbcType=VARCHAR},
+            </if>
+            <if test="reach_actual_visit_num != null">
+                #{reach_actual_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_littel_num != null">
+                #{reach_actual_littel_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_littel_per != null">
+                #{reach_actual_littel_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_actual_big_num != null">
+                #{reach_actual_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_big_per != null">
+                #{reach_actual_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_actual_sub_num != null">
+                #{reach_actual_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_take_per != null">
+                #{reach_actual_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_time != null">
+                #{estimate_plan_time,jdbcType=VARCHAR},
+            </if>
+            <if test="estimate_plan_visit_num != null">
+                #{estimate_plan_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="estimate_plan_little_num != null">
+                #{estimate_plan_little_num,jdbcType=INTEGER},
+            </if>
+            <if test="estimate_plan_little_per != null">
+                #{estimate_plan_little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_big_per != null">
+                #{estimate_plan_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_big_num != null">
+                #{estimate_plan_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="estimate_plan_take_per != null">
+                #{estimate_plan_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sum_time != null">
+                #{sum_time,jdbcType=VARCHAR},
+            </if>
+            <if test="sum_visit_num != null">
+                #{sum_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_little_num != null">
+                #{sum_little_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_little_per != null">
+                #{sum_little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sum_big_num != null">
+                #{sum_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_big_per != null">
+                #{sum_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sum_sub_num != null">
+                #{sum_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_take_per != null">
+                #{sum_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_sub_num != null">
+                #{estimate_plan_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="delay_reasons != null">
+                #{delay_reasons,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="big_model != null">
+                #{big_model,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="little_model != null">
+                #{little_model,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="new_applay_21time != null">
+                #{new_applay_21time},
+            </if>
+            <if test="new_applay_7time != null">
+                #{new_applay_7time},
+            </if>
+        </trim>
+    </insert>
+    <update id="updateDelayApplyData" parameterType="java.util.Map">
+
+        update fp_delay_apply
+        <set>
+
+            <if test="rules_time != null">
+                rules_time = #{rules_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="designtwo_time != null">
+                designtwo_time = #{designtwo_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="new_first_time != null">
+                new_first_time = #{new_first_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="delay_daynum != null">
+                delay_daynum = #{delay_daynum,jdbcType=INTEGER},
+            </if>
+            <if test="level != null">
+                level = #{level,jdbcType=INTEGER},
+            </if>
+      <!--      <if test="create_time != null">
+                create_time = #{create_time,jdbcType=TIMESTAMP},
+            </if>
+-->
+            update_time =now(),
+
+            <if test="approval_stuat != null">
+                approval_stuat = #{approval_stuat,jdbcType=INTEGER},
+            </if>
+            <if test="version != null">
+                version = #{version,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_time != null">
+                reach_plan_time = #{reach_plan_time,jdbcType=VARCHAR},
+            </if>
+            <if test="reach_plan_visit_num != null">
+                reach_plan_visit_num = #{reach_plan_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_little_num != null">
+                reach_plan_little_num = #{reach_plan_little_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_big_num != null">
+                reach_plan_big_num = #{reach_plan_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_big_per != null">
+                reach_plan_big_per = #{reach_plan_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_plan_little_per != null">
+                reach_plan_little_per = #{reach_plan_little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_plan_sub_num != null">
+                reach_plan_sub_num = #{reach_plan_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_plan_take_per != null">
+                reach_plan_take_per = #{reach_plan_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_actual_time != null">
+                reach_actual_time = #{reach_actual_time,jdbcType=VARCHAR},
+            </if>
+            <if test="reach_actual_visit_num != null">
+                reach_actual_visit_num = #{reach_actual_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_littel_num != null">
+                reach_actual_littel_num = #{reach_actual_littel_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_littel_per != null">
+                reach_actual_littel_per = #{reach_actual_littel_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_actual_big_num != null">
+                reach_actual_big_num = #{reach_actual_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_big_per != null">
+                reach_actual_big_per = #{reach_actual_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="reach_actual_sub_num != null">
+                reach_actual_sub_num = #{reach_actual_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="reach_actual_take_per != null">
+                reach_actual_take_per = #{reach_actual_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_time != null">
+                estimate_plan_time = #{estimate_plan_time,jdbcType=VARCHAR},
+            </if>
+            <if test="estimate_plan_visit_num != null">
+                estimate_plan_visit_num = #{estimate_plan_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="estimate_plan_little_num != null">
+                estimate_plan_little_num = #{estimate_plan_little_num,jdbcType=INTEGER},
+            </if>
+            <if test="estimate_plan_little_per != null">
+                estimate_plan_little_per = #{estimate_plan_little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_big_per != null">
+                estimate_plan_big_per = #{estimate_plan_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_big_num != null">
+                estimate_plan_big_num = #{estimate_plan_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="estimate_plan_take_per != null">
+                estimate_plan_take_per = #{estimate_plan_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sum_time != null">
+                sum_time = #{sum_time,jdbcType=VARCHAR},
+            </if>
+            <if test="sum_visit_num != null">
+                sum_visit_num = #{sum_visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_little_num != null">
+                sum_little_num = #{sum_little_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_little_per != null">
+                sum_little_per = #{sum_little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sum_big_num != null">
+                sum_big_num = #{sum_big_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_big_per != null">
+                sum_big_per = #{sum_big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sum_sub_num != null">
+                sum_sub_num = #{sum_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="sum_take_per != null">
+                sum_take_per = #{sum_take_per,jdbcType=DECIMAL},
+            </if>
+            <if test="estimate_plan_sub_num != null">
+                estimate_plan_sub_num = #{estimate_plan_sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="delay_reasons != null">
+                delay_reasons = #{delay_reasons,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="big_model != null">
+                big_model = #{big_model,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="little_model != null">
+                little_model = #{little_model,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="new_applay_21time != null">
+                new_applay_21time = #{new_applay_21time},
+            </if>
+            <if test="new_applay_7time != null">
+                new_applay_7time = #{new_applay_7time},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+    <select id="createVserion" parameterType="java.util.Map" resultType="java.util.Map">
+		select version from fp_delay_apply where plan_id=#{plan_id} and plan_node_id=#{plan_node_id} and level=#{level} order by create_time desc limit 1
+	</select>
+    <insert id="insertCustomerNodeStorage" parameterType="java.util.Map">
+        insert into fp_guest_storage_node_plan
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="plan_id != null">
+                plan_id,
+            </if>
+            <if test="plan_node_id != null">
+                plan_node_id,
+            </if>
+            <if test="node_name != null">
+                nide_name,
+            </if>
+            <if test="node_time != null">
+                node_time,
+            </if>
+            <if test="report_num != null">
+                report_num,
+            </if>
+            <if test="visit_num != null">
+                visit_num,
+            </if>
+            <if test="little_num != null">
+                little_num,
+            </if>
+            <if test="little_per != null">
+                little_per,
+            </if>
+            <if test="big_num != null">
+                big_num,
+            </if>
+            <if test="big_per != null">
+                big_per,
+            </if>
+            <if test="sub_num != null">
+                sub_num,
+            </if>
+            <if test="make_per != null">
+                make_per,
+            </if>
+            <if test="level != null">
+                level,
+            </if>
+            <if test="line_name != null">
+                line_name,
+            </if>
+            <if test="little_way != null">
+                little_way,
+            </if>
+            <if test="big_way != null">
+                big_way,
+            </if>
+            <if test="node_level != null">
+                node_level,
+            </if>
+            <if test="version != null">
+                version,
+            </if>
+            <if test="flow_id != null">
+                flow_id,
+            </if>
+            create_time,
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_id != null">
+                #{plan_id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_node_id != null">
+                #{plan_node_id,jdbcType=VARCHAR},
+            </if>
+            <if test="node_name != null">
+                #{node_name,jdbcType=VARCHAR},
+            </if>
+            <if test="node_time != null">
+                #{node_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="report_num != null">
+                #{report_num,jdbcType=INTEGER},
+            </if>
+            <if test="visit_num != null">
+                #{visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="little_num != null">
+                #{little_num,jdbcType=INTEGER},
+            </if>
+            <if test="little_per != null">
+                #{little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="big_num != null">
+                #{big_num,jdbcType=INTEGER},
+            </if>
+            <if test="big_per != null">
+                #{big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sub_num != null">
+                #{sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="make_per != null">
+                #{make_per,jdbcType=DECIMAL},
+            </if>
+            <if test="level != null">
+                #{level,jdbcType=INTEGER},
+            </if>
+            <if test="line_name != null">
+                #{line_name,jdbcType=VARCHAR},
+            </if>
+            <if test="little_way != null">
+                #{little_way,jdbcType=VARCHAR},
+            </if>
+            <if test="big_way != null">
+                #{big_way,jdbcType=VARCHAR},
+            </if>
+            <if test="node_level != null">
+                #{node_level,jdbcType=TINYINT},
+            </if>
+            <if test="version != null">
+                #{version,jdbcType=VARCHAR},
+            </if>
+            <if test="flow_id != null">
+                #{flow_id,jdbcType=VARCHAR},
+            </if>
+            now(),
+        </trim>
+    </insert>
+    <update id="updateCustomerNodeStorage" parameterType="map">
+        update fp_guest_storage_node_plan
+        <set>
+            <if test="plan_id != null">
+                plan_id = #{plan_id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_node_id != null">
+                plan_node_id = #{plan_node_id,jdbcType=VARCHAR},
+            </if>
+            <if test="node_name != null">
+                nide_name = #{node_name,jdbcType=VARCHAR},
+            </if>
+            <if test="node_time != null">
+                node_time = #{node_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="report_num != null">
+                report_num = #{report_num,jdbcType=INTEGER},
+            </if>
+            <if test="visit_num != null">
+                visit_num = #{visit_num,jdbcType=INTEGER},
+            </if>
+            <if test="little_num != null">
+                little_num = #{little_num,jdbcType=INTEGER},
+            </if>
+            <if test="little_per != null">
+                little_per = #{little_per,jdbcType=DECIMAL},
+            </if>
+            <if test="big_num != null">
+                big_num = #{big_num,jdbcType=INTEGER},
+            </if>
+            <if test="big_per != null">
+                big_per = #{big_per,jdbcType=DECIMAL},
+            </if>
+            <if test="sub_num != null">
+                sub_num = #{sub_num,jdbcType=INTEGER},
+            </if>
+            <if test="make_per != null">
+                make_per = #{make_per,jdbcType=DECIMAL},
+            </if>
+            <if test="level != null">
+                level = #{level,jdbcType=INTEGER},
+            </if>
+            <if test="line_name != null">
+                line_name = #{line_name,jdbcType=VARCHAR},
+            </if>
+            <if test="little_way != null">
+                little_way = #{little_way,jdbcType=VARCHAR},
+            </if>
+            <if test="big_way != null">
+                big_way = #{big_way,jdbcType=VARCHAR},
+            </if>
+            <if test="node_level != null">
+                node_level = #{node_level,jdbcType=TINYINT},
+            </if>
+            <if test="version != null">
+                version = #{version,jdbcType=VARCHAR},
+            </if>
+            <if test="flow_id != null">
+                flow_id = #{flow_id,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+    <insert id="insertWeekData" parameterType="java.util.Map">
+        insert into fp_guest_storage_week
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="plan_id != null">
+                plan_id,
+            </if>
+            <if test="plan_node_id != null">
+                plan_node_id,
+            </if>
+            <if test="week != null">
+                week,
+            </if>
+            <if test="start_time != null">
+                start_time,
+            </if>
+            <if test="end_time != null">
+                end_time,
+            </if>
+            <if test="day_date != null">
+                day_date,
+            </if>
+            <if test="plan_add != null">
+                plan_add,
+            </if>
+            <if test="plan_total != null">
+                plan_total,
+            </if>
+            <if test="plan_task_per != null">
+                plan_task_per,
+            </if>
+            <if test="actual_add != null">
+                actual_add,
+            </if>
+            <if test="actual_total != null">
+                actual_total,
+            </if>
+            <if test="actual_task_per != null">
+                actual_task_per,
+            </if>
+            <if test="bias_value != null">
+                bias_value,
+            </if>
+            <if test="week_bais_value != null">
+                week_bais_value,
+            </if>
+            <if test="bias_per != null">
+                bias_per,
+            </if>
+            <if test="bias_cause != null">
+                bias_cause,
+            </if>
+            <if test="node_level != null">
+                node_level,
+            </if>
+            <if test="version != null">
+                version,
+            </if>
+            create_time,
+            <if test="flow_id != null">
+                flow_id
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_id != null">
+                #{plan_id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_node_id != null">
+                #{plan_node_id,jdbcType=VARCHAR},
+            </if>
+            <if test="week != null">
+                #{week,jdbcType=VARCHAR},
+            </if>
+            <if test="start_time != null">
+                #{start_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="end_time != null">
+                #{end_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="day_date != null">
+                #{day_date,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_add != null">
+                #{plan_add,jdbcType=INTEGER},
+            </if>
+            <if test="plan_total != null">
+                #{plan_total,jdbcType=INTEGER},
+            </if>
+            <if test="plan_task_per != null">
+                #{plan_task_per,jdbcType=DECIMAL},
+            </if>
+            <if test="actual_add != null">
+                #{actual_add,jdbcType=INTEGER},
+            </if>
+            <if test="actual_total != null">
+                #{actual_total,jdbcType=INTEGER},
+            </if>
+            <if test="actual_task_per != null">
+                #{actual_task_per,jdbcType=DECIMAL},
+            </if>
+            <if test="bias_value != null">
+                #{bias_value,jdbcType=INTEGER},
+            </if>
+            <if test="week_bais_value != null">
+                #{week_bais_value,jdbcType=INTEGER},
+            </if>
+            <if test="bias_per != null">
+                #{bias_per,jdbcType=DECIMAL},
+            </if>
+            <if test="bias_cause != null">
+                #{bias_cause,jdbcType=VARCHAR},
+            </if>
+            <if test="node_level != null">
+                #{node_level,jdbcType=TINYINT},
+            </if>
+            <if test="version != null">
+                #{version,jdbcType=VARCHAR},
+            </if>
+            now(),
+            <if test="flow_id != null">
+                #{flow_id,jdbcType=VARCHAR}
+            </if>
+        </trim>
+    </insert>
+    <update id="updateWeekData" parameterType="map">
+
+        update fp_delay_apply_storage_week
+        <set>
+
+            <if test="plan_id != null">
+                plan_id = #{plan_id},
+            </if>
+            <if test="plan_node_id != null">
+                plan_node_id = #{plan_node_id},
+            </if>
+            <if test="week != null">
+                week = #{week},
+            </if>
+            <if test="start_time != null and start_time!=''">
+                start_time = #{start_time},
+            </if>
+            <if test="end_time != null">
+                end_time = #{end_time},
+            </if>
+            <if test="day_date != null">
+                day_date = #{day_date},
+            </if>
+            <if test="plan_add != null">
+                plan_add = #{plan_add},
+            </if>
+            <if test="plan_total != null">
+                plan_total = #{plan_total},
+            </if>
+            <if test="plan_task_per != null">
+                plan_task_per = #{plan_task_per},
+            </if>
+            <if test="actual_add != null">
+                actual_add = #{actual_add},
+            </if>
+            <if test="actual_total != null">
+                actual_total = #{actual_total},
+            </if>
+            <if test="actual_task_per != null">
+                actual_task_per = #{actual_task_per},
+            </if>
+            <if test="bias_value != null">
+                bias_value = #{bias_value},
+            </if>
+            <if test="week_bais_value != null">
+                week_bais_value = #{week_bais_value},
+            </if>
+            <if test="bias_per != null">
+                bias_per = #{bias_per},
+            </if>
+            <if test="bias_cause != null">
+                bias_cause = #{bias_cause},
+            </if>
+            <if test="node_level != null">
+                node_level = #{node_level},
+            </if>
+            <if test="version != null">
+                version = #{version},
+            </if>
+
+            <if test="flow_id != null">
+                flow_id = #{flow_id},
+            </if>
+            <if test="delay_id != null">
+                delay_id = #{delay_id},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+
+    <delete id="delteWeekData" parameterType="java.util.Map">
+    delete from  fp_guest_storage_week where flow_id=
+    (select id from fp_guest_storage_flow where plan_node_id=#{id});
+
+</delete>
+
+    <delete id="delteWeekDataNodePlan" parameterType="java.util.Map">
+
+    delete from  fp_guest_storage_node_plan where flow_id=
+        (select id from fp_guest_storage_flow where plan_node_id=#{id})
+</delete>
+    <update id="updatePlanTime" parameterType="java.util.Map">
+   update fp_plan_node unode,
+        (select * from fp_plan_node where id=#{plan_node_id}) node
+        set unode.is_effective=1 where
+        node.node_level=unode.node_level and node.plan_id=unode.plan_id;
+        update fp_plan_node set plan_approval=4,is_effective=0,
+        update_time=now(),actual_finish_time=NOW(),
+        light_stuat=case when plan_end_time>=CURDATE() then 3
+        when plan_end_time &lt; CURDATE() then 4 end,
+        overday_num=case when plan_end_time &lt; CURDATE() then
+        DATEDIFF(CURDATE(),plan_end_time) end
+        where id=#{plan_node_id}
+    </update>
+    <insert id="createFLowVersion" parameterType="java.util.Map">
+        insert into fp_guest_storage_flow
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="plan_id != null">
+                plan_id,
+            </if>
+            <if test="plan_node_id != null">
+                plan_node_id,
+            </if>
+            <if test="approval_stuat != null">
+                approval_stuat,
+            </if>
+            <if test="node_level != null">
+                node_level,
+            </if>
+            create_time,
+            <if test="version != null">
+                version,
+            </if>
+            <if test="approval_time != null">
+                approval_time,
+            </if>
+            <if test="change != null">
+                change,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_id != null">
+                #{plan_id,jdbcType=VARCHAR},
+            </if>
+            <if test="plan_node_id != null">
+                #{plan_node_id,jdbcType=VARCHAR},
+            </if>
+            <if test="approval_stuat != null">
+                #{approval_stuat,jdbcType=TINYINT},
+            </if>
+            <if test="node_level != null">
+                #{node_level,jdbcType=TINYINT},
+            </if>
+            now(),
+            <if test="version != null">
+                #{version,jdbcType=VARCHAR},
+            </if>
+            <if test="approval_time != null">
+                #{approval_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="change != null">
+                #{change,jdbcType=TINYINT},
+            </if>
+        </trim>
+    </insert>
+
+    <select id="getWaringDay" resultType="java.util.Map" parameterType="java.util.Map">
+select warning_day,id  from fp_plan_node where plan_id=#{plan_id} and node_level=#{node_level} and is_del=0  ORDER BY is_effective asc limit 1 ;
+    </select>
+    <update id="updateNodesPlanStartTime" parameterType="java.util.Map">
+        update fp_plan_node set plan_start_time=#{plan_start_time}
+        <if test="delay_open_time!=null and delay_open_time!=''">
+            ,delay_open_time=#{delay_open_time}
+        </if>
+        <if test="plan_end_time!=null and plan_end_time!=''">
+            ,plan_end_time=#{plan_end_time}
+        </if>
+         where id=#{id}
+    </update>
+    <select id="getFlowId" parameterType="java.lang.String" resultType="java.lang.String">
+        select id from fp_guest_storage_flow where plan_node_id=#{id}
+    </select>
+    <update id="updateThisNodeforTwenDay" parameterType="java.util.Map">
+        update fp_plan set this_node=#{node_level}+1 where id=#{plan_id}
+    </update>
+    <!--查询审批人数据-->
+    <select id="getAppllayDataInfo" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+	proj.projectName,
+	ba.employeeName,
+	flow.post_Name postName,
+	IFNULL(DATE_FORMAT(flow.zddate, '%Y-%m-%d' ),DATE_FORMAT(NOW(), '%Y-%m-%d' )) zddate
+FROM
+	fp_delay_apply fa
+	LEFT JOIN mm_ap_flow_info flow ON flow.json_id = fa.id
+	AND fa.id = #{id}
+	LEFT JOIN b_account ba ON ba.UserName = flow.creator
+	LEFT JOIN t_mm_project proj ON proj.projectID = flow.project_id limit 1
+    </select>
+
+    <update id="updateApplayStatus" parameterType="java.util.Map" >
+        update fp_guest_storage_flow set approval_stuat=#{status}   where plan_node_id=#{id};
+        update fp_delay_apply set approval_stuat=#{status} where id=#{id};
+     <!--   update  fp_plan_node set plan_approval=#{status},update_time=now()
+		where id=(
+		select plan_node_id from fp_delay_apply where id=#{id}
+		) and plan_approval!=4; -->
+    </update>
+
+    <select id="getFinshTimeTwentyDay" parameterType="java.lang.String" resultType="java.lang.String">
+SELECT
+	actual_finish_time
+FROM
+	fp_plan_node fp
+	INNER JOIN fp_delay_apply seven ON fp.id = seven.plan_node_id
+WHERE
+	seven.id = #{id}
+    </select>
+    <update id="updateFinishDate" parameterType="java.lang.String">
+        update  fp_plan_node set plan_approval=4,update_time=now(),actual_finish_time=now()
+		where id=(
+		select plan_node_id from fp_delay_apply where id=#{id}
+		);
+    </update>
+    <select id="getApplayDateTime" resultType="java.util.Map" parameterType="java.lang.String">
+        select plan_node_id,new_applay_21time,new_applay_7time,plan_id,new_first_time,level
+         from fp_delay_apply
+         where id=#{id}
+    </select>
+
+<!--延期开盘申请以后，将延期开盘里面客储计划和来访周拆分的数据填充到21天和7天客储计划里-->
+    <update id="updateNewNodePlan" parameterType="java.util.Map" >
+        UPDATE
+fp_guest_storage_node_plan fgsnp
+SET
+
+
+
+        fgsnp.visit_num = #{visit_num},
+        fgsnp.little_num = #{little_num},
+        fgsnp.little_per = #{little_per},
+        fgsnp.big_num = #{big_num},
+        fgsnp.big_per = #{big_per},
+        fgsnp.sub_num = #{sub_num},
+        fgsnp.make_per = #{make_per},
+        fgsnp.node_level = #{node_level},
+        fgsnp.create_time = NOW()
+
+WHERE
+fgsnp.nide_name = #{node_name} AND    fgsnp.level = #{level} AND  fgsnp.line_name = #{line_name}
+AND
+flow_id in (SELECT id FROM fp_guest_storage_flow WHERE node_level IN(#{one},#{two}) AND plan_id=#{plan_id}  AND plan_node_id!=#{delay_id} );
+
+     UPDATE
+fp_guest_storage_node_plan fgsnp
+SET
+
+        fgsnp.node_time = #{node_time}
+
+WHERE
+fgsnp.nide_name = #{node_name}
+AND
+flow_id in (SELECT id FROM fp_guest_storage_flow WHERE node_level IN(#{one},#{two}) AND plan_id=#{plan_id}  AND plan_node_id!=#{delay_id} );
+
+
+    </update>
+
+    <!--查找该节点下每个流程表最大的周-->
+    <select id="selectMaxWeek" parameterType="arraylist" resultType="java.util.Map">
+        <foreach collection="list" index="index" separator="UNION" item="item">
+(SELECT
+
+	 fgsw.WEEK,
+	  fgsw.flow_id,
+            fgsw.plan_node_id,
+            fgsw.plan_id
+	FROM fp_guest_storage_week  fgsw
+	WHERE
+	flow_id=#{item.flow_id}
+
+
+	 ORDER BY start_time DESC LIMIT 1)
+        </foreach>
+    </select>
+
+    <!--查找该节点下流程表ID-->
+    <select id="selectAllFlowId" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+
+	id flow_id,
+	plan_node_id
+	FROM fp_guest_storage_flow  fgsw
+	WHERE node_level in (#{one},#{two}) AND plan_id=#{plan_id} AND plan_node_id!=#{delay_id}
+    </select>
+
+<!--获得项目ID-->
+ <select id="selectWeekFlowData" parameterType="java.lang.String"  resultType="java.util.Map">
+
+SELECT
+ project_id
+FROM
+  fp_plan
+  WHERE
+ id=#{id}
+
+
+ </select>
+
+<!--延期开盘申请表里的客储计划固定的只有三条，那么就以此为条件，找出延期开盘的flow_id-->
+  <select id="selectDelayID" parameterType="java.lang.String"  resultType="java.lang.String" >
+       SELECT
+       id flow_id
+
+	  FROM fp_guest_storage_flow
+
+	 WHERE plan_node_id=#{plan_node_id}
+  </select>
+
+
+    <!--初始化前三月等表的来访周拆分-->
+    <insert id="insertDelayStorageWeek" parameterType="java.util.Map">
+        INSERT INTO fp_guest_storage_week (
+        id,
+        plan_id,
+        plan_node_id,
+
+        start_time,
+        end_time,
+        day_date,
+        plan_add,
+        plan_total,
+        plan_task_per,
+        actual_add,
+        actual_total,
+        actual_task_per,
+        bias_value,
+        week_bais_value,
+        bias_per,
+        <if test="flow_id!=null and flow_id!=''">
+            flow_id,
+        </if>
+        bias_cause
+        )
+        SELECT
+        UUID() AS id,
+        #{plan_id} AS plan_id,
+       #{plan_node_id} AS plan_node_id,
+
+        fgsw.start_time,
+        fgsw.end_time,
+        fgsw.day_date,
+        IFNULL (fgsw.plan_add,0) plan_add,
+       (select( (select IFNULL(MAX(plan_total),0)FROM fp_guest_storage_week WHERE flow_id=#{flow_id} )+IFNULL (fgsw.plan_total,0))) plan_total,
+        (    SELECT  IFNULL (fgsw.plan_add,0)/(SELECT * FROM  ( SELECT A.O+B.O FROM
+        (SELECT IFNULL(MAX(plan_total),0) O FROM fp_guest_storage_week WHERE flow_id=#{flow_id}) A,
+        (SELECT IFNULL(MAX(plan_total),0) O FROM fp_guest_storage_week WHERE flow_id=#{delay_id}) B)a)
+         *100    )  plan_task_per,
+        IFNULL (fcgs.visitCnt,0) actual_add,
+        IFNULL (fcgsall.visitCnt,0) actual_total,
+        ( CASE (select( (select IFNULL(MAX(plan_total),0)FROM fp_guest_storage_week WHERE flow_id=#{flow_id} )+IFNULL (fgsw.plan_total,0))) WHEN 0  THEN 0  ELSE
+        ROUND(IFNULL(fcgsall.visitCnt/(select( (select IFNULL(MAX(plan_total),0)FROM fp_guest_storage_week WHERE flow_id=#{flow_id} )+IFNULL (fgsw.plan_total,0)))*100,0),0) END) actual_task_per,
+        (select( (select IFNULL(MAX(plan_total),0)FROM fp_guest_storage_week WHERE flow_id=#{flow_id} )+IFNULL (fgsw.plan_total,0)-IFNULL(fcgsall.visitCnt,0)))    bias_value,
+        fgsw.plan_add-IFNULL(fcgs.visitCnt,0) week_bais_value,
+        ( CASE (select( (select IFNULL(MAX(plan_total),0)FROM fp_guest_storage_week WHERE flow_id=#{flow_id} )+IFNULL (fgsw.plan_total,0))) WHEN 0 THEN 0 ELSE
+        ROUND(IFNULL((select( (select IFNULL(MAX(plan_total),0)FROM fp_guest_storage_week WHERE flow_id=#{flow_id} )+IFNULL (fgsw.plan_total,0)-fcgsall.visitCnt)),0)/(case when fgsw.plan_total=0 then null else fgsw.plan_total end) *100,0) END) bias_per,
+        <if test="flow_id!=null and flow_id!=''">
+            #{flow_id} AS flow_id,
+        </if>
+        fgsw.bias_cause
+        FROM
+        fp_guest_storage_week fgsw
+
+
+        INNER JOIN
+        (
+        select id from fp_guest_storage_flow
+
+            WHERE id=#{delay_id}
+
+        ) pni
+        ON pni.id=fgsw.flow_id
+        LEFT JOIN
+        (SELECT
+        IFNULL(SUM(visitCnt),0) visitCnt,project_id,fgsw.id
+        FROM
+        fp_comm_guest_storage fcgs
+        LEFT JOIN
+        fp_guest_storage_week fgsw
+        ON 1=1
+        WHERE
+        project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+        (SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+        WHERE
+        (fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+        AND
+        fcgs.total_time &lt;= fgsw.end_time
+        AND
+        fcgs.total_time >= fgsw.start_time
+        GROUP BY fgsw.id
+        ) fcgs
+        ON  fcgs.id=fgsw.id
+
+        LEFT JOIN
+        (SELECT
+        IFNULL(SUM(visitCnt),0) visitCnt,project_id,fgsw.id
+        FROM
+        fp_comm_guest_storage fcgs
+        LEFT JOIN
+        (SELECT  MIN(fgsw.start_time) start_time, fgsw.flow_id FROM
+        fp_guest_storage_week fgsw
+        INNER JOIN
+        (
+        select id from fp_guest_storage_flow
+
+
+            WHERE id=#{flow_id}
+
+        ) pni
+        ON pni.id=fgsw.flow_id
+        ) fgswMin  ON 1=1
+        LEFT JOIN
+        fp_guest_storage_week fgsw
+        ON 1=1
+        WHERE
+        project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+        (SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+        WHERE
+        (fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+        AND
+        fcgs.total_time &lt;= fgsw.end_time
+        AND   fcgs.total_time >= fgswMin.start_time
+        GROUP BY fgsw.id
+        ) fcgsall
+        ON fcgsall.id=fgsw.id
+        WHERE week!='完整波段'
+        ORDER BY  fgsw.start_time;
+
+
+
+
+        UPDATE
+        fp_guest_storage_week
+        SET
+        end_time=(SELECT * FROM (SELECT  MAX(end_time) FROM fp_guest_storage_week WHERE flow_id=#{delay_id} ) a),
+        day_date=(SELECT * FROM  (SELECT CONCAT(DATE_FORMAT(MIN(start_time),'%Y.%m.%d'),'-',DATE_FORMAT(MAX(end_time),'%Y.%m.%d') )   FROM fp_guest_storage_week WHERE flow_id=#{delay_id} ) b)
+
+        WHERE flow_id=#{flow_id}
+        AND
+        WEEK='完整波段'
+
+    </insert>
+
+    <!--更改没有week的数据-->
+    <update id="insertWeekForDelay"  parameterType="java.util.Map" >
+
+UPDATE
+fp_guest_storage_week
+SET
+week=#{week}
+where
+id=#{uuid}
+    </update>
+    <!--查找那些没有WEEk的数据-->
+   <select id="selectAllNoWeek"  parameterType="java.util.Map" resultType="java.lang.String"  >
+       select
+       id
+       from
+       fp_guest_storage_week
+       where
+       week is null
+       and
+       flow_id=#{flow_id}
+   </select>
+
+    <!--测试是否要初始化开盘前21天的客储达成进度-->
+   <select id="selectTestOneTwo"  parameterType="java.util.Map" resultType="java.util.Map" >
+
+ SELECT
+ (SELECT  DATEDIFF(new_first_time,NOW()) delay_daynum FROM
+ `fp_delay_apply`
+ WHERE id=#{id}) one,
+
+ (SELECT   id FROM  `fp_plan_node` WHERE plan_id=#{plan_id}  AND node_level=6    AND plan_approval = 4 LIMIT 1) two,
+
+(SELECT   plan_node_id FROM  `fp_guest_storage_flow` WHERE plan_id=#{plan_id}  AND node_level=6 LIMIT 1) plan_node_id
+   </select>
+
+<update id="deleteNewStorage"  parameterType="java.util.Map">
+     DELETE FROM
+        fp_guest_storage_node_plan
+        WHERE
+        flow_id= #{flow_id}
+        AND
+        level in (2,3)
+        AND
+        nide_name IN ('首开前21天','首开前7天','首开');
+</update>
+    <!--初始化节点储客计划-->
+    <insert id="insertNewStorage" parameterType="java.util.Map" >
+
+
+        INSERT INTO fp_guest_storage_node_plan (
+        id,
+        plan_id,
+        plan_node_id,
+        nide_name,
+        node_time,
+        report_num,
+        visit_num,
+        little_num,
+        little_per,
+        big_num,
+        big_per,
+        sub_num,
+        make_per,
+        level,
+        line_name,
+
+        node_level,
+
+        create_time,
+        little_way,
+        flow_id,
+        big_way
+
+
+        )
+select * from (
+        SELECT
+        UUID() AS id,
+        #{plan_id} AS plan_id,
+        #{plan_node_id} AS plan_node_id,
+        '首开前21天'   AS nide_name,
+        DATE_SUB(#{delay_time},INTERVAL 21 DAY) AS node_time,
+        SUM(reportCnt) report_num,
+        SUM(visitCnt) visit_num,
+        SUM(lesser_card) little_num,
+        ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+        SUM(big_card) big_num,
+        ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+        SUM(subscribe_num) sub_num,
+        ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+        2 AS level,
+        '实际' AS line_name,
+        6 AS node_level,
+        MAX(fcgs.create_time) create_time, NULL AS little_way,#{flow_id} AS flow_id,  NULL AS big_way
+        FROM
+        fp_comm_guest_storage fcgs
+
+        WHERE  fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+        (SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+        WHERE
+        (fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+        and
+        fcgs.total_time &lt;=  DATE_SUB(#{delay_time},INTERVAL 21 DAY)
+        UNION ALL
+
+        SELECT
+        UUID() AS id,
+        #{plan_id} AS plan_id,
+        #{plan_node_id} AS plan_node_id,
+        '首开前7天'   AS nide_name,
+        DATE_SUB(#{delay_time},INTERVAL 7 DAY) AS node_time,
+        SUM(reportCnt) report_num,
+        SUM(visitCnt) visit_num,
+        SUM(lesser_card) little_num,
+        ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+        SUM(big_card) big_num,
+        ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+        SUM(subscribe_num) sub_num,
+        ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+        2 AS level,
+        '实际' AS line_name,
+        7 AS node_level,
+        MAX(fcgs.create_time) create_time, NULL AS little_way, #{flow_id} AS flow_id, NULL AS big_way
+        FROM
+        fp_comm_guest_storage fcgs
+        where fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+        (SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+        WHERE
+        (fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+        and
+        fcgs.total_time &lt;= DATE_SUB(#{delay_time},INTERVAL 7 DAY)
+
+        UNION ALL
+
+        SELECT
+        UUID() AS id,
+        #{plan_id} AS plan_id,
+        #{plan_node_id} AS plan_node_id,
+        '首开'   AS nide_name,
+        #{delay_time} AS node_time,
+        SUM(reportCnt) report_num,
+        SUM(visitCnt) visit_num,
+        SUM(lesser_card) little_num,
+        ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+        SUM(big_card) big_num,
+        ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+        SUM(subscribe_num) sub_num,
+        ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+        2 AS level,
+        '实际' AS line_name,
+        8 AS node_level,
+        MAX(fcgs.create_time) create_time, NULL AS little_way, #{flow_id} AS flow_id, NULL AS big_way
+        FROM
+        fp_comm_guest_storage fcgs
+        where  fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+        (SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+        WHERE
+        (fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+        and
+        fcgs.total_time &lt;=#{delay_time} )a;
+
+        INSERT INTO fp_guest_storage_node_plan (
+        id,
+        plan_id,
+        plan_node_id,
+        nide_name,
+        node_time,
+        report_num,
+        visit_num,
+        little_num,
+
+        big_num,
+
+        sub_num,
+
+        level,
+        line_name,
+        node_level,
+        flow_id
+        )
+
+        SELECT
+        UUID() AS id,
+        LEVEL1.plan_id,
+        #{plan_node_id} AS plan_node_id,
+        LEVEL1.nide_name,
+        LEVEL1.node_time,
+        ROUND((LEVEL1.report_num- LEVEL2.report_num)/(CASE WHEN LEVEL1.report_num=0  THEN NULL ELSE LEVEL1.report_num END)*100,0)    report_num,
+        ROUND((LEVEL1.visit_num- LEVEL2.visit_num)/(CASE WHEN LEVEL1.visit_num=0  THEN NULL ELSE LEVEL1.visit_num END)*100,0)  visit_num,
+        ROUND((LEVEL1.little_num- LEVEL2.little_num)/(CASE WHEN LEVEL1.little_num=0  THEN NULL ELSE LEVEL1.little_num END)*100,0) little_num,
+
+        ROUND((LEVEL1.big_num- LEVEL2.big_num)/(CASE WHEN LEVEL1.big_num=0 THEN NULL ELSE LEVEL1.big_num END)*100,0)  big_num,
+
+        ROUND((LEVEL1.sub_num- LEVEL2.sub_num)/(CASE WHEN LEVEL1.sub_num=0 THEN NULL ELSE LEVEL1.sub_num END)*100,0)   sub_num,
+
+        3 AS level,
+        '偏差率%' AS line_name,
+        LEVEL1.node_level,
+        #{flow_id} AS flow_id
+        FROM
+        fp_guest_storage_node_plan LEVEL1
+        LEFT JOIN
+        (
+        SELECT *FROM
+        fp_guest_storage_node_plan
+        WHERE LEVEL=2) LEVEL2
+        ON LEVEL1.plan_node_id=LEVEL2.plan_node_id AND LEVEL1.node_time=LEVEL2.node_time
+        AND   LEVEL1.nide_name=LEVEL2.nide_name
+        <if test="flow_id!=null and flow_id!=''">
+            AND   LEVEL1.flow_id=LEVEL2.flow_id
+        </if>
+        WHERE
+        LEVEL1.LEVEL=1
+        AND
+        LEVEL1.nide_name IN ('首开前21天','首开前7天','首开')
+        AND
+        LEVEL2.nide_name IN ('首开前21天','首开前7天','首开')
+        <if test="flow_id!=null and flow_id!=''">
+            AND   LEVEL1.flow_id=#{flow_id}
+        </if>
+        AND
+        LEVEL1.plan_node_id
+        =#{plan_node_id};
+
+
+
+    </insert>
+
+    <!--查找所有客储计划的实际和偏差率需要进行更新的NODEPLAN-->
+    <select id="selectAllNeedUpdate" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+flow_id,
+plan_node_id,
+plan_id,
+(SELECT new_first_time FROM  fp_delay_apply WHERE id=#{delay_id}) delay_time
+FROM
+fp_guest_storage_node_plan
+WHERE flow_id IN(SELECT id FROM `fp_guest_storage_flow` WHERE  node_level IN (#{one},#{two}) AND plan_id=#{plan_id})
+GROUP BY flow_id
+
+
+    </select>
+
+<!--更改开盘时间-->
+   <update id="updateOpenTime" parameterType="java.util.Map">
+       update
+fp_plan
+set
+open_time=(SELECT new_first_time FROM  fp_delay_apply WHERE id=#{id})
+where
+id=#{plan_id}
+
+   </update>
+
+
+
+    <!--删除多余的周-->
+   <update id="deletePlusWeek" parameterType="java.util.Map"   >
+
+
+			DELETE FROM
+		`fp_guest_storage_week`
+		WHERE
+		end_time>#{start_time}
+		AND
+		flow_id=#{flow_id}
+        AND
+        week!='完整波段'
+
+   </update>
+
+<!-- 查找要删除的从开始时间开始的周拆分-->
+   <select id="selectStartTime" parameterType="java.lang.String"   resultType="java.lang.String">
+      SELECT MIN(start_time)  start_time FROM fp_guest_storage_week WHERE flow_id=(SELECT id FROM  fp_guest_storage_flow WHERE plan_node_id=#{id})
+   </select>
+
+
+    <!--更改开盘前21天节点的状态-->
+   <update id="updateSixLight"  parameterType="java.lang.String">
+
+
+UPDATE fp_plan_node SET actual_finish_time=null, is_effective=0, plan_approval=4, light_stuat=
+(
+SELECT * FROM(
+SELECT
+       (CASE WHEN plan_end_time &lt; NOW() THEN 5
+       WHEN  DATE_SUB(plan_end_time,INTERVAL (SELECT warning_day FROM fp_template_node WHERE node_level=6) DAY)  &lt; NOW() THEN 6
+ELSE 1 END) a
+FROM fp_plan_node WHERE id=(SELECT id FROM fp_plan_node WHERE plan_id=#{plan_id} AND node_level=6  ))a)
+WHERE
+id= (SELECT * FROM (SELECT id FROM fp_plan_node WHERE plan_id=#{plan_id} AND node_level=6  )a);
+
+
+UPDATE
+`fp_guest_storage_flow`
+SET
+approval_stuat=4
+WHERE
+plan_id=#{plan_id}
+AND
+node_level=6
+
+AND VERSION =(SELECT * FROM (
+		SELECT
+			VERSION
+		FROM
+			fp_guest_storage_flow
+		WHERE
+			plan_id =#{plan_id}
+			 AND approval_stuat=4
+			 AND node_level=6
+		ORDER BY
+			VERSION DESC
+			LIMIT 1
+		)a)
+
+
+
+   </update>
+
+
+    <!--更改开盘前21天节点的状态-->
+    <update id="updateSevenLight"  parameterType="java.util.Map">
+
+
+UPDATE fp_plan_node SET actual_finish_time=null,  plan_approval=10, light_stuat=
+(
+SELECT * FROM(
+SELECT
+       (CASE WHEN plan_end_time &lt; NOW() THEN 5
+       WHEN  DATE_SUB(plan_end_time,INTERVAL (SELECT warning_day FROM fp_template_node WHERE node_level=#{node_level} AND is_del = 0) DAY)  &lt; NOW() THEN 6
+ELSE 1 END) a
+FROM fp_plan_node WHERE id=(SELECT id FROM fp_plan_node WHERE plan_id=#{plan_id} AND node_level=#{node_level} AND is_del = 0 ))a)
+WHERE
+id= (SELECT * FROM (SELECT id FROM fp_plan_node WHERE plan_id=#{plan_id} AND node_level=#{node_level} AND is_del = 0  )a);
+
+
+
+
+
+   </update>
+
+    <select id="getSubsidiaryProject" resultType="java.util.Map" parameterType="java.lang.String">
+ SELECT
+	project_name,
+	project_id
+FROM
+	fp_project_relationship
+WHERE
+	pid = (SELECT ID FROM fp_project_relationship where project_id=#{project_id} limit 1 )
+	union
+	select
+	project_name,
+	project_id
+	from
+	fp_project_relationship
+	where  project_id=#{project_id}
+    </select>
+
+
+    <!--查询当前节点是否有审批通过的最新数据-->
+    <select id="getApplayDepotTwentyData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+id,
+DATE_FORMAT(new_first_time,'%Y-%m-%d') new_first_time,
+delay_reasons,
+little_model,
+big_model,
+estimate_plan_visit_num,
+estimate_plan_little_num,
+estimate_plan_little_per,
+estimate_plan_big_per,
+estimate_plan_big_num,
+estimate_plan_take_per,
+estimate_plan_sub_num
+FROM
+	fp_delay_apply
+WHERE
+	plan_id = #{plan_id} and plan_node_id=#{plan_node_id} and level=#{node_level} and approval_stuat=4
+	ORDER BY
+	version DESC limit  1
+    </select>
+    <select id="getApplayDepotCustomerStorge" resultType="java.util.Map" parameterType="java.lang.String">
+ select
+ id,
+plan_id,
+nide_name node_name,
+DATE_FORMAT(node_time,'%Y-%m-%d') node_time,
+line_name,
+	report_num,
+	visit_num,
+	little_num,
+	big_num,
+	little_per,
+	big_per,
+	sub_num,
+	make_per,
+	level,
+	node_level
+    from fp_guest_storage_node_plan where flow_id=(
+    SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE plan_node_id=#{id} and  approval_stuat=4
+    )  ORDER BY node_time ASC,   level ASC
+    </select>
+
+
+    <!--修改计划级别的开盘时间-->
+    <update id="updateOpenTimeForPlan" parameterType="java.util.Map">
+    UPDATE fp_plan SET open_time=#{new_first_time} WHERE id=#{plan_id}
+    </update>
+</mapper>

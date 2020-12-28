@@ -1,0 +1,2730 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.gxcinterface.dao.NewGXCInterfaceDao">
+
+    <!--供货视图获取的数据批量插入销管数据库-->
+    <insert id="insertvaluegh">
+        INSERT INTO  v_sman_supply_plan (project_id,project_code,project_name,stage_id,stage_name,group_id,group_name,
+        pro_product_code,pro_product_type,product_code,product_name,design_build_id,bld_prd_id,house_package_name,supply_date,supply_date_actual,
+        room_num,parking_num,room_num_actual,parking_num_actual,sale_area,area_actual,house_commodity_value,commodity_value,not_commodity_value
+        ,house_commodity_value_actual,commodity_value_actual,not_commodity_value_actual,version_id,create_time,is_parking,version_num,version_name,version_type,type,confirm_status,is_finalize,affiliation_month)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.project_id},#{item.project_code},#{item.project_name},#{item.stage_id},#{item.stage_name},#{item.group_id},#{item.group_name},
+             #{item.pro_product_code},#{item.pro_product_type},#{item.product_code},#{item.product_name},#{item.design_build_id},#{item.bld_prd_id},#{item.house_package_name},#{item.supply_date},#{item.supply_date_actual},
+             #{item.room_num},#{item.parking_num},#{item.room_num_actual},#{item.parking_num_actual},#{item.sale_area},#{item.area_actual},#{item.house_commodity_value},#{item.commodity_value},#{item.not_commodity_value},
+             #{item.house_commodity_value_actual},#{item.commodity_value_actual},#{item.not_commodity_value_actual},#{item.version_id},#{item.create_time},#{item.is_parking},#{item.version_num},#{item.version_name}
+             ,#{item.version_type} ,#{item.type},#{item.confirm_status},#{item.is_finalize},#{item.affiliation_month}
+            )
+        </foreach>;
+        update  v_sman_supply_plan tmg,t_mm_designbuild tmd
+        set
+        tmg.product_name_info=CONCAT(tmg.product_name,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME),
+        tmg.product_id=CONCAT(tmg.group_id,tmg.product_code,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_code_sale =CONCAT(tmg.product_code,'.',tmd.FREETYPE,'.',tmd.BUSINESSTYPE,'.',tmd.PROTYPE)
+        where tmd.bldPrdID=tmg.bld_prd_id
+        and tmd.productCode=tmg.product_code
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_supply_plan set house_package_id=CONCAT(product_id,house_package_name)
+        where pro_product_code not in('139');
+        update v_sman_supply_plan set house_package_name='1'
+        where house_package_name='其它';
+        update v_sman_supply_plan set house_package_name='2'
+        where pro_product_code=139 or house_package_name=''
+    </insert>
+    <!--供货库存-->
+    <insert id="insertReportValue">
+        INSERT INTO v_sman_value_report (`id`, `region_id`, `region_name`, `project_id`, `project_code`, `project_name`,
+        `stage_id`, `stage_name`, `group_id`, `group_name`, `pro_product_code`, `pro_product_type`, `mini_granularity_name`,
+        `version_id`, `version_name`, `version_type`, `version_num`, `version_date`, `end_date`, `un_sale_stall_num`, `un_sale_room_num`,
+        `un_sale_stall_price`, `un_sale_room_price`,bld_prd_id,is_parking)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.id},#{item.region_id},#{item.region_name},#{item.project_id},#{item.project_code},#{item.project_name},#{item.projectf_id},#{item.projectf_name},#{item.group_id},#{item.group_name},
+             #{item.product_code},#{item.product_name},#{item.mini_granularity_name},
+             #{item.version_id},#{item.version_name},#{item.version_type},#{item.version_num},#{item.version_date}
+             ,#{item.end_date},#{item.un_sale_stall_num},#{item.un_sale_room_num},#{item.un_sale_stall_price},#{item.un_sale_room_price},#{item.building_id},
+            #{item.is_parking}
+            )
+        </foreach>;
+        update  v_sman_value_report tmg,t_mm_designbuild tmd
+        set
+        tmg.product_id=CONCAT(tmg.group_id,tmg.pro_product_code,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_code_sale =CONCAT(tmg.pro_product_code,'.',tmd.FREETYPE,'.',tmd.BUSINESSTYPE,'.',tmd.PROTYPE)
+        where tmd.bldPrdID=tmg.bld_prd_id
+        and tmd.productCode=tmg.pro_product_code
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_value_report set mini_granularity_id=CONCAT(product_id,mini_granularity_name)
+        where pro_product_code not in('139');
+        update v_sman_value_report set mini_granularity_name='1'
+        where mini_granularity_name='其它';
+        update v_sman_value_report set mini_granularity_name='2'
+        where pro_product_code=139 or mini_granularity_name=''
+    </insert>
+
+    <!--每次拉取供货视图数据前清空一下供货视图数据-->
+    <delete id="deletegh" >
+      DELETE  FROM v_sman_supply_plan
+    </delete>
+
+    <delete id="deleteDynamicValue" parameterType="java.lang.String">
+        DELETE FROM v_sman_dynamic_value where  versionTime>=#{startTime} and projectId=#{projectId}
+    </delete>
+
+    <delete id="deleteSignPlan" >
+        DELETE  FROM v_sman_sign_plan
+        where create_time>=#{startTime} and project_id=#{projectId}
+    </delete>
+
+    <delete id="deletePlanValueByVersionId">
+        DELETE FROM v_sman_plan_value
+        where versionTime>=#{startTime}
+    </delete>
+
+
+    <delete id="deleteSupplyPlanVersionId" >
+        DELETE  FROM v_sman_supply_plan
+        where  project_id=#{projectId}
+    </delete>
+
+    <delete id="deleteReportValue" >
+        DELETE  FROM v_sman_value_report
+        where end_date=#{startTime} and project_id=#{projectId}
+    </delete>
+    <delete id="deleteReportValueAll" >
+        DELETE  FROM v_sman_value_report
+        where end_date=#{startTime}
+    </delete>
+
+    <!--动态货值视图获取的数据批量插入销管数据库-->
+    <insert id="insertvaluedthz">
+        INSERT INTO  v_sman_dynamic_value (projectId,projectCode,projectName,stageId,stageName,groupId,groupName,
+        productCode,productName,designBuildId,bldPrdId,buildName,org_name,versionNum,versionId,
+        versionType,houseValue,parkingNotValue,parkingValue,versionTime)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectId},#{item.projectCode},#{item.projectName},#{item.stageId},#{item.stageName},#{item.groupId},#{item.groupName},
+            #{item.productCode},#{item.productName},#{item.designBuildId},#{item.bldPrdId},#{item.buildName},#{item.org_name}, #{item.versionNum},#{item.versionId},
+            #{item.versionType},#{item.houseValue},#{item.parkingNotValue},#{item.parkingValue},#{item.versionTime}
+            )
+        </foreach>
+        ;
+        update  v_sman_dynamic_value tmg,t_mm_designbuild tmd
+        set tmg.product_id=CONCAT(tmg.groupid,tmg.productcode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_name_info=CONCAT(tmg.productname,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME),
+        tmg.product_code_sale =CONCAT(tmd.productCode,'.',tmd.FREETYPE,'.',tmd.BUSINESSTYPE,'.',tmd.PROTYPE)
+        where tmd.bldPrdID=tmg.bldPrdId
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_dynamic_value set area_id=CONCAT(product_id,org_name)
+        where productCode not in('139','140','141','142');
+        -- update v_sman_dynamic_value set area_id=CONCAT(bldPrdId,productCode)
+        -- where productCode in('139','140','141','142');
+        UPDATE mm_sell_project set monthly_type=null;
+        update (select projectCode from v_sman_dynamic_value GROUP BY projectcode) a,mm_sell_project b
+        set b.monthly_type=1 where a.projectCode=b.project_code
+    </insert>
+
+    <!--每次拉取动态货值视图数据前清空一下动态货值视图数据-->
+    <delete id="deletedthz">
+      DELETE  FROM v_sman_dynamic_value
+    </delete>
+
+    <!--战规货值视图获取的数据批量插入销管数据库-->
+    <insert id="insertvaluezghz">
+        INSERT INTO  v_sman_plan_value (projectId,projectCode,projectName,stageId,stageName,groupId,groupName,
+        productCode,productName,designBuildId,bldPrdId,buildName,org_name,versionNum,versionId,
+        versionType,houseValue,parkingNotValue,parkingValue,versionTime)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectId},#{item.projectCode},#{item.projectName},#{item.stageId},#{item.stageName},#{item.groupId},#{item.groupName},
+            #{item.productCode},#{item.productName},#{item.designBuildId},#{item.bldPrdId},#{item.buildName},#{item.org_name}, #{item.versionNum},#{item.versionId},
+            #{item.versionType},#{item.houseValue},#{item.parkingNotValue},#{item.parkingValue},#{item.versionTime}
+            )
+        </foreach>
+        ;
+        update  v_sman_plan_value tmg,t_mm_designbuild tmd
+        set tmg.product_id=CONCAT(tmg.groupid,tmg.productcode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_name_info=CONCAT(tmg.productname,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME)
+        where tmd.bldPrdID=tmg.bldPrdId
+        and tmd.productCode=tmg.productCode
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_plan_value set area_id=CONCAT(product_id,org_name)
+        where productCode not in('139','140','141','142');
+        -- update v_sman_plan_value set area_id=CONCAT(bldPrdId,productCode)
+        -- where productCode in('139','140','141','142');
+    </insert>
+
+    <!--每次拉取战规货值视图数据前清空一下战规货值视图数据-->
+    <delete id="deletezghz">
+      DELETE  FROM v_sman_plan_value
+    </delete>
+
+    <!--签约视图获取的数据批量插入销管数据库-->
+    <insert id="insertvalueqy">
+        INSERT INTO  v_sman_sign_plan (project_id,project_code,project_name,stage_id,stage_code,stage_name,group_id,group_code,group_name,
+        product_code,product_name,version_id,version_num,sign_price_plan,create_time,is_parking,sign_plan_time,
+        business_type,business_type_name,free_type,free_type_name,pro_type,pro_type_name
+        )
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.project_id},#{item.project_code},#{item.project_name},#{item.stage_id},#{item.stage_code},#{item.stage_name},#{item.group_id},
+            #{item.group_code},#{item.group_name},#{item.product_code},#{item.product_name},#{item.version_id},#{item.version_num}, #{item.sign_price_plan},#{item.create_time},#{item.is_parking},#{item.sign_plan_time},
+            #{item.business_type},#{item.business_type_name},#{item.free_type},#{item.free_type_name},#{item.pro_type},#{item.pro_type_name}
+            )
+        </foreach>
+    </insert>
+
+    <!--每次拉取签约视图数据前清空一下签约视图数据-->
+    <delete id="deleteqy">
+      DELETE  FROM v_sman_sign_plan
+    </delete>
+
+    <!--明源与供销存面积段归集，修改库存可售，正常非车位的-->
+    <update id="updateAvailableStock" parameterType="java.util.Map">
+         UPDATE mm_monthly_plan_basis m ,(
+        SELECT  vs.house_package_id ,(vs.commodity_value_actual - vx.cjRmbTotal) AS availableStock
+        FROM vs_xsgl_contract vx LEFT JOIN v_sman_supply_plan vs
+        ON  vx.group_id = vs.group_id AND vx.x_productCode = vs.product_code
+        WHERE totalArea &gt;= SUBSTRING_INDEX(house_package_name, '-',1)
+        AND vx.totalArea &lt;SUBSTRING_INDEX (vs.house_package_name, '-',-1 ) AND vs.pro_product_code != '139'
+        GROUP BY vs.group_id,vs.product_code
+        ) df SET reserve_can_sell_set = df.availableStock
+        WHERE m.prepared_by_unit_org_id = df.house_package_id
+    </update>
+
+    <!--明源与供销存面积段归集，修改库存可售，车位的-->
+    <update id="updateAvailableStockNotCar" parameterType="java.util.Map">
+        UPDATE mm_monthly_plan_basis m ,(
+        SELECT  vs.house_package_id ,(vs.commodity_value_actual - vx.cjRmbTotal) AS availableStock
+        FROM vs_xsgl_contract vx LEFT JOIN v_sman_supply_plan vs
+        ON vx.group_id = vs.group_id AND vx.x_productCode = vs.product_code
+        WHERE  vs.pro_product_code = '139'
+        GROUP BY vs.group_id,vs.product_code
+        ) df SET reserve_can_sell_set = df.availableStock
+        WHERE m.prepared_by_unit_org_id = df.house_package_id
+    </update>
+
+    <!--发送GXC esb接口数据查询-->
+ <!--   <select id="selectSendGXC"  resultType="java.util.Map"  parameterType="java.util.Map">
+           select vssp.project_id,vssp.project_code,vssp.project_name,vssp.stage_id,vssp.stage_name,vssp.group_id,vssp.group_name,vssp.pro_product_type,CONCAT(group_id,pro_product_code) AS pro_product_id,b.building_id,b.building_name,vssp.house_package_name,
+           new_sign_funds,reserve_sign_funds,vssp.version_id,vssp.supply_date,vssp.supply_date_actual,vssp.room_num,vssp.parking_num,vssp.room_num_actual,vssp.parking_num_actual,vssp.sale_area,
+           vssp.area_actual,vssp.house_commodity_value,vssp.commodity_value,vssp.not_commodity_value,vssp.house_commodity_value_actual,vssp.commodity_value_actual,vssp.not_commodity_value_actual,vssp.create_time
+           from mm_monthly_plan_index a
+           left join mm_idm_main_rel b
+           on  a.monthly_plan_basis_id=b.guid
+           LEFT JOIN mm_idm_main_rel mimr on mimr.house_package_id=a.prepared_by_unit_org_id
+           LEFT JOIN v_sman_supply_plan vssp on vssp.house_package_id = mimr.house_package_id
+           where a.prepared_by_unit_type=1 and a.prepared_by_level=1
+    </select>-->
+
+
+    <insert id="insertprojectrel" >
+        DELETE FROM mm_idm_business_unit_project_rel where  project_id=#{projectId};
+        INSERT INTO `saleman`.`mm_idm_business_unit_project_rel` (
+        `guid`,
+        `business_unit_id`,
+        `business_unit_name`,
+        `project_id`,
+        project_code,
+        `project_name`,project_status,trade_mode
+        )
+        -- 20区域31项目
+        select UUID(),project.arid business_unit_id,
+        project.projectname business_unit_name,project.projectID,
+        p.projectCode,
+        project.orgname projectName,p.projectStatus,p.tradeMode
+        from(
+        select
+        SUBSTRING_INDEX(jobfullCode, '-',-1) projectid,
+        orgnamefullpath
+           from s_jobs sj INNER JOIN
+        t_sys_org tso on tso.orgdepid=sj.JobOrgID
+        where tso.hrOrgTypeId='20'
+        GROUP BY projectid
+        ) temp INNER JOIN(
+        select SUBSTRING_INDEX(SUBSTRING_INDEX(orgnofullpath, '-',3),'-',-1) arid,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(orgnamefullpath, '-',3),'-',-1) projectname,
+        orgdepid projectid,orgname
+         from t_sys_org where  orgnofullpath LIKE '00000000-00000001-%'
+        and ( hrOrgTypeId='31') and orgstatus='1'
+        ) project on project.arid=temp.projectid
+        INNER JOIN t_mm_project p on p.projectID=project.projectid and  p.projectID=#{projectId};
+        -- 城市公司
+        update mm_idm_business_unit_project_rel project,
+        t_sys_org org set
+        project.city_id=SUBSTRING_INDEX(SUBSTRING_INDEX(orgnofullpath,'-',4),'-',-1) ,
+        project.city_name=SUBSTRING_INDEX(SUBSTRING_INDEX(orgnamefullpath,'-',4),'-',-1)
+        where project.project_id=#{projectId} and org.orgdepid=project.project_id
+    </insert>
+
+
+    <update id="updateprojectrel">
+        UPDATE
+ `mm_idm_business_unit_project_rel` burp , `mm_idm_region` r
+SET
+ burp.`business_unit_sort` = r.`region_sort`
+WHERE r.`region_id` = burp.`business_unit_id` and project_id=#{projectId}
+    </update>
+
+
+
+    <insert id="insertProjectStagerel" >
+    DELETE FROM  mm_idm_project_stage_rel where  project_id=#{projectId};
+    INSERT INTO  `mm_idm_project_stage_rel` (
+      `guid`,
+      `project_id`,
+      `project_code`,
+      `project_name`,
+       stage_id,
+      `stage_code`,
+      `stage_name`
+    )
+    SELECT
+    UUID()
+    ,sta.`projectID`
+    ,p.projectCode
+    ,p.`projectName`
+	,sta.projectFID
+    ,sta.stageCode
+    ,sta.stageName
+    FROM `t_mm_staging` sta
+    INNER JOIN `t_mm_project` p ON p.projectID = sta.`projectID`
+    WHERE  sta.`projectID`=#{projectId} and (sta.`isDelete` &lt;&gt;1 or sta.`isDelete` is null)
+    GROUP BY sta.`stageCode`
+    </insert>
+
+    <!--根据项目ID获取组团ID-->
+  <select id="getGroupIdByProjectId" parameterType="java.lang.String" resultType="java.util.Map">
+      select group_id from v_sman_supply_plan  where project_Id=#{projectId} and group_id is not null  GROUP BY group_id
+  </select>
+
+    <select id="getProductIdByProjectId" parameterType="java.lang.String" resultType="java.util.Map">
+        select product_id from v_sman_supply_plan  where project_Id=#{projectId} and product_id is not null GROUP BY product_id
+    </select>
+
+    <!--根据项目取面积段id-->
+    <select id="getHouseIdByProjectId" parameterType="java.lang.String" resultType="java.util.Map">
+      select house_package_id from v_sman_supply_plan where project_id=#{projectId} and house_package_id is not null group by house_package_id
+    </select>
+    <!--根据项目取分期id-->
+    <select id="getStageIdByProjectId" parameterType="java.lang.String" resultType="java.util.Map">
+      select stage_id from v_sman_supply_plan where project_id=#{projectId} and stage_id is not null group by stage_id
+    </select>
+    <!--根据项目获取区域-->
+    <select id="getQyIdByProjectId" parameterType="java.lang.String" resultType="java.lang.String">
+           select father_id from mm_business_unit where business_id=#{projectId}
+    </select>
+
+    <insert id="insertStageGroup">
+        DELETE FROM mm_idm_group_stage_rel where group_id in (${groupId});
+        INSERT INTO `saleman`.`mm_idm_group_stage_rel` (
+  `guid`,
+  `group_id`,
+  `group_code`,
+  `group_name`,
+  `stage_name`,
+  `stage_code`,
+`stage_id`
+  ,version_stage
+)
+SELECT  UUID()
+,gro.`groupID`
+,gro.`groupCode`
+,gro.`groupName`
+,gro.stageName
+,gro.stageCode
+,gro.projectFID
+,gro.`versionStage`
+ FROM `t_mm_group` gro
+WHERE  gro.`groupID` in (${groupId}) and (isDelete &lt;&gt;1 or isDelete is null)
+GROUP BY gro.`stageCode`
+    </insert>
+
+    <insert id="insertGroupDesignbuildrel">
+    DELETE FROM mm_idm_designbuild_group_rel where group_id in (${groupId});
+    INSERT INTO  .`mm_idm_designbuild_group_rel` (
+      `guid`,
+      `designbuild_id`,
+      `designbuild_name`,
+	   group_id,
+      `group_code`,
+      `group_name`
+    )
+SELECT DISTINCT UUID()
+    , a.`bldPrdID`
+    ,db.buildingName
+	,a.groupID
+    ,a.`groupCode`
+    ,a.`groupName`
+     FROM `t_mm_group` a
+     INNER JOIN `t_mm_designbuild` db ON db.bldPrdID = a.`bldPrdID`
+where a.groupID in (${groupId}) and  (db.isDelete &lt;&gt;1 or db.isDelete is null) and (a.isDelete &lt;&gt;1 or a.isDelete is null)
+    GROUP BY a.`bldPrdID`
+    </insert>
+
+
+    <insert id="insertproductgroup">
+ DELETE FROM mm_idm_product_group_rel where group_id in (${groupId});
+INSERT INTO mm_idm_product_group_rel (
+
+  `guid`,
+  `product_type`,
+   product_id,
+  `product_code`,
+   group_id,
+  `group_code`,
+  `group_name`
+)
+select UUID(),
+CONCAT(tmg.productName,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME) as PROTYPENAME,
+CONCAT(tmg.groupID,tmg.productCode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE)
+PRODUCTID,
+CONCAT(tmg.groupCode,tmg.productCode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE) PRODUCTCODE,
+tmg.groupid,tmg.groupCode,tmg.groupname
+from t_mm_group tmg
+INNER JOIN t_mm_designbuild tmd
+on tmd.bldPrdID=tmg.bldPrdID
+where  tmg.productCode is not null
+and tmd.BUSINESSTYPE &lt;&gt;'03'
+and tmg.groupID in (${groupId}) and (tmg.isDelete &lt;&gt;1 or tmg.isDelete is null)
+GROUP BY tmg.groupID,tmg.productCode,tmd.BUSINESSTYPE,tmd.FREETYPE,tmd.PROTYPE
+    </insert>
+
+
+    <insert id="insertproductrel">
+DELETE FROM `mm_idm_designbuild_product_rel` where product_id in (${resProductId});
+INSERT INTO  `mm_idm_designbuild_product_rel` (
+
+  `guid`,
+  `product_id`,
+  `product_type`,
+  `product_code`,
+  `building_ID`,
+  `building_name`
+)
+
+SELECT  DISTINCT  UUID(),
+CONCAT(dgr.group_id,bui.productCode,bui.FREETYPE,bui.BUSINESSTYPE,bui.PROTYPE)
+PRODUCTID,
+CONCAT(bui.productType,'-',bui.FREETYPENAME,'-',bui.BUSINESSTYPENAME,'-',bui.PROTYPENAME) as PROTYPENAME,
+CONCAT(dgr.group_id,bui.productCode,bui.FREETYPE,bui.BUSINESSTYPE,bui.PROTYPE) PRODUCTCODE
+,bui.`bldPrdID`
+,bui.`buildingName`
+FROM   `t_mm_designbuild` bui
+LEFT JOIN `mm_idm_designbuild_group_rel` dgr
+ON dgr.`designbuild_id` = bui.`bldPrdID`
+WHERE   bui.bldPrdID is not null and (bui.`ISDELETE` &lt;&gt;1 or bui.`ISDELETE` is null)
+and bui.productCode in (${resProductId})
+GROUP BY bui.bldPrdID
+    </insert>
+
+
+    <insert id="insertproducareatrel">
+        delete  from mm_idm_product_area_rel where group_id in (${groupId});
+             insert into mm_idm_product_area_rel(area_id,area_code,area_name,pro_product_id,
+        pro_product_code,product_code,pro_product_name,group_id
+        )
+    select vssp.area_id,vssp.area_id,org_name
+    ,temp.productid,temp.productid,
+        temp.productCode,vssp.product_name_info,temp.groupID
+         from(SELECT tmg.projectID,tmg.projectFID,tmg.groupID,tmg.productCode,tmg.groupCode,
+                        tmg.productName,tmg.bldPrdID,
+                        CONCAT(tmg.groupid,tmd.productCode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE)
+                        productid
+                        from t_mm_group tmg INNER JOIN
+                        t_mm_designbuild tmd on tmg.bldPrdID=tmd.bldPrdID
+                GROUP BY tmg.groupID,tmg.productCode,
+                        tmd.BUSINESSTYPE,tmd.FREETYPE,tmd.PROTYPE
+        ) temp INNER JOIN v_sman_dynamic_value vssp
+        on vssp.product_id=temp.productid
+				where area_id is not null and vssp.area_id &lt;&gt;''
+        and org_name is not null and org_name &lt;&gt; '' and temp.groupID in (${groupId})
+        GROUP BY vssp.area_id
+    </insert>
+
+
+
+    <insert id="insertmainrel">
+    DELETE FROM `mm_idm_main_rel` where project_id=#{projectId};
+ INSERT INTO `saleman`.`mm_idm_main_rel` (
+      `guid`,
+      `group_company_name`,
+      `group_company_id`,
+       gro_id,
+      `org_name`,
+      `orgdep_id`,
+       org_id,
+      `project_name`,
+      `project_id`,
+      `project_code`,
+       pro_id,
+      `stage_name`,
+      `stage_code`,
+      `stage_id`,
+      `group_name`,
+      `group_code`,
+       `group_id`,
+      `product_type`,
+      `product_code`,
+      `building_name`,
+      `building_id`,project_status,trade_mode,area_id,area_code,area_name,business_unit_sort
+    )
+   select  UUID(),'旭辉集团','00000001','00000001' AS gro_id ,
+    a.business_unit_name,a.business_unit_id orgdep_id,
+    a.business_unit_id org_id,a.project_name,a.project_id,
+    a.project_code,a.project_id pro_id,b.stageName,b.stageCode,b.projectFID,b.groupName,
+    b.groupCode,b.groupID,mipgr.product_type,mipgr.product_id,
+    1,
+    1,a.project_status,a.trade_mode,mipar.area_id,mipar.area_code,mipar.area_name,
+    a.business_unit_sort
+    from mm_idm_business_unit_project_rel a
+    INNER JOIN mm_sell_project msp on msp.project_code=a.project_code
+    LEFT JOIN
+(select projectname,projectID,projectCode,groupCode,groupName,groupID,projectFID
+,stageName,stageCode,productName
+ from t_mm_group group BY groupID)
+ b on a.project_id=b.projectID
+ LEFT join mm_idm_product_group_rel mipgr on mipgr.group_id=b.groupID
+ LEFT JOIN mm_idm_product_area_rel mipar on mipar.pro_product_id=mipgr.product_id where a.project_id=#{projectId}
+
+    </insert>
+
+
+    <select id="selectquyu" resultType="map">
+	SELECT DISTINCT   org_name,orgdep_id,org_id  FROM mm_idm_main_rel where project_id=#{projectId}  ORDER BY `business_unit_sort`  ASC
+    </select>
+
+    <delete id="deletebu">
+        delete  from  mm_business_unit where  (business_id=#{projectId} or business_id in (${resGroupId}) or business_id in (${resProductId}) or business_id in (${resHouseId}) or business_id in (${resStageId}) or business_id=#{qyId} or project_org_id=#{projectId})
+    </delete>
+
+    <insert id="insertbusinessunit" parameterType="map">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,monthly_weekly_type) VALUES
+            (#{org_id},#{Sort_code},#{father_id},#{type},#{orgdep_id},#{org_name},0,#{monthly_weekly_type})
+    </insert>
+
+    <select id="selectProjectt" resultType="java.util.Map">
+ SELECT
+    mr.project_name,
+	mr.project_id,
+	mr.pro_id,
+	ml.flag,
+	ml.monthly_type
+    FROM
+    mm_idm_main_rel mr
+	INNER join mm_sell_project ml
+	on mr.project_code=ml.project_code
+    WHERE mr.orgdep_id = #{businessunitid} and mr.project_id=#{projectId}
+    group by mr.project_id
+    ORDER BY mr.project_name ASC
+    </select>
+
+
+    <insert id="insertprojects" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,monthly_weekly_type) VALUES
+            (#{pro_id},#{Sort_code},#{father_id},#{type},#{project_id},#{project_name},0,#{region_org_id},#{monthly_type})
+    </insert>
+
+
+    <select id="selectStagingg" parameterType="string" resultType="java.util.Map">
+        SELECT  DISTINCT stage_name ,stage_id  FROM mm_idm_main_rel WHERE Project_id=#{projectID}
+    </select>
+
+    <insert id="insertstagings" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{stage_id},#{stage_name},0,#{region_org_id},#{project_org_id},#{monthly_weekly_type})
+
+    </insert>
+
+    <select id="selectGroupp" resultType="java.util.Map">
+        select  DISTINCT  group_id, group_name
+        from mm_idm_main_rel where stage_id=#{projectfid} and project_id=#{projectId}
+    </select>
+
+    <insert id="insertgroups" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,stage_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{group_id},#{group_name},0,#{region_org_id},#{project_org_id},#{stage_org_id},#{monthly_weekly_type})
+    </insert>
+
+    <select id="selectDesignBuildd" resultType="java.util.Map">
+select  DISTINCT  product_type, product_code
+        from mm_idm_main_rel WHERE group_id=#{group_code} and project_id=#{projectId}
+
+    </select>
+
+    <insert id="insertesignbuilds" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,stage_org_id,group_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{product_code},#{product_type},0,#{region_org_id},#{project_org_id},#{stage_org_id},#{group_org_id},#{monthly_weekly_type})
+    </insert>
+
+    <select id="selectArea" resultType="java.util.Map">
+select  DISTINCT area_id,area_name
+        from mm_idm_main_rel WHERE product_code=#{productId} and project_id=#{projectId}
+ORDER BY CAST(SUBSTRING_INDEX(area_name,'-',1) as SIGNED)  asc
+    </select>
+
+
+
+    <insert id="insertArea" >
+     INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,stage_org_id,group_org_id,product_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{area_id},#{area_name},0,#{region_org_id},#{project_org_id},#{stage_org_id},#{group_org_id},#{product_org_id},#{monthly_weekly_type})
+
+    </insert>
+
+    <update id="updateBusinessUnit">
+        update mm_business_unit b,mm_sell_project a,mm_idm_business_unit_project_rel c
+        set b.monthly_weekly_type=1
+        where a.monthly_type=1 and a.project_code=c.project_code
+        and b.business_id=c.business_unit_id
+    </update>
+
+
+
+
+    <!--初始化签约数据-->
+    <insert id="initializationSingingData" parameterType="java.util.Map" >
+delete from mm_month_sign_price
+ where start_time  &gt;=#{monthStartTime}
+  and end_time   &lt;= #{monthSendTime} and (project_id=#{projectId} or project_id in (${resGroupId}) or project_id in (${resProductId}) or project_id in (${resHouseId}) or project_id=#{qyId} );
+        INSERT    INTO    mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT    3,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM    (SELECT    tb.ProjectID    project_id,sum(ifnull(tb.套数,0))    AS    套数,sum(ifnull(tb.金额,0))    AS    金额    FROM    (SELECT    ProjectID,COUNT(RoomGUID)    AS    套数,sum(ifnull(CjRmbTotal,0))    AS    金额    FROM        vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id
+        WHERE    IFNULL(CloseReason,'')      &lt;&gt;     '撤销签约'  and IFNULL(CloseReason,'') &lt;&gt; 'nos退房' and IFNULL(CloseReason,'')  &lt;&gt; '补差'   AND    YwgsDate   &lt;= #{monthSendTime}    AND    YwgsDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY        ProjectID    UNION    ALL    SELECT        ProjectID,-1    *    COUNT(ifnull(RoomGUID,0))    as    套数,
+        -1    *    SUM(ifnull(CjRmbTotal,0))    AS    金额    FROM            vs_xsgl_contract  a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE        IFNULL(CloseReason,    '')    IN    ( 'nos退房',   '退房',    '换房'    )    AND    CloseDate   &lt;= #{monthSendTime}    AND    CloseDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    ProjectID
+        UNION    ALL    SELECT        ProjectID,0    AS    套数,SUM(ifnull(BcTotal,    0))        AS    金额    FROM        vs_xsgl_contract  a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE    Status   =    '激活'    AND    AuditDate   &lt;= #{monthSendTime}    AND    AuditDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    ProjectID)    tb
+        GROUP    BY    tb.ProjectID)    n where project_id=#{projectId};
+        #组团
+        INSERT    INTO    mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT    5,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM    (SELECT    tb.group_id    project_id,sum(ifnull(tb.套数,0))    AS    套数,sum(ifnull(tb.金额,0))    AS    金额    FROM    (SELECT        group_id,COUNT(RoomGUID)    AS    套数,sum(ifnull(CjRmbTotal,0))    AS    金额        FROM        vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id
+        WHERE        ifnull(CloseReason,    '')      &lt;&gt;     '撤销签约'  and IFNULL(CloseReason,'')  &lt;&gt; 'nos退房' and IFNULL(CloseReason,'')  &lt;&gt;  '补差'    AND    YwgsDate   &lt;= #{monthSendTime}    AND    YwgsDate  &gt;=#{monthStartTime}   and b.monthly_weekly_type=1 GROUP    BY    group_id    UNION    ALL    SELECT    group_id,-1    *    COUNT(RoomGUID)    as    套数,
+        -1    *    SUM(ifnull(CjRmbTotal,0))    AS    金额    FROM            vs_xsgl_contract  a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE    ifnull(CloseReason,    '')    IN    (    '退房',    '换房' ,'nos退房'   )    AND    CloseDate   &lt;= #{monthSendTime}    AND    CloseDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    group_id
+        UNION    ALL    SELECT        group_id,0        AS    套数,SUM(ifnull(BcTotal,    0))        AS    金额    FROM    vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id   WHERE    Status   =    '激活'    AND    AuditDate   &lt;= #{monthSendTime}    AND    AuditDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    group_id)    tb
+        GROUP    BY    tb.group_id)    n  where project_id in (${resGroupId});
+        #分期
+        INSERT  INTO  mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT  4,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM  (SELECT  tb.projectFid  project_id,sum(tb.套数)  AS  套数,sum(tb.金额)  AS  金额  FROM  (SELECT  projectFid,COUNT(RoomGUID)  AS  套数,sum(ifnull(CjRmbTotal,0))  AS 金额
+        FROM  vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE  ifnull(CloseReason, '')   &lt;&gt;  '撤销签约' and IFNULL(CloseReason,'') &lt;&gt;  'nos退房' and IFNULL(CloseReason,'')  &lt;&gt;  '补差'  AND YwgsDate   &lt;= #{monthSendTime} AND YwgsDate  &gt;=#{monthStartTime} and b.monthly_weekly_type=1 GROUP BY projectFid UNION ALL SELECT projectFid,-1 * COUNT(RoomGUID) AS 套数,
+        -1 * SUM(ifnull(CjRmbTotal, 0)) AS 金额 FROM   vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE  ifnull(CloseReason, '') IN ( '退房', '换房','nos退房' ) AND CloseDate   &lt;= #{monthSendTime} AND CloseDate  &gt;=#{monthStartTime} and b.monthly_weekly_type=1 GROUP BY projectFid
+        UNION ALL SELECT projectFid,0 AS 套数,SUM(ifnull(BcTotal, 0))  AS 金额 FROM  vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id WHERE Status= '激活' AND AuditDate   &lt;= #{monthSendTime} AND AuditDate  &gt;=#{monthStartTime} and b.monthly_weekly_type=1 GROUP BY projectFid) tb
+        GROUP BY tb.projectFid) n where  n.project_id in (${resStageId});
+        #业态
+INSERT INTO mm_month_sign_price (type,sign_num, sign_price, project_id, create_time, start_time, end_time, year_months )
+SELECT 6,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7) FROM ( SELECT tb.productcode project_id,
+sum( tb.套数 ) AS 套数,sum( tb.金额 ) AS 金额 FROM(SELECT(SELECT CONCAT(
+		vs.group_id,
+		tmd.productCode,
+		tmd.FREETYPE,
+		tmd.BUSINESSTYPE,
+		tmd.PROTYPE )
+	FROM t_mm_designbuild tmd WHERE vs.x_bldprdId = tmd.bldPrdID limit 1) productcode,COUNT( RoomGUID ) AS 套数,sum(ifnull( CjRmbTotal, 0 )) AS 金额
+	FROM vs_xsgl_contract vs WHERE ifnull( CloseReason, '' ) &lt;&gt; '撤销签约' and IFNULL(CloseReason,'')  &lt;&gt;  'nos退房' and IFNULL(CloseReason,'')  &lt;&gt; '补差'
+    AND YwgsDate &lt;=#{monthSendTime} AND YwgsDate  &gt;=#{monthStartTime}
+	GROUP BY productcode
+	UNION ALL
+	SELECT (SELECT CONCAT(
+		vs.group_id,
+		tmd.productCode,
+		tmd.FREETYPE,
+		tmd.BUSINESSTYPE,
+		tmd.PROTYPE )
+	FROM t_mm_designbuild tmd WHERE vs.x_bldprdId = tmd.bldPrdID limit 1) productcode,- 1 * COUNT( RoomGUID ) AS 套数,- 1 * SUM(ifnull( CjRmbTotal, 0 )) AS 金额
+	FROM vs_xsgl_contract vs WHERE ifnull( CloseReason, '' ) IN ( '退房', '换房' ,'nos退房')
+	AND CloseDate &lt;=#{monthSendTime} AND CloseDate  &gt;=#{monthStartTime} GROUP BY productcode UNION ALL
+	SELECT (SELECT CONCAT(
+		vs.group_id,
+		tmd.productCode,
+		tmd.FREETYPE,
+		tmd.BUSINESSTYPE,
+		tmd.PROTYPE )
+	FROM
+		t_mm_designbuild tmd WHERE vs.x_bldprdId = tmd.bldPrdID limit 1) productcode ,0 AS 套数,
+		SUM(ifnull( BcTotal, 0 )) AS 金额 FROM vs_xsgl_contract vs
+	WHERE STATUS = '激活'
+	AND AuditDate &lt;= #{monthSendTime} AND AuditDate  &gt;=#{monthStartTime} GROUP BY productcode) tb GROUP BY tb.productcode) n where n.project_id is not null and n.project_id in (${resProductId});
+        #面地段 非车位
+        INSERT INTO mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT 7,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM ( SELECT tb.house_package_id project_id,sum(tb.套数) AS 套数,sum(tb.金额) AS 金额 FROM (SELECT house_package_id,S1.group_id ,S1.x_productCode,COUNT(RoomGUID) AS 套数,
+        sum(ifnull(CjRmbTotal,0)) AS 金额 FROM  vs_xsgl_contract S1 INNER JOIN v_sman_supply_plan vs ON S1.group_id= vs.group_id
+         AND S1.x_productCode= vs.product_code
+        and s1.x_bldprdId=vs.bld_prd_id WHERE ifnull(CloseReason, '')   &lt;&gt;  '撤销签约' and IFNULL(CloseReason,'') &lt;&gt; 'nos退房' and IFNULL(CloseReason,'')  &lt;&gt;  '补差'
+        AND totalArea &gt;= CAST(SUBSTRING_INDEX(house_package_name, '-',1) AS SIGNED) AND totalArea   &lt;  CAST(SUBSTRING_INDEX (vs.house_package_name, '-',-1 ) AS SIGNED) AND  is_parking= 0 AND YwgsDate   &lt;= #{monthSendTime} AND YwgsDate  &gt;=#{monthStartTime}
+        GROUP BY house_package_id UNION ALL SELECT house_package_id,S2.group_id ,S2.x_productCode,-1 * COUNT(RoomGUID) AS 套数,-1 * SUM(ifnull(CjRmbTotal, 0)) AS 金额 FROM vs_xsgl_contract S2
+        INNER JOIN v_sman_supply_plan vs ON S2.group_id= vs.group_id
+        -- AND S2.x_productCode= vs.product_code
+        and s2.x_bldprdId=vs.bld_prd_id
+        WHERE ifnull(CloseReason, '') IN ( '退房', '换房','nos退房') AND totalArea   &gt;= CAST(SUBSTRING_INDEX(house_package_name, '-',1) AS SIGNED) AND totalArea  &lt;  CAST(SUBSTRING_INDEX (vs.house_package_name, '-',-1 )AS SIGNED) AND  is_parking= 0
+        AND CloseDate   &lt;= #{monthSendTime} AND CloseDate  &gt;=#{monthStartTime} GROUP BY house_package_id UNION ALL SELECT house_package_id,S3.group_id ,S3.x_productCode,0 AS 套数,SUM(ifnull(BcTotal, 0))  AS 金额
+        FROM   vs_xsgl_contract S3 INNER JOIN v_sman_supply_plan vs ON S3.group_id= vs.group_id
+        -- AND S3.x_productCode= vs.product_code
+        and s3.x_bldprdId=vs.bld_prd_id
+        WHERE Status= '激活'AND totalArea    &gt;= CAST(SUBSTRING_INDEX(house_package_name, '-',1) AS SIGNED)
+        AND totalArea    &lt;  CAST(SUBSTRING_INDEX (vs.house_package_name, '-',-1 ) AS SIGNED) AND  is_parking= 0
+        AND AuditDate   &lt;= #{monthSendTime} AND AuditDate  &gt;=#{monthStartTime} GROUP BY house_package_id) tb GROUP BY tb.house_package_id) n where n.project_id is not null and n.project_id in (${resHouseId});
+        -- 面地段 车位车位只到业态
+        #签约数据月度区域汇总
+        INSERT INTO mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT 2,sign_num,sign_price,business_unit_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM (SELECT SUM(sign_num) sign_num,SUM(sign_price) sign_price,business_unit_id FROM mm_month_sign_price a  INNER JOIN mm_idm_business_unit_project_rel b
+        ON a.project_id= b.project_id
+        where a.year_months=DATE_FORMAT(#{monthStartTime},'%Y-%m')
+        GROUP BY business_unit_id ) n  where business_unit_id=#{qyId};
+        #签约数据月度集团汇总
+         INSERT INTO mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+         SELECT 1,SUM(sign_num),SUM(sign_price),'00000001',NOW(),
+         #{monthStartTime},#{monthSendTime},
+         SUBSTR(#{monthSendTime},1,7) FROM  mm_month_sign_price
+         where type=2 and year_months=SUBSTR(#{monthStartTime},1,7)
+    </insert>
+
+    <!--5555555555555555555555555555555555555-->
+    <!--先删除-->
+    <delete id="deleteBasic" parameterType="java.util.Map">
+      delete from  mm_monthly_plan_basis where months=#{months} and (prepared_by_unit_org_id=#{projectId} or prepared_by_unit_org_id in (${resStageId}) or prepared_by_unit_org_id in (${resGroupId}) or prepared_by_unit_org_id in (${resProductId}) or prepared_by_unit_org_id in (${resHouseId}) );
+    </delete>
+    <delete id="deleteBasicIndex" parameterType="java.util.Map">
+      delete from  mm_monthly_plan_index where months=#{months} and (prepared_by_unit_org_id=#{projectId} or prepared_by_unit_org_id in (${resStageId})  or prepared_by_unit_org_id in (${resGroupId}) or prepared_by_unit_org_id in (${resProductId}) or prepared_by_unit_org_id in (${resHouseId}));
+    </delete>
+    <!-- 初始化添加 -->
+    <insert id="getBusiness"  parameterType="java.util.Map">
+    INSERT INTO mm_monthly_plan_basis (
+	creator,
+	is_withdraw,
+	reserve_can_sell_set,
+	reserve_can_sell_funds,
+	new_reserve_set,
+	new_reserve_funds,
+	total_reserve_set,
+	total_reserve_funds,
+	year_plan_sign,
+	is_effective,
+	guid,
+	create_time,
+	editor,
+	is_delete_flag,
+	update_time,
+	months,
+	version,
+	compiler_account_id,
+	plan_status,
+	year_grand_total_sign,
+	top_three_month_average_sign_set,
+	top_three_month_average_sign_funds,
+	upper_moon_sign_set,
+	upper_moon_sign_funds,
+	prepared_by_unit_org_id,
+	monthly_plan_id,
+	prepared_by_level,
+	prepared_by_level_name
+) SELECT
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        UUID(),
+        now(),
+        1,
+        0,
+        now(),#{months},#{version},1,0,
+        IFNULL( ROUND(( ROUND( yearTotal )/ 10000 )), 0 ) AS yearTotal,
+        IFNULL( ROUND(( threeSignNum / 3 )), 0 ) AS threeAvgSignNum,
+        IFNULL( ROUND(( ROUND( threeTotal )/ 3 )/ 10000 ), 0 ) AS threeAvgTotal,
+        topMonthSignNum,
+        IFNULL( ROUND(( ROUND( topMonthTotal )/ 10000 )), 0 ) topMonthTotal,
+        mmpb.business_id,
+        #{oneId},
+        mmpb.type,
+        mmpb.business_name
+        from mm_business_unit mmpb left JOIN
+        (
+        SELECT
+        SUM(b.sign_price) AS yearTotal,
+        b.project_id
+        FROM
+        mm_month_sign_price b
+        where LEFT (b.year_months, 4 )= DATE_FORMAT( #{months},"%Y")
+        GROUP BY b.project_id
+        ) yeaySign on yeaySign.project_id=mmpb.business_id
+        left JOIN
+        (
+        #前三月
+        SELECT
+        SUM( b.sign_price ) AS threeTotal,
+        SUM( b.sign_num ) threeSignNum,
+        b.project_id
+        FROM
+        mm_month_sign_price b
+        where DATE_FORMAT(
+        DATE_SUB(#{months}, INTERVAL 3 MONTH),'%Y-%m')
+        &lt;=b.year_months and  b.year_months &lt; DATE_FORMAT(#{months},'%Y-%m')
+        GROUP BY b.project_id
+        ) top3Sign on top3Sign.project_id=mmpb.business_id
+        left JOIN
+        (
+        #前一月
+        SELECT
+        SUM(b.sign_price) AS topMonthTotal,
+        SUM(b.sign_num ) topMonthSignNum,
+        b.project_id
+        FROM
+        mm_month_sign_price b
+        where DATE_FORMAT(
+        DATE_SUB(#{months} , INTERVAL 1 MONTH),'%Y-%m')=b.year_months
+        GROUP BY b.project_id
+        ) top1Sign on top1Sign.project_id=mmpb.business_id
+        where mmpb.monthly_weekly_type=1 and (mmpb.business_id=#{projectId} or mmpb.business_id in (${resStageId}) or mmpb.business_id in (${resGroupId}) or mmpb.business_id in (${resProductId}) or mmpb.business_id in (${resHouseId}) )
+    </insert>
+
+    <!--初始化年度计划签约金额-->
+    <update id="initYearPlanSignData" parameterType="java.util.Map">
+#项目年度
+UPDATE mm_monthly_plan_basis mb,
+(
+	SELECT
+		SUM(
+		IFNULL( vs.sign_price_plan, 0 )) AS yearSign,
+		vs.project_id
+	FROM
+		v_sman_sign_plan vs
+	WHERE
+		DATE_FORMAT( vs.sign_plan_time, "%Y" )= DATE_FORMAT( #{months},"%Y")
+		and vs.project_id=#{projectId} ) t
+		SET mb.year_plan_sign = t.yearSign / 10000
+	WHERE
+		mb.prepared_by_unit_org_id = t.project_id
+		AND mb.months = #{months};
+#分期年度
+		UPDATE mm_monthly_plan_basis mb,
+		(
+		SELECT
+			SUM(
+			IFNULL( vs.sign_price_plan, 0 )) AS yearSign,
+			vs.stage_id
+		FROM
+			v_sman_sign_plan vs
+		WHERE
+			DATE_FORMAT( vs.sign_plan_time, "%Y" )= DATE_FORMAT( #{months},"%Y") and vs.project_id=#{projectId}
+			GROUP BY vs.stage_id ) t
+			SET mb.year_plan_sign = t.yearSign / 10000
+		WHERE
+			mb.prepared_by_unit_org_id = t.stage_id
+			AND mb.months = #{months};
+#组团年度
+			UPDATE mm_monthly_plan_basis mb,
+			(
+			SELECT
+				SUM(
+				IFNULL( vs.sign_price_plan, 0 )) AS yearSign,
+				vs.group_id
+			FROM
+				v_sman_sign_plan vs
+			WHERE
+				DATE_FORMAT( vs.sign_plan_time, "%Y" )= DATE_FORMAT( #{months},"%Y")  and vs.project_id=#{projectId}
+				GROUP BY vs.group_id ) t
+				SET mb.year_plan_sign = t.yearSign / 10000
+			WHERE
+				mb.prepared_by_unit_org_id = t.group_id
+				AND mb.months = #{months};
+#业态年度
+				UPDATE mm_monthly_plan_basis mb,
+				(
+				SELECT
+					SUM(
+					IFNULL( vs.sign_price_plan, 0 )) AS yearSign,
+					CONCAT( vs.group_id,vs.product_code,vs.free_type,vs.business_type,vs.pro_type) project_code
+				FROM
+					v_sman_sign_plan vs
+				WHERE
+					DATE_FORMAT( vs.sign_plan_time, "%Y" )= DATE_FORMAT( now(), "%Y" ) and vs.project_id=#{projectId}
+				GROUP BY
+					vs.group_id,vs.product_code,vs.free_type,vs.business_type,vs.pro_type
+				) t
+				SET mb.year_plan_sign = t.yearSign / 10000
+			WHERE
+			mb.prepared_by_unit_org_id = t.project_code
+	AND mb.months = #{months};
+
+    </update>
+
+    <!-- 修改集团的供货值 -->
+    <update id="updateGroupSupply" parameterType="java.util.Map">
+        -- 集团
+
+update mm_monthly_plan_basis mpb,(
+select
+        a.months,
+        sum(a.reserve_can_sell_set) ks,
+				sum(a.reserve_can_sell_funds) km,
+				sum(a.new_reserve_set) ns,
+				sum(a.new_reserve_funds) nm,
+				sum(a.reserve_can_sell_set+a.new_reserve_set) kns,
+				sum(a.reserve_can_sell_funds+a.new_reserve_funds) knm
+from mm_monthly_plan_basis a where a.prepared_by_level=2
+and a.months=#{months}
+)c
+set
+mpb.reserve_can_sell_set=c.ks,
+mpb.reserve_can_sell_funds=c.km,
+mpb.new_reserve_set=c.ns,
+mpb.new_reserve_funds=c.nm,
+mpb.total_reserve_set=c.kns,
+mpb.total_reserve_funds=c.knm
+where prepared_by_level=1
+and mpb.months=#{months}
+
+    </update>
+    <!-- 修改区域供货值 -->
+    <update id="updateRegionSupply" parameterType="java.util.Map">
+-- 区域的
+update mm_monthly_plan_basis mpb,(
+select
+        b.region_org_id,
+			  a.months,
+        sum(a.reserve_can_sell_set) ks,
+				sum(a.reserve_can_sell_funds) km,
+				sum(a.new_reserve_set) ns,
+				sum(a.new_reserve_funds) nm,
+				sum(a.reserve_can_sell_set+a.new_reserve_set) kns,
+				sum(a.reserve_can_sell_funds+a.new_reserve_funds) knm
+from mm_monthly_plan_basis a left join mm_business_unit b
+on a.prepared_by_unit_org_id=b.business_id
+
+where a.prepared_by_level=3
+and a.months=#{months}
+GROUP BY b.region_org_id
+)c
+set
+mpb.reserve_can_sell_set=c.ks,
+mpb.reserve_can_sell_funds=c.km,
+mpb.new_reserve_set=c.ns,
+mpb.new_reserve_funds=c.nm,
+mpb.total_reserve_set=c.kns,
+mpb.total_reserve_funds=c.knm
+where mpb.prepared_by_unit_org_id=c.region_org_id
+and mpb.months=#{months}
+and mpb.prepared_by_level=2
+    </update>
+    <!-- 修改项目供货值 -->
+    <update id="updateProjectSupply" parameterType="java.util.Map">
+        -- 项目
+update   mm_monthly_plan_basis a
+,
+(
+SELECT
+mr.`project_id` as projectId ,hz.createtime as months,
+ROUND (SUM(ROUND(hz.`amountforsale`,0))/10000,0)  km,
+SUM(hz.`setsforsale`)  ks,
+SUM(hz.`planningsets`) ns ,
+ROUND (SUM(ROUND(hz.`Planningamount`,0))/10000,0)  nm,
+ROUND (sum(ROUND(hz.`amountforsale`,0)+ROUND(hz.`Planningamount`,0))/10000,0)  knm,
+sum(hz.`setsforsale`+hz.`planningsets`) kns
+FROM
+`v_mar_valueinput` hz
+LEFT JOIN `mm_idm_main_rel` mr ON mr.`building_id` = hz.`buildID`
+WHERE mr.`building_id` IS NOT NULL
+and hz.createtime=#{months}
+GROUP BY mr.`project_id`
+)
+b
+set a.reserve_can_sell_set=b.ks
+,a.reserve_can_sell_funds=b.km
+,a.new_reserve_set=b.ns
+,a.new_reserve_funds=b.nm
+,a.total_reserve_set=b.kns
+,a.total_reserve_funds=b.knm
+WHERE  a.prepared_by_unit_org_id=b.projectId and a.months=b.months
+    </update>
+    <!-- 修改分期供货值 -->
+    <update id="updateInstallmentSupply" parameterType="java.util.Map">
+        -- 分期
+update   mm_monthly_plan_basis a
+,
+(
+SELECT
+mr.`stage_code` as stage ,hz.createtime as months,
+ROUND (SUM(ROUND(hz.`amountforsale`,0))/10000,0)  km,
+SUM(hz.`setsforsale`)  ks,
+SUM(hz.`planningsets`) ns ,
+ROUND (SUM(ROUND(hz.`Planningamount`,0))/10000,0)  nm,
+ROUND (sum(ROUND(hz.`amountforsale`,0)+ROUND(hz.`Planningamount`,0))/10000,0)  knm,
+sum(hz.`setsforsale`+hz.`planningsets`) kns
+FROM
+`v_mar_valueinput` hz
+LEFT JOIN `mm_idm_main_rel` mr ON mr.`building_id` = hz.`buildID`
+WHERE mr.`building_id` IS NOT NULL
+and hz.createtime=#{months}
+GROUP BY mr.`stage_code`
+)
+b
+set a.reserve_can_sell_set=b.ks
+,a.reserve_can_sell_funds=b.km
+,a.new_reserve_set=b.ns
+,a.new_reserve_funds=b.nm
+,a.total_reserve_set=b.kns
+,a.total_reserve_funds=b.knm
+WHERE  a.prepared_by_unit_org_id=b.stage and a.months=b.months
+    </update>
+
+    <!-- 修改组团供货值 -->
+    <update id="updateGroupcodeSupply" parameterType="java.util.Map">
+        -- 组团
+update   mm_monthly_plan_basis a
+,
+(
+SELECT
+mr.`group_code` as groups ,hz.createtime as months,
+ROUND (SUM(ROUND(hz.`amountforsale`,0))/10000,0)  km,
+SUM(hz.`setsforsale`)  ks,
+SUM(hz.`planningsets`) ns ,
+ROUND (SUM(ROUND(hz.`Planningamount`,0))/10000,0)  nm,
+ROUND (sum(ROUND(hz.`amountforsale`,0)+ROUND(hz.`Planningamount`,0))/10000,0)  knm,
+sum(hz.`setsforsale`+hz.`planningsets`) kns
+FROM
+`v_mar_valueinput` hz
+LEFT JOIN `mm_idm_main_rel` mr ON mr.`building_id` = hz.`buildID`
+WHERE mr.`building_id` IS NOT NULL
+and hz.createtime=#{months}
+GROUP BY mr.`group_code`
+)
+b
+set a.reserve_can_sell_set=b.ks
+,a.reserve_can_sell_funds=b.km
+,a.new_reserve_set=b.ns
+,a.new_reserve_funds=b.nm
+,a.total_reserve_set=b.kns
+,a.total_reserve_funds=b.knm
+WHERE  a.prepared_by_unit_org_id=b.groups and a.months=b.months
+
+
+    </update>
+    <!-- 修改业态供货值 -->
+    <update id="updateProduceSupply" parameterType="java.util.Map">
+       -- 业态
+update   mm_monthly_plan_basis a
+,
+(
+SELECT
+mr.`product_code` as product ,hz.createtime as months,
+ROUND (SUM(ROUND(hz.`amountforsale`,0))/10000,0)  km,
+SUM(hz.`setsforsale`)  ks,
+SUM(hz.`planningsets`) ns ,
+ROUND (SUM(ROUND(hz.`Planningamount`,0))/10000,0)  nm,
+ROUND (sum(ROUND(hz.`amountforsale`,0)+ROUND(hz.`Planningamount`,0))/10000,0)  knm,
+sum(hz.`setsforsale`+hz.`planningsets`) kns
+FROM
+`v_mar_valueinput` hz
+LEFT JOIN `mm_idm_main_rel` mr ON mr.`building_id` = hz.`buildID`
+WHERE mr.`building_id` IS NOT NULL
+and hz.createtime=#{months}
+GROUP BY mr.`product_code`
+)
+b
+set a.reserve_can_sell_set=b.ks
+,a.reserve_can_sell_funds=b.km
+,a.new_reserve_set=b.ns
+,a.new_reserve_funds=b.nm
+,a.total_reserve_set=b.kns
+,a.total_reserve_funds=b.knm
+WHERE  a.prepared_by_unit_org_id=b.product and a.months=b.months
+   </update>
+    <!-- 修改区域前三计划签约率 -->
+    <update id="updateRegionThreeMonth" parameterType="java.util.Map">
+    update mm_monthly_plan_basis a,(
+    select upr.business_unit_id,IFNULL(ROUND((sum(temp.num)/SUM(temp.lrlnumm)),2),0) qyl from mm_idm_business_unit_project_rel upr LEFT JOIN
+    (SELECT rg.projectid,rg.num,lrl.cnt lrlnumm from (
+    select projectid,count(1) num from vs_xsgl_order
+    WHERE DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 3 MONTH),'%Y%m')&lt;=
+    DATE_FORMAT(QSDate,'%Y%m')
+    and DATE_FORMAT(QSDate,'%Y%m')&lt;
+    DATE_FORMAT(#{months},'%Y%m')
+      GROUP BY projectid
+     ) rg LEFT JOIN (
+
+
+  			  -- 来人量
+  SELECT SUM( gjcount) AS cnt,tt.`projectid`, tt.`projectName`,tt.`projectCode`,tt.gjdate
+  FROM vs_xsgl_visits tt
+  WHERE  DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 3 MONTH),'%Y%m')&lt;= DATE_FORMAT(tt.gjdate,'%Y%m') AND DATE_FORMAT(tt.gjdate,'%Y%m')&lt; DATE_FORMAT(#{months},'%Y%m')
+  GROUP BY tt.`projectCode`
+
+    ) lrl on rg.projectid=lrl.projectid) temp
+    on upr.project_id=temp.projectid
+    GROUP BY upr.business_unit_id
+    ) b set a.top_three_month_average_turnover_rate=b.qyl where a.prepared_by_unit_org_id=b.business_unit_id
+    and a.prepared_by_level=2 and a.months=#{months}
+    </update>
+    <!-- 修改区域前一个月成交率 -->
+    <update id="updateRegionOneMonth" parameterType="java.util.Map">
+
+	  update mm_monthly_plan_basis a,(
+    select upr.business_unit_id,IFNULL(ROUND((sum(temp.num)/SUM(temp.lrlnumm)),2),0) qyl from mm_idm_business_unit_project_rel upr LEFT JOIN
+    (SELECT rg.projectid,rg.num,lrl.cnt lrlnumm from (
+    select projectid,count(1) num from vs_xsgl_order
+    WHERE DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 1 MONTH),'%Y%m')&lt;=
+    DATE_FORMAT(QSDate,'%Y%m')
+    and DATE_FORMAT(QSDate,'%Y%m')&lt;
+    DATE_FORMAT(#{months},'%Y%m')
+      GROUP BY projectid
+     ) rg LEFT JOIN (
+
+
+  			  -- 来人量
+  SELECT SUM( gjcount) AS cnt,tt.`projectid`, tt.`projectName`,tt.`projectCode`,tt.gjdate
+  FROM vs_xsgl_visits tt
+  WHERE  DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 1 MONTH),'%Y%m')&lt;= DATE_FORMAT(tt.gjdate,'%Y%m') AND DATE_FORMAT(tt.gjdate,'%Y%m')&lt; DATE_FORMAT(#{months},'%Y%m')
+  GROUP BY tt.`projectCode`
+
+    ) lrl on rg.projectid=lrl.projectid) temp
+    on upr.project_id=temp.projectid
+    GROUP BY upr.business_unit_id
+    ) b set a.last_month_turnover_rate=b.qyl where a.prepared_by_unit_org_id=b.business_unit_id
+    and a.prepared_by_level=2 and a.months=#{months}
+</update>
+    <!-- 修改项目前三个月成交率 -->
+    <update id="updateProjectThreeMonth" parameterType="java.util.Map">
+
+UPDATE mm_monthly_plan_basis a,(
+
+    SELECT rg.projectid, rg.num, lrl.cnt, IFNULL( ROUND((rg.num/lrl.cnt),2),0)  qyl       FROM(
+
+    (
+
+    -- 认购数量
+    SELECT projectid,COUNT(1) num FROM vs_xsgl_order o
+    WHERE DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 3 MONTH),'%Y%m')&lt;=
+    DATE_FORMAT(QSDate,'%Y%m')
+    AND DATE_FORMAT(QSDate,'%Y%m')&lt;
+    DATE_FORMAT(#{months},'%Y%m')
+    GROUP BY o.`projectid`
+
+    )rg
+
+    LEFT JOIN (
+
+    -- 来人量
+  SELECT SUM( gjcount) AS cnt,lrl.`projectid`, lrl.`projectName`,lrl.`projectCode`,lrl.gjdate
+  FROM vs_xsgl_visits lrl
+  WHERE  DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 3 MONTH),'%Y%m')&lt;= DATE_FORMAT(gjdate,'%Y%m') AND DATE_FORMAT(gjdate,'%Y%m')&lt; DATE_FORMAT(#{months},'%Y%m')
+  GROUP BY lrl.`projectCode`
+
+    ) lrl ON rg.projectid = lrl.projectid
+
+    )
+
+
+    )b SET a.top_three_month_average_turnover_rate=b.qyl
+    WHERE a.prepared_by_level=3 AND a.prepared_by_unit_org_id=b.projectId
+    AND a.months=#{months}
+    </update>
+
+    <!-- 修改项目前一个月成交率 -->
+    <update id="updateProjectOneMonth" parameterType="java.util.Map">
+
+UPDATE mm_monthly_plan_basis a,(
+
+    SELECT rg.projectid, rg.num, lrl.cnt, IFNULL( ROUND((rg.num/lrl.cnt),2),0)  qyl       FROM(
+
+    (
+
+    -- 认购数量
+    SELECT projectid,COUNT(1) num FROM vs_xsgl_order o
+    WHERE DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 1 MONTH),'%Y%m')&lt;=
+    DATE_FORMAT(QSDate,'%Y%m')
+    AND DATE_FORMAT(QSDate,'%Y%m')&lt;
+    DATE_FORMAT(#{months},'%Y%m')
+    GROUP BY o.`projectid`
+
+    )rg
+
+    LEFT JOIN (
+
+    -- 来人量
+  SELECT SUM( gjcount) AS cnt,lrl.`projectid`, lrl.`projectName`,lrl.`projectCode`,lrl.gjdate
+  FROM vs_xsgl_visits lrl
+  WHERE  DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 1 MONTH),'%Y%m')&lt;= DATE_FORMAT(gjdate,'%Y%m') AND DATE_FORMAT(gjdate,'%Y%m')&lt; DATE_FORMAT(#{months},'%Y%m')
+  GROUP BY lrl.`projectCode`
+
+    ) lrl ON rg.projectid = lrl.projectid
+
+    )
+
+
+    )b SET a.last_month_turnover_rate=b.qyl
+    WHERE a.prepared_by_level=3 AND a.prepared_by_unit_org_id=b.projectId
+    AND a.months=#{months}
+    </update>
+    <!-- 修改集团前三个月成交率 -->
+    <update id="updateGroupThreeMonth" parameterType="java.util.Map">
+
+
+UPDATE mm_monthly_plan_basis a,(
+select sum(jituan.num),sum(jituan.cnt), IFNULL( ROUND((sum(jituan.num)/sum(jituan.cnt)),2),0) qyl  from (
+    SELECT rg.projectid, rg.num, lrl.cnt,  IFNULL( ROUND((rg.num/lrl.cnt),2),0) qyl       FROM(
+
+    (
+
+    -- 认购数量
+    SELECT projectid,COUNT(1) num FROM vs_xsgl_order o
+    WHERE DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 3 MONTH),'%Y%m')&lt;=
+    DATE_FORMAT(QSDate,'%Y%m')
+    AND DATE_FORMAT(QSDate,'%Y%m')&lt;
+    DATE_FORMAT(#{months},'%Y%m')
+    GROUP BY o.`projectid`
+
+    )rg
+
+    LEFT JOIN (
+
+    -- 来人量
+  SELECT SUM( gjcount) AS cnt,lrl.`projectid`, lrl.`projectName`,lrl.`projectCode`,lrl.gjdate
+  FROM vs_xsgl_visits lrl
+  WHERE  DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 3 MONTH),'%Y%m')&lt;= DATE_FORMAT(gjdate,'%Y%m') AND DATE_FORMAT(gjdate,'%Y%m')&lt; DATE_FORMAT(#{months},'%Y%m')
+  GROUP BY lrl.`projectCode`
+
+    ) lrl ON rg.projectid = lrl.projectid
+
+    )) jituan
+
+
+    )b SET a.top_three_month_average_turnover_rate=b.qyl
+    WHERE a.prepared_by_level=1 AND a.prepared_by_unit_org_id='00000001'
+    AND a.months=#{months}
+    </update>
+
+    <!-- 修改集团前一个月成交率 -->
+    <update id="updateGroupOneMonth" parameterType="java.util.Map">
+
+
+UPDATE mm_monthly_plan_basis a,(
+select sum(jituan.num),sum(jituan.cnt), IFNULL( ROUND((sum(jituan.num)/sum(jituan.cnt)),2),0) qyl  from (
+    SELECT rg.projectid, rg.num, lrl.cnt,  IFNULL( ROUND((rg.num/lrl.cnt),2),0) qyl       FROM(
+
+    (
+
+    -- 认购数量
+    SELECT projectid,COUNT(1) num FROM vs_xsgl_order o
+    WHERE DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 1 MONTH),'%Y%m')&lt;=
+    DATE_FORMAT(QSDate,'%Y%m')
+    AND DATE_FORMAT(QSDate,'%Y%m')&lt;
+    DATE_FORMAT(#{months},'%Y%m')
+    GROUP BY o.`projectid`
+
+    )rg
+
+    LEFT JOIN (
+
+    -- 来人量
+  SELECT SUM( gjcount) AS cnt,lrl.`projectid`, lrl.`projectName`,lrl.`projectCode`,lrl.gjdate
+  FROM vs_xsgl_visits lrl
+  WHERE  DATE_FORMAT(DATE_SUB(#{months}, INTERVAL 1 MONTH),'%Y%m')&lt;= DATE_FORMAT(gjdate,'%Y%m') AND DATE_FORMAT(gjdate,'%Y%m')&lt; DATE_FORMAT(#{months},'%Y%m')
+  GROUP BY lrl.`projectCode`
+
+    ) lrl ON rg.projectid = lrl.projectid
+
+    )) jituan
+    )b SET a.last_month_turnover_rate=b.qyl
+    WHERE a.prepared_by_level=1 AND a.prepared_by_unit_org_id='00000001'
+    AND a.months=#{months}
+    </update>
+    <!-- 修改集团年度计划签约 -->
+    <update id="updateGroupYearSign" parameterType="java.util.Map">
+    update mm_monthly_plan_basis mb,(
+
+	select sum(b.year_plan_sign) as ym ,b.months from  mm_monthly_plan_basis b
+	where prepared_by_level=3
+	and b.months=#{months}
+)g
+set mb.year_plan_sign=g.ym
+where mb.prepared_by_level=1
+and mb.months=g.months
+    </update>
+
+    <!-- 修改区域年度计划签约 -->
+    <update id="updateRegionYearSign" parameterType="java.util.Map">
+	update mm_monthly_plan_basis mb,(
+	select sum(year_plan_sign) as ym,prepared_by_unit_org_id,bu.region_org_id from mm_monthly_plan_basis
+	left join mm_business_unit bu
+	on prepared_by_unit_org_id=bu.business_id
+	where prepared_by_level=3
+	and months=#{months}
+	group by bu.region_org_id
+	)g
+	set mb.year_plan_sign=g.ym
+	where mb.prepared_by_level=2
+	and mb.prepared_by_unit_org_id=g.region_org_id
+  and 	mb.months=#{months}
+    </update>
+
+    <!-- 修改项目年度计划签约 -->
+    <update id="updateProjectYearSign" parameterType="java.util.Map">
+    update mm_monthly_plan_basis mb,(
+select  b.months, a.projectid, IFNULL(ROUND(b.project_signing),0) as ym from  t_mm_project a
+inner join mm_year_plan_signing b
+on a.projectCode=b.project_id
+)c
+set mb.year_plan_sign=c.ym
+where mb.prepared_by_unit_org_id=c.projectid
+and DATE_FORMAT(mb.months,'%Y')=c.months
+
+    </update>
+    <!--查询月度计划表中是否存在这个月份-->
+    <select id="selectPlanMonth" resultType="java.util.Map"  parameterType="java.util.Map">
+       select months,guid from mm_monthly_plan where months=#{months}
+    </select>
+    <!-- 集团月度计划查询-->
+    <select id="getGroupMonthPlan" parameterType="java.util.Map" resultType="java.util.Map">
+
+        SELECT
+        mpb.guid basisGuid,
+        DATE_FORMAT(mpb.`months`,'%Y-%m-%d') months,
+        mp.`plan_name` ,
+        ( CASE mpb.`plan_status`
+        WHEN 0  THEN '集团未下发'
+        WHEN 1  THEN'集团已下发'
+        WHEN 2 THEN '编制完成'
+        ELSE '其他'  END ) AS plan_status,
+        mpb.plan_status AS
+        plan_status_code,
+        mp.`is_effective`
+        ,IFNULL(group_release.total_sign_funds,0) groups  -- 集团下达
+        ,IFNULL(project_release.total_sign_funds,0) project -- 项目上报
+        ,bu.business_id
+        ,mpb.prepared_by_level
+
+        ,IFNULL(qysbsl.cou,0) AS report_region_quantity
+
+        FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_business_unit` bu ON bu.`type` = 1
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+        -- 集团下达数据
+        LEFT JOIN  (
+
+        SELECT total_sign_funds ,mpb.months, mpi.`prepared_by_unit_org_id`
+        FROM `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`  AND mpb.`months` = mpi.`months`
+        WHERE bu.`type` = 1 AND mpi.prepared_by_unit_type = 1 AND mpb.`plan_status` != 0
+        GROUP BY mpi.months
+
+        ) group_release ON  group_release.months = mp.`months`
+
+        -- 项目上报数据
+        LEFT JOIN  (
+
+        SELECT total_sign_funds ,mpi.months, mpi.`prepared_by_unit_org_id` FROM `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`  AND mpb.`months` = mpi.`months`
+        WHERE bu.`type` = 1 AND mpi.prepared_by_unit_type = 3 AND mpb.`plan_status` != 0
+        GROUP BY mpi.months
+
+        ) project_release ON  project_release.months = mp.`months`
+
+        -- 区域上报集团数量
+        LEFT JOIN  (
+
+        SELECT COUNT(*) cou ,mp.months   FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_business_unit` bu ON  0=0
+        LEFT JOIN  mm_monthly_plan_basis mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months`
+        WHERE bu.`type` = 2  AND mpb.`plan_status` &gt;= 2
+        GROUP BY mp.months
+
+        ) qysbsl ON  qysbsl.months = mp.`months`
+        INNER JOIN
+        (
+        SELECT project_id,iscity is_manage from s_user_project_rel
+        where userId=#{userId}
+        ) temp on temp.project_id=bu.business_id where type=1
+
+        <if test="months!='' and months!=null">
+            AND mp.`months`like #{months}"%"
+        </if>
+        <if test="planStatus!='' and planStatus!=null">
+            AND mpb.`plan_status`=#{planStatus}
+        </if>
+        group by mpb.months
+        order by mpb.months desc
+
+
+    </select>
+
+    <!--删除月度计划表-->
+    <delete id="deleteMonthPlan" parameterType="java.util.Map">
+        delete from mm_monthly_plan where months=#{months}
+    </delete>
+    <!-- 添加月度计划主表 -->
+    <insert id="insertMonthPlan" parameterType="java.util.Map">
+insert into mm_monthly_plan
+(
+                            guid,
+                            creator,
+                            create_time,
+                            is_delete_flag,
+                            editor,
+                            update_time,
+                            months,
+                            plan_name,
+                            plan_status,
+                            is_withdraw,
+                            is_effective
+)
+                       values (
+                           #{guId},
+                           0,
+                           now(),
+                           0,
+                           0,
+                           now(),
+                          #{months},
+                          #{planName},
+                           0,
+                           0,
+                           0
+                       )
+    </insert>
+    <!--添加月度计划指标-->
+    <insert id="insertMonthPlanIndex" parameterType="java.util.Map">
+          insert into mm_monthly_plan_index (
+    creator, editor,new_sign_funds,total_sign_funds,reserve_sign_set,
+    new_sign_set,total_sign_set,marketing_promotion_cost,plan_subscription_set,
+    plan_subscription_funds,plan_turnover_rate,approval_status,
+    approval_account_id,is_effective,approval_time,create_time,update_time,
+    reserve_sign_funds,
+    guid,months,monthly_plan_id,monthly_plan_basis_id,version,compiler_account_id,
+    prepared_by_unit_type
+    ,prepared_by_unit_org_id,prepared_by_level,prepared_by_level_name,is_delete_flag,version_id,is_parking,product_code_sale
+    )
+    select 0,0,0,0,0,0,0,0,0,0,0,0,0,0,now(),now(),now(),0,UUID(),#{months},#{oneId},b.guid,#{version},1,#{type},
+    a.business_id,a.type,a.business_name,0,version_id,is_parking,product_code_sale from mm_business_unit a
+    LEFT JOIN mm_monthly_plan_basis b on a.business_id=b.prepared_by_unit_org_id and b.months=#{months}
+     where a.monthly_weekly_type=1 and (a.business_id=#{projectId} or a.business_id in (${resStageId})  or a.business_id in (${resGroupId}) or a.business_id in (${resProductId}) or a.business_id in (${resHouseId}))
+    </insert>
+    <!-- 查询集团月度计划的所有数据-->
+    <select id="getGroupAllMessage" resultType="java.util.Map" parameterType="java.util.Map">
+
+  SELECT
+  mpb.guid basisGuid,
+  mpi.prepared_by_unit_type,
+bu.`business_name`
+,bu.`type`
+,bu.`father_id`
+,bu.`business_id`
+,bu.`guid` AS business_unit_id
+,mpb.reserve_can_sell_set
+,mpb.reserve_can_sell_funds
+,bu.region_org_id
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+
+,mpb.top_three_month_average_sign_set
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+,mpb.top_three_month_average_turnover_rate
+,mpb.top_three_month_average_sign_funds
+,mpb.last_month_turnover_rate
+,mpi.reserve_sign_funds
+,mpi.new_sign_funds
+,mpi.total_sign_funds,DATE_FORMAT(mp.`months`,'%Y-%m-%d') months
+,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+
+WHERE mp.`months` = #{months}
+
+AND bu.`type` IN (1,2,3) AND mpi.`prepared_by_unit_type` = 1
+GROUP BY  business_id
+ORDER BY bu.Sort_code ASC
+    </select>
+    <!--查询集团下子级的数据-->
+    <select id="getGroupChildMessage" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+mpb.guid basisGuid,
+mpi.prepared_by_unit_type,
+bu.`business_name`
+ ,bu.`type`
+
+ ,bu.`guid`  AS  business_unit_id
+ ,bu.`business_id`
+ ,bu.father_id
+
+,mpb.reserve_can_sell_set,mp.`months` mpmonths
+,mpb.reserve_can_sell_funds
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+,mpb.top_three_month_average_sign_set
+,mpb.top_three_month_average_sign_funds
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+,mpb.top_three_month_average_turnover_rate
+,mpb.last_month_turnover_rate
+,mpi.reserve_sign_funds
+,mpi.new_sign_funds
+,mpi.total_sign_funds
+,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` AND mpi.`prepared_by_unit_type` = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+WHERE mp.`months` = #{months}
+ -- AND bu.`type` = 2
+AND bu.`father_id` = #{PojectOrgId}
+GROUP BY bu.business_id
+ORDER BY bu.business_name
+    </select>
+    <!--暂存，下达，上报 （修改状态）-->
+    <update id="updatePlanStatus" parameterType="java.util.Map">
+UPDATE
+  `mm_monthly_plan_basis` mpb inner join  mm_business_unit bu
+on mpb.prepared_by_unit_org_id=bu.business_id
+SET
+  `plan_status` = #{planStatus}
+WHERE mpb.`months` = #{months}
+AND bu.`business_id` = #{businessId}
+AND prepared_by_level =#{preparedByLevel}
+
+
+</update>
+    <!-- 修改状态（生效未生效） -->
+    <update id="updateIsEffevtive" parameterType="java.util.Map">
+
+UPDATE
+  mm_monthly_plan_index mpi inner join  mm_business_unit bu
+on mpi.prepared_by_unit_org_id=bu.business_id
+SET
+      is_effective = #{planStatus}
+WHERE mpi.`months` = #{months}
+AND bu.`business_id` = #{businessId}
+AND prepared_by_level =#{preparedByLevel}
+    </update>
+
+
+    <!--  区域月度计划查询-->
+    <select id="getRegionalMonthPlan" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        mpb.guid basisGuid,
+        IFNULL(group_release.total_sign_funds,0) AS groups -- 集团下达
+        ,
+        (
+        case mpb.plan_status
+        when 0 then 0
+        else region_release.total_sign_funds end
+        ) AS region,
+        IFNULL(project_release.total_sign_funds,0) project,
+        -- 项目上报
+        bu.`business_id`,
+        DATE_FORMAT(mpb.`months`, '%Y-%m-%d') months,
+        bu.`business_name` AS businessName,
+        bu.`region_org_id`,
+        (
+        CASE mpb.`plan_status`
+        WHEN 0 THEN
+        '区域/事业部未下发'
+        WHEN 1 THEN
+        '区域/事业部已下发'
+        WHEN 2 THEN
+        '区域/事业部已上报'
+        WHEN 3 THEN
+        '区域/事业部已推送'
+        ELSE
+        '集团未下达'
+        END
+        ) AS planStatus,
+        mpb.`plan_status` AS plan_status_code,
+        mp.`plan_name` AS planName
+
+        ,IFNULL( xmsl.cou,0) AS report_project_quantity
+        ,temp.is_manage AS is_manage
+        ,groupstatus.plan_status groupStatus
+        FROM
+        mm_business_unit bu
+        LEFT JOIN `mm_monthly_plan` mp ON 0 = 0
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`months` = mp.`months`
+        AND mpb.`prepared_by_unit_org_id` = bu.`business_id` -- 集团下达数据
+        LEFT JOIN (
+
+
+        SELECT total_sign_funds, mpi.months, mpi.`prepared_by_unit_org_id`
+        FROM  `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.months = mpi.months AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        WHERE bu.`type` = 2
+        AND mpi.prepared_by_unit_type = 1 AND mpb.plan_status IN (1,2)
+        GROUP BY   mpi.months,  mpi.`prepared_by_unit_org_id`
+
+
+        ) group_release ON group_release.months = mp.`months`
+        AND group_release.`prepared_by_unit_org_id` = bu.`business_id` -- 区域下达数据
+        LEFT JOIN (
+
+        SELECT   total_sign_funds, mpi.months,  mpi.`prepared_by_unit_org_id`
+        FROM `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.months = mpi.months AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        WHERE bu.`type` = 2
+        AND mpi.prepared_by_unit_type = 2 AND mpb.plan_status &lt;&gt;0
+        GROUP BY  mpi.months, mpi.`prepared_by_unit_org_id`
+
+        ) region_release ON region_release.months = mp.`months`
+        AND region_release.`prepared_by_unit_org_id` = bu.`business_id` -- 项目上报数据
+        LEFT JOIN (
+
+
+        SELECT total_sign_funds,  mpi.months,   mpi.`prepared_by_unit_org_id`
+        FROM  `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.months = mpi.months AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        WHERE   bu.`type` = 2
+        AND mpi.prepared_by_unit_type = 3
+        AND mpb.plan_status &gt;= 1
+        GROUP BY  mpi.months, mpi.`prepared_by_unit_org_id`
+
+
+        ) project_release ON project_release.months = mp.`months`
+        AND project_release.`prepared_by_unit_org_id` = bu.`business_id` -- 授权
+
+        LEFT JOIN (
+
+        SELECT mpb.plan_status ,mpb.months
+        FROM  mm_monthly_plan_basis  mpb
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        WHERE  0=0 AND  bu.`type` = 1
+        GROUP BY mpb.months
+
+        ) gps  ON gps.months = mp.`months`
+
+        LEFT JOIN (
+
+        SELECT COUNT(*) cou,bu.`region_org_id`,mp.months FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_business_unit` bu ON  0=0
+        LEFT JOIN  mm_monthly_plan_basis mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months`
+        WHERE bu.`type` = 3 AND mpb.`plan_status` &gt;1
+        GROUP BY mp.months,bu.`region_org_id`
+
+        ) xmsl ON xmsl.months = mp.`months` AND bu.`business_id` = xmsl.`region_org_id`
+        INNER JOIN
+        (
+        SELECT project_id,1 is_manage from s_user_project_rel
+        where userId=${userId}
+        ) temp on temp.project_id=bu.business_id
+        LEFT JOIN (SELECT plan_status,months FROM mm_monthly_plan_basis WHERE prepared_by_level=1) groupstatus ON groupstatus.months=mpb.months
+
+        where bu.type=2 and gps.plan_status &lt;&gt; 0
+        and bu.monthly_weekly_type=1
+        <if test="months!='' and months!=null">
+            AND mpb.`months` like #{months}"%"
+        </if>
+        <if test="planStatus!=null and planStatus!=''">
+            and mpb.plan_status=#{planStatus}
+        </if>
+        <if test="businessName!='' and businessName!=null">
+            and bu.business_name like "%"#{businessName}"%"
+        </if>
+        GROUP BY  temp.project_id,mp.months
+        order by mpb.months desc,region_org_id
+    </select>
+    <!-- 获取集团给区域下发的值 -->
+    <select id="getGroupReleaseRegional" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT total_sign_funds, mpi.months, mpi.`prepared_by_unit_org_id`
+        FROM  `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.months = mpi.months AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        WHERE bu.`type` =2 AND mpi.prepared_by_unit_type = 1 AND mpb.plan_status = 1
+				and  mpi.prepared_by_unit_org_id=#{businessId}
+						and mpb.months=#{months}
+        GROUP BY   mpi.months,  mpi.`prepared_by_unit_org_id`
+
+     </select>
+    <!-- 获取区域的合计 -->
+    <select id="getRegionalAggregate" parameterType="java.util.Map" resultType="java.lang.Integer">
+            SELECT   total_sign_funds, mpi.months,  mpi.`prepared_by_unit_org_id`
+    FROM `mm_monthly_plan_index` mpi
+    LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+    LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.months = mpi.months AND bu.`business_id` = mpi.`prepared_by_unit_org_id`
+    WHERE bu.`type` = 2
+    AND mpi.prepared_by_unit_type = 2
+    and  mpi.prepared_by_unit_org_id=#{businessId}
+    and mpb.months=#{months}
+    GROUP BY  mpi.months, mpi.`prepared_by_unit_org_id`
+    </select>
+    <!--判断区域月份是否存在-->
+    <select id="selectRegionalMonth" resultType="java.lang.Integer" parameterType="java.util.Map">
+ select count(*) from mm_monthly_plan_index mm
+where mm.prepared_by_unit_org_id =#{praparedByUnitOrgId}
+and months=#{months}and mm.prepared_by_unit_type=2
+    </select>
+
+    <!--判断项目月份是否存在-->
+    <select id="selectProjectMonth" resultType="java.lang.Integer" parameterType="java.util.Map">
+ select count(*) from mm_monthly_plan_index mm
+where mm.prepared_by_unit_org_id =#{praparedByUnitOrgId}
+and months=#{months}and mm.prepared_by_unit_type=3
+    </select>
+    <!--  在区域里获取集团下达数据-->
+    <select id="getGroupReleaseInRegional" parameterType="java.util.Map" resultType="java.util.Map" >
+SELECT
+mpb.guid basisGuid,
+mpi.prepared_by_unit_type,
+bu.`business_name`   ,bu.`business_id`,bu.`region_org_id`
+ ,bu.`type`
+ ,bu.`guid`  AS  business_unit_id
+ ,bu.father_id
+
+,bu.`guid`
+,mpb.reserve_can_sell_set
+,mpb.reserve_can_sell_funds
+
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+
+,mpb.top_three_month_average_sign_set
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+,mpb.top_three_month_average_turnover_rate
+,mpb.top_three_month_average_sign_funds
+,mpb.last_month_turnover_rate
+,mpi.reserve_sign_funds
+,mpi.new_sign_funds
+,mpi.total_sign_funds,mp.`months`
+,ROUND( mpi.marketing_promotion_cost,1) as marketing_promotion_cost
+,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+
+WHERE mp.`months` =#{months}
+
+AND bu.`type` IN (2,3) AND mpi.`prepared_by_unit_type` = 2
+
+AND
+(
+
+   bu. `region_org_id`  = #{bussinesId}
+   OR bu.`business_id` =#{bussinesId}
+   )
+ORDER BY bu.Sort_code ASC
+</select>
+    <!-- 根据区域id获取事业部数据-->
+    <select id="getBusinessForRegional" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+  `type`,
+  `business_id`,
+  `business_name`,mpb.`guid` AS monthlyPlanBasisId   ,mp.`guid` AS monthlyPlanId
+FROM
+  `mm_business_unit`  bu
+  LEFT JOIN `mm_FROM  `b_account` a monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`
+  LEFT JOIN `mm_monthly_plan` mp ON 0=0
+  WHERE  `region_org_id` = #{regionOrgId}
+ AND mp.`months` = #{months}
+</select>
+    <!-- 根据项目距id获取事业部数据-->
+    <select id="getBusinessForProject" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+bu.`guid` -- ,mpb.`guid`
+,`type`
+,bu.`business_id`
+,bu.`business_name`,bu. `project_org_id`
+  ,mpb.`guid` AS monthlyPlanBasisId   ,mp.`guid` AS monthlyPlanId
+FROM
+  `mm_business_unit`  bu
+
+ LEFT JOIN `mm_monthly_plan` mp ON 0=0
+
+   LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+  -- 19e992d8-d8ec-11e9-abaa-00163e05721e
+  WHERE 0=0 AND (
+  -- bu. `project_org_id`  = '19e992d8-d8ec-11e9-abaa-00163e05721e'  OR bu.`business_id` = '19e992d8-d8ec-11e9-abaa-00163e05721e'
+   bu. `project_org_id`  = #{projectOrgId}
+   OR bu.`business_id` = #{projectOrgId}
+
+   )
+ -- AND mp.`months` =  '2019-08-01 00:00:00'
+ AND mp.`months` =  #{months}
+
+  ORDER BY bu.`type` ASC
+
+
+
+</select>
+    <!--添加区域月度计划指标-->
+    <insert id="insertRegionalMonthPlanIndex" parameterType="java.util.Map">
+  insert into mm_monthly_plan_index
+        (
+                                    guid,
+                                    creator,
+                                    create_time,
+                                    is_delete_flag,
+                                    editor,
+                                    update_time,
+                                    months,
+                                    monthly_plan_id,
+                                    monthly_plan_basis_id,
+                                    version,
+                                    compiler_account_id,
+                                    prepared_by_unit_type,
+                                    prepared_by_unit_org_id,
+                                    prepared_by_level,
+                                    prepared_by_level_name,
+                                    reserve_sign_funds,
+                                    new_sign_funds,
+                                    total_sign_funds,
+                                    reserve_sign_set,
+                                    new_sign_set,
+                                    total_sign_set,
+                                    marketing_promotion_cost,
+                                    plan_subscription_set,
+                                    plan_subscription_funds,
+                                    plan_turnover_rate,
+                                    approval_status,
+                                    approval_time,
+                                    approval_account_id,
+                                    is_effective
+
+        )
+        values
+        (
+                                  #{guID},
+                                    0,
+                                    now(),
+                                    0,
+                                    0,
+                                    now(),
+                                    #{months},
+                                    #{monthlyPlaniId},
+                                    #{monthlyPlanBasisId},
+                                    #{version},
+                                    #{userId},
+                                    2,
+                                    #{preparedByUnitOrgId},
+                                    #{preparedByLevel},
+                                    #{preparedByLevelName},
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                     now(),
+                                    0,
+                                    0
+
+        )
+</insert>
+    <!--获取区域初始化数据-->
+    <select id="getRegionalMessage" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+mpb.guid basisGuid,mpi.prepared_by_unit_type,
+bu.`business_name`   ,bu.`type`  ,bu.`guid` AS business_unit_id, bu.`father_id` ,bu.`region_org_id`
+,mpb.reserve_can_sell_set
+,bu.project_org_id
+,mpb.reserve_can_sell_funds
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+
+,mpb.top_three_month_average_sign_set
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+,mpb.top_three_month_average_turnover_rate
+,top_three_month_average_sign_funds
+,mpb.last_month_turnover_rate
+,mpi.reserve_sign_funds
+,mpi.new_sign_funds
+,mpi.total_sign_funds
+ ,ROUND( mpi.marketing_promotion_cost,1) as marketing_promotion_cost,
+(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+FROM
+`mm_business_unit` bu
+LEFT JOIN `mm_monthly_plan` mp ON 0=0
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`  AND mpb.months = mp.`months`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_id` =  mp.`guid`
+AND mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 2
+
+WHERE bu.monthly_weekly_type=1 AND (
+bu.`region_org_id` = #{regionOrgId}
+OR  bu.`business_id` =  #{regionOrgId}
+-- OR bu.`type` = 1
+)
+AND mp.`months` =  #{months} AND mpb.`guid`  IS NOT NULL
+AND bu.`type` IN (2,3)
+ORDER BY bu.Sort_code ASC
+
+
+
+
+
+    </select>
+    <!--区域指标细化-->
+    <select id="getRegionChildMessage" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        mpb.guid basisGuid,mpi.prepared_by_unit_type,
+bu.`business_name`   ,bu.`type`  ,bu.`guid`,bu.`business_id`,bu.`father_id` ,bu.`guid` AS business_unit_id
+,mpb.reserve_can_sell_set
+,mpb.reserve_can_sell_funds
+
+,mpb.new_reserve_set
+,mpb.new_reserve_funds
+
+,mpb.total_reserve_set
+,mpb.total_reserve_funds
+
+,mpb.year_plan_sign
+,mpb.year_grand_total_sign
+
+,mpb.top_three_month_average_sign_set
+,mpb.upper_moon_sign_set
+,mpb.upper_moon_sign_funds
+,mpb.top_three_month_average_turnover_rate
+,mpb.last_month_turnover_rate
+,mpi.reserve_sign_funds
+,mpi.new_sign_funds
+,mpi.total_sign_funds
+,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` AND mpi.`prepared_by_unit_type` = 1
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+
+  WHERE  bu.`father_id` = #{projectOrgId} -- 'e76ff09c-ebf1-4bb9-8743-60fab049c495'
+  AND mp.`months` = #{months} -- '2019-08-01'
+GROUP BY bu.guid
+
+
+
+
+    </select>
+    <!--项目月度计划查询-->
+    <select id="getProjectMonthPlan" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+
+        `business_name`,
+        DATE_FORMAT(mpb.`months`,'%Y-%m-%d') months,
+        bu.project_org_id,
+        bu.business_id,
+        bu.region_org_id,
+        basis.plan_status regionStatus,
+        ( CASE mpb.`plan_status`
+        WHEN 0  THEN '表一项目未上报'
+        WHEN 1  THEN'表一项目已上报(未审核)'
+        WHEN 2  THEN'表二三四项目未上报'
+        WHEN 3 THEN '表二三四项目已上报(未审核)'
+        WHEN 4 THEN '全部审核'
+        ELSE '其他'  END  ) AS plan_status,
+        mpb.`plan_status` AS plan_status_code,
+        IFNULL( region_release.total_sign_funds  ,0)  region
+        , (CASE   mpb.plan_status WHEN '0'
+        THEN 0
+        ELSE  project_release.total_sign_funds
+        END
+        ) AS
+        project
+        , IFNULL(J.is_manage,0) AS is_manage
+        FROM
+        `mm_business_unit` bu
+        LEFT JOIN `mm_monthly_plan` mp ON 0=0
+
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months`
+        -- 区域下达数据
+        LEFT JOIN `mm_monthly_plan_index` region_release ON  region_release.`prepared_by_unit_org_id` = bu.`business_id`
+
+        AND region_release.`months` = mp.`months`  AND region_release.`prepared_by_unit_type` = 2
+        -- 项目上报数据
+        LEFT JOIN `mm_monthly_plan_index` project_release ON  project_release.`prepared_by_unit_org_id` = bu.`business_id`
+
+        AND project_release.`months` = mp.`months`  AND project_release.`prepared_by_unit_type` = 3
+
+        LEFT JOIN (
+
+        SELECT   mpb.plan_status ,mpb.months,bu.`business_id`
+        FROM  mm_monthly_plan_basis  mpb
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        WHERE  0=0 AND  bu.`type` = 2
+        GROUP BY  mpb.months,bu.`business_id`
+
+        ) rps  ON rps.months = mp.`months` AND rps.`business_id` = bu.`region_org_id`
+
+        INNER JOIN
+        (
+        select * from (
+        SELECT project_id,1 is_manage from s_user_project_rel
+        where userId=#{userId}
+        UNION
+        SELECT a.project_id,0 is_manage from mm_idm_business_unit_project_rel a
+        INNER JOIN s_user_project_rel b on a.business_unit_id=b.project_id
+        where userId=#{userId}
+        ) userproject GROUP BY project_id
+        ) J on j.project_id=bu.business_id
+        -- 该项目的区域状态
+        LEFT JOIN  mm_monthly_plan_basis basis ON bu.region_org_id=basis.prepared_by_unit_org_id AND basis.months=mpb.months
+
+        where bu.type=3 and rps.plan_status &lt;&gt;0
+        and bu.monthly_weekly_type=1
+        <if test="months!='' and months!=null">
+            AND mpb.`months`like #{months}"%"
+        </if>
+        <if test="planStatus!=null and planStatus!=''">
+            and mpb.plan_status=#{planStatus}
+        </if>
+        <if test="businessName!='' and businessName!=null">
+            and bu.business_name like "%"#{businessName}"%"
+        </if>
+        GROUP BY  j.project_id,mp.`months`
+        order by  mpb.months desc ,bu.Sort_code asc
+    </select>
+    <!--从项目月度计划获取区域下达数据-->
+    <select id="getRegionalReleaseInProject" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+mpb.guid basisGuid,
+mpi.prepared_by_unit_type,
+bu.`business_name`
+,bu.`business_id`
+,bu.`region_org_id`
+,bu.`type`
+,bu.`guid`
+,bu.`father_id`
+,bu.`guid` AS business_unit_id
+,bu.business_id
+,mpb.reserve_can_sell_set	,
+mpb.reserve_can_sell_funds	,
+mpb.new_reserve_set	,
+mpb.new_reserve_funds	,
+mpb.total_reserve_set	,
+mpb.total_reserve_funds	,
+
+mpb.year_plan_sign	,
+mpb.year_grand_total_sign	,
+mpb.top_three_month_average_sign_set	,
+mpb.top_three_month_average_sign_funds	,
+mpb.upper_moon_sign_set	,
+mpb.upper_moon_sign_funds	,
+
+mpi.reserve_sign_set	,
+mpi.reserve_sign_funds	,
+mpi.new_sign_set	,
+mpi.new_sign_funds	,
+mpi.total_sign_set	,
+mpi.total_sign_funds	,
+mpi.plan_subscription_set	,
+mpi.plan_subscription_funds	,
+
+mpb.top_three_month_average_turnover_rate	,
+mpb.last_month_turnover_rate	,
+ROUND( mpi.marketing_promotion_cost,1) as marketing_promotion_cost,
+
+mpi.plan_turnover_rate
+,mp.`months`
+
+,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+
+FROM
+ `mm_monthly_plan`  mp
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid`
+LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+
+WHERE mp.`months` = #{months}
+
+AND mpi.`prepared_by_unit_type` in(2,3)  -- 1 下达指标主体 1 集团 2 区域 3 项目
+and mpi.`prepared_by_unit_type` = 2
+AND (
+bu.`project_org_id` = #{bussinesId}
+OR  bu.`business_id` =#{bussinesId}
+)
+
+ORDER BY bu.Sort_code ASC
+
+</select>
+    <insert id="insertProjectMonthPlanIndex" parameterType="java.util.Map">
+        insert into mm_monthly_plan_index
+        (
+                                    guid,
+                                    creator,
+                                    create_time,
+                                    is_delete_flag,
+                                    editor,
+                                    update_time ,
+                                    months,
+                                    monthly_plan_id,
+                                    monthly_plan_basis_id,
+                                    version,
+                                    compiler_account_id,
+                                    prepared_by_unit_type,
+                                    prepared_by_unit_org_id,
+                                    prepared_by_level,
+                                    prepared_by_level_name,
+                                    reserve_sign_funds,
+                                    new_sign_funds,
+                                    total_sign_funds,
+                                    reserve_sign_set,
+                                    new_sign_set,
+                                    total_sign_set,
+                                    marketing_promotion_cost,
+                                    plan_subscription_set,
+                                    plan_subscription_funds,
+                                    plan_turnover_rate,
+                                    approval_status,
+                                    approval_time,
+                                    approval_account_id,
+                                    is_effective
+
+        )
+        values
+        (
+                                  #{guID},
+                                    0,
+                                    now(),
+                                    0,
+                                    0,
+                                    now(),
+                                    #{months},
+                                    #{monthlyPlaniId},
+                                    #{monthlyPlanBasisId},
+                                   #{version},
+                                    #{userId},
+                                    3,
+                                    #{preparedByUnitOrgId},
+                                    #{preparedByLevel},
+                                    #{preparedByLevelName},
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    0,
+                                    now(),
+                                    0,
+                                    0
+
+        )
+    </insert>
+    <!-- 获取项目初始化数据 -->
+    <select id="getProjectMessage" resultType="java.util.Map" parameterType="java.util.Map">
+         SELECT
+  `type`,
+  bu.`business_id`
+  ,bu.`guid` as business_unit_id
+,bu.`father_id` as father_id,
+  `business_name`,
+mpb.reserve_can_sell_set,
+mpb.reserve_can_sell_funds,
+mpb.new_reserve_set,
+mpb.new_reserve_funds,
+mpb.total_reserve_set,
+mpb.total_reserve_funds,
+mpb.year_plan_sign,
+mpb.year_grand_total_sign,
+mpb.top_three_month_average_sign_set,
+mpb.top_three_month_average_sign_funds,
+mpb.upper_moon_sign_set,
+mpb.upper_moon_sign_funds,
+mpi.reserve_sign_set,
+mpi.reserve_sign_funds,
+mpi.new_sign_set,
+mpi.new_sign_funds,
+mpi.total_sign_set,
+mpi.total_sign_funds,
+mpi.plan_subscription_set,
+mpi.plan_subscription_funds,
+
+mpb.top_three_month_average_turnover_rate*100 top_three_month_average_turnover_rate,
+mpb.last_month_turnover_rate*100 last_month_turnover_rate,
+ ROUND( mpi.marketing_promotion_cost,1) as marketing_promotion_cost ,
+
+mpi.plan_turnover_rate,
+DATE_FORMAT(mpi.months,'%Y-%m-%d') months,
+mpi.guid,
+mpb.plan_status,
+mpi.is_effective,
+mpb.prepared_by_level,
+bu.`region_org_id`
+,(SELECT  COUNT(1) father_count FROM mm_business_unit bu WHERE bu.`father_id` =  business_unit_id ) AS father_count
+
+FROM
+  `mm_business_unit` bu
+LEFT JOIN `mm_monthly_plan` mp ON  0=0
+LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3 AND mpi.`months` = mp.`months`
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+  WHERE 0=0 AND ( bu. `project_org_id`  = #{projectId}
+   OR bu.`business_id` =  #{projectId}
+   )
+  AND mp.`months` =  #{months}  and prepared_by_unit_type = 3
+
+ ORDER BY bu.Sort_code ASC
+
+  -- "19e992d8-d8ec-11e9-abaa-00163e05721e"
+
+ </select>
+
+    <select id="getProjectAreaID" resultType="java.util.Map">
+        select SUBSTRING_INDEX(SUBSTRING_INDEX(FullNo,'-',3),'-',-1) quyuId,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(FullPath,'-',3),'-',-1) quyuName,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(FullNo,'-',4),'-',-1) cityId,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(FullPath,'-',4),'-',-1) cityName
+        from s_organization where ID=#{projectId} limit 1
+    </select>
+    <!-- 查询区域下项目未上报条数 -->
+    <select id="getRegionUnderProject" parameterType="java.util.Map" resultType="java.lang.Integer">
+
+            SELECT count(*)
+            FROM   mm_business_unit bu
+            LEFT JOIN `mm_monthly_plan` mp ON 0=0
+
+            LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months`
+            LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months` AND mpi.`prepared_by_unit_type` = 3
+            WHERE 0=0 AND bu.`region_org_id` =#{regionOrgId} AND bu.`type` = 3 AND mp.`months` = #{months}
+            AND mpb.`plan_status` = 0
+
+    </select>
+    <!-- 查询集团下区域为上报条数 -->
+    <select id="getGroupUnderRegion" parameterType="java.util.Map" resultType="java.lang.Integer">
+            SELECT count(*)
+            FROM   mm_business_unit bu
+            LEFT JOIN `mm_monthly_plan` mp ON 0=0
+            LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months`
+            WHERE 0=0
+            AND bu.type=2 -- 项目  用户ID
+            AND mp.`months` =#{months}
+            AND mpb.plan_status=0
+    </select>
+
+    <update id="updateGroupPlanStatus" parameterType="java.util.Map">
+        update mm_monthly_plan set plan_status=2
+        where months=#{months}
+    </update>
+    <!-- 修改区域的费用 -->
+    <update id="updateRegionFunds" parameterType="java.util.Map">
+           UPDATE mm_monthly_plan_index mpi,`mm_monthly_plan_basis` mpb ,
+(
+  SELECT reserve_sign_funds,new_sign_funds,total_sign_funds,monthly_plan_basis_id
+	FROM mm_monthly_plan_index WHERE prepared_by_unit_type=1
+	AND months= #{months}
+)mm
+SET
+mpi.reserve_sign_funds=mm.reserve_sign_funds,
+mpi.new_sign_funds=mm.new_sign_funds,
+mpi.total_sign_funds=mm.total_sign_funds
+WHERE mpi.months= #{months}
+AND mpi.prepared_by_unit_type=2
+AND mpb.prepared_by_unit_org_id=mpi.prepared_by_unit_org_id
+AND mpb.months=mpi.months
+
+AND mpb.plan_status=0
+AND mm.monthly_plan_basis_id=mpi.monthly_plan_basis_id
+
+
+    </update>
+    <!-- 修改项目的费用 -->
+    <update id="updateProjectFunds" parameterType="java.util.Map">
+
+
+UPDATE mm_monthly_plan_index mpi,`mm_monthly_plan_basis` mpb ,
+(
+  SELECT reserve_sign_funds,new_sign_funds,total_sign_funds,monthly_plan_basis_id,prepared_by_unit_org_id
+	FROM mm_monthly_plan_index WHERE prepared_by_unit_type=2
+	AND months=#{months}
+)mm LEFT JOIN mm_business_unit
+mb ON mm.prepared_by_unit_org_id=mb.business_id
+SET
+mpi.reserve_sign_funds=mm.reserve_sign_funds,
+mpi.new_sign_funds=mm.new_sign_funds,
+mpi.total_sign_funds=mm.total_sign_funds
+WHERE mpi.months=#{months}
+AND mb.region_org_id=#{businessId}
+AND mpi.prepared_by_unit_type=3
+AND mpb.prepared_by_unit_org_id=mpi.prepared_by_unit_org_id
+AND mpb.months=mpi.months
+AND mpb.prepared_by_level=3
+AND mpb.plan_status=0
+AND mm.monthly_plan_basis_id=mpi.monthly_plan_basis_id
+    </update>
+    <!-- 修改集团的明源数据 -->
+    <update id="updateGroupmy" parameterType="java.util.Map">
+        -- 集团
+update mm_monthly_plan_basis mpb,(
+select
+        a.months,
+        sum(a.year_grand_total_sign) ks,
+				sum(a.top_three_month_average_sign_set) km,
+				sum(a.top_three_month_average_sign_funds) ns,
+				sum(a.upper_moon_sign_set) nm,
+				sum(a.upper_moon_sign_funds) kns
+            from mm_monthly_plan_basis a where a.prepared_by_level=3
+            and a.months=#{months}
+            )c
+            set
+            mpb.year_grand_total_sign=c.ks,
+            mpb.top_three_month_average_sign_set=c.km,
+            mpb.top_three_month_average_sign_funds=c.ns,
+            mpb.upper_moon_sign_set=c.nm,
+            mpb.upper_moon_sign_funds=c.kns
+            where prepared_by_level=1
+            and mpb.months=#{months}
+
+    </update>
+
+    <!-- 修改区域的明源数据 -->
+    <update id="updateRegionmy" parameterType="java.util.Map">
+        -- 区域
+update mm_monthly_plan_basis mpb,(
+select
+			 mb.region_org_id as id,
+        a.months,
+        sum(a.year_grand_total_sign) ks,
+				sum(a.top_three_month_average_sign_set) km,
+				sum(a.top_three_month_average_sign_funds) ns,
+				sum(a.upper_moon_sign_set) nm,
+				sum(a.upper_moon_sign_funds) kns
+            from mm_monthly_plan_basis a
+					left join mm_business_unit mb
+					on a.prepared_by_unit_org_id=mb.business_id
+
+					where mb.type=3
+            and a.months=#{months}
+						group by mb.region_org_id
+            )c
+            set
+            mpb.year_grand_total_sign=c.ks,
+            mpb.top_three_month_average_sign_set=c.km,
+            mpb.top_three_month_average_sign_funds=c.ns,
+            mpb.upper_moon_sign_set=c.nm,
+            mpb.upper_moon_sign_funds=c.kns
+            where prepared_by_level=2
+            and mpb.months=#{months}
+		and mpb.prepared_by_unit_org_id=c.id
+
+    </update>
+    <!-- 把值为空的改为零 -->
+    <update id="updateIsnull" parameterType="java.util.Map">
+        UPDATE
+  `saleman`.`mm_monthly_plan_basis`  mpb
+SET
+  `reserve_can_sell_set` = IFNULL( `reserve_can_sell_set`,0),
+  `reserve_can_sell_funds` = IFNULL( `reserve_can_sell_funds`,0),
+  `new_reserve_set` = IFNULL( `new_reserve_set`,0),
+  `new_reserve_funds` = IFNULL( `new_reserve_funds`,0),
+  `total_reserve_set` = IFNULL( `total_reserve_set`,0),
+  `total_reserve_funds` = IFNULL( `total_reserve_funds`,0),
+  `year_plan_sign` =  IFNULL( `year_plan_sign`,0),
+  `year_grand_total_sign` = IFNULL( `year_grand_total_sign`,0),
+  `top_three_month_average_sign_set` = IFNULL( `top_three_month_average_sign_set`,0),
+  `top_three_month_average_sign_funds` = IFNULL( `top_three_month_average_sign_funds`,0),
+  `upper_moon_sign_set` = IFNULL( `upper_moon_sign_set`,0),
+  `upper_moon_sign_funds` = IFNULL( `upper_moon_sign_funds`,0),
+  `top_three_month_average_turnover_rate` = IFNULL( `top_three_month_average_turnover_rate`,0),
+  `last_month_turnover_rate` =  IFNULL( `last_month_turnover_rate`,0)
+ WHERE mpb.months = #{months}
+    </update>
+
+
+
+
+    <!-- 修改项目库存可售金额、库存可售套数、 新增可售金额、新增可售套数、合计可售金额、合计可售套数、版本id-->
+    <update id="updateProjectValue" parameterType="java.util.Map">
+            #修改实际
+            UPDATE mm_monthly_plan_basis  m,
+            (
+
+SELECT
+	is_parking,
+	product_code_sale,
+	version_id,
+	project_id,
+	sum( un_sale_stall_num ) + sum( un_sale_room_num ) room_num_actual,
+	sum( un_sale_stall_price ) + sum( un_sale_room_price ) house_commodity_value_actual
+FROM
+	v_sman_value_report  where project_Id=#{projectId} and end_date=#{kc_date}
+                )
+            ab
+            SET m.reserve_can_sell_funds = ab.house_commodity_value_actual/10000 ,
+                m.reserve_can_sell_set = ab.room_num_actual,
+                m.version_id = ab.version_id,
+                m.is_parking = ab.is_parking,
+                m.product_code_sale = ab.product_code_sale
+            WHERE  m.prepared_by_unit_org_id = ab.project_id AND months = #{months};
+
+
+
+            #修改计划
+             UPDATE mm_monthly_plan_basis  m,
+            (SELECT
+                   SUM(IFNULL(house_commodity_value,0))+SUM(IFNULL(not_commodity_value,0)) AS house_commodity_value ,
+                   SUM(IFNULL(room_num,0)) + SUM(IFNULL(parking_num,0))  AS room_num,
+                   a.version_id,a.project_id,a.create_time,a.is_parking,a.product_code_sale
+            FROM v_sman_supply_plan a
+            WHERE a.supply_date BETWEEN  #{startDate} AND #{endDate} and
+            (a.supply_date_actual is null or a.supply_date_actual &gt;=#{startDate}  ) and a.project_id=#{projectId} GROUP BY a.project_id
+            )ab
+            SET
+                   m.new_reserve_funds = ab.house_commodity_value/10000 ,
+                   m.new_reserve_set = ab.room_num,
+                   m.version_id = ab.version_id,
+                   m.is_parking = ab.is_parking,
+                   m.product_code_sale = ab.product_code_sale
+            WHERE  m.prepared_by_unit_org_id = ab.project_id AND months = #{months};
+    </update>
+
+    <!-- 修改组团库存可售金额、库存可售套数、 新增可售金额、新增可售套数、合计可售金额、合计可售套数、版本id-->
+    <update id="updateGroupcodeValue" parameterType="java.util.Map">
+#修改实际
+            UPDATE mm_monthly_plan_basis  m,
+            (
+           	SELECT
+	is_parking,
+	product_code_sale,
+	version_id,
+	group_id,
+	sum( un_sale_stall_num ) + sum( un_sale_room_num ) room_num_actual,
+	sum( un_sale_stall_price ) + sum( un_sale_room_price ) house_commodity_value_actual
+FROM
+	v_sman_value_report  where group_id in (${resGroupId}) and end_date=#{kc_date} group by group_id
+             )ab
+             SET m.reserve_can_sell_funds = ab.house_commodity_value_actual/10000 ,
+                 m.reserve_can_sell_set = ab.room_num_actual,
+                 m.version_id = ab.version_id,
+                 m.is_parking = ab.is_parking,
+                m.product_code_sale = ab.product_code_sale
+            WHERE   m.prepared_by_unit_org_id = ab.group_id AND months = #{months};
+
+
+            #修改计划
+                UPDATE mm_monthly_plan_basis  m,
+            (SELECT
+                 SUM(IFNULL(house_commodity_value,0)) + SUM(IFNULL(not_commodity_value,0)) AS house_commodity_value ,
+                 SUM(IFNULL(room_num,0)) + SUM(IFNULL(parking_num,0))  AS room_num,
+                 a.version_id,a.group_id,a.create_time,a.is_parking,a.product_code_sale
+	         FROM v_sman_supply_plan a
+             WHERE a.supply_date BETWEEN  #{startDate} AND #{endDate} and
+            (a.supply_date_actual is null or a.supply_date_actual &gt;=#{startDate}  ) and a.group_id in (${resGroupId}) GROUP BY a.group_id
+             )ab
+             SET
+                 m.new_reserve_funds = ab.house_commodity_value/10000 ,
+                 m.new_reserve_set = ab.room_num,
+                 m.version_id = ab.version_id,
+                 m.is_parking = ab.is_parking,
+                 m.product_code_sale = ab.product_code_sale
+            WHERE   m.prepared_by_unit_org_id = ab.group_id AND months = #{months};
+    </update>
+
+    <!-- 修改分期供库存可售金额、库存可售套数、 新增可售金额、新增可售套数、合计可售金额、合计可售套数、版本id-->
+    <update id="updateInstallmentValue" parameterType="java.util.Map">
+#修改实际
+            UPDATE mm_monthly_plan_basis  m,
+            (
+               SELECT
+	is_parking,
+	product_code_sale,
+	version_id,
+	stage_id,
+	sum( un_sale_stall_num ) + sum( un_sale_room_num ) room_num_actual,
+	sum( un_sale_stall_price ) + sum( un_sale_room_price ) house_commodity_value_actual
+FROM
+	v_sman_value_report  where stage_id in (${resStageId}) and end_date=#{kc_date} group by stage_id
+            )ab
+            SET m.reserve_can_sell_funds = ab.house_commodity_value_actual/10000 ,
+            m.reserve_can_sell_set = ab.room_num_actual,
+            m.version_id = ab.version_id,
+            m.is_parking = ab.is_parking,
+            m.product_code_sale = ab.product_code_sale
+            WHERE   m.prepared_by_unit_org_id = ab.stage_id AND months = #{months};
+
+            #修改计划
+             UPDATE mm_monthly_plan_basis  m,
+            (SELECT
+                    SUM(IFNULL(house_commodity_value,0)) + SUM(IFNULL(not_commodity_value,0))  AS house_commodity_value ,
+                    SUM(IFNULL(room_num,0)) + SUM(IFNULL(parking_num,0))  AS room_num,
+                    a.version_id,a.stage_id,a.create_time,
+                    a.is_parking,a.product_code_sale
+            FROM v_sman_supply_plan a
+            WHERE a.supply_date BETWEEN #{startDate} AND #{endDate}  and
+            (a.supply_date_actual is null or a.supply_date_actual &gt;=#{startDate} ) and a.stage_id in (${resStageId}) GROUP BY stage_id
+            )ab
+            SET
+                    m.new_reserve_funds = ab.house_commodity_value/10000 ,
+                    m.new_reserve_set = ab.room_num,
+                    m.version_id = ab.version_id,
+                    m.is_parking = ab.is_parking,
+                    m.product_code_sale = ab.product_code_sale
+            WHERE   m.prepared_by_unit_org_id = ab.stage_id AND months = #{months};
+    </update>
+
+    <!-- 修改业态库存可售金额、库存可售套数、 新增可售金额、新增可售套数、合计可售金额、合计可售套数、版本id-->
+    <update id="updateProductValue" parameterType="java.util.Map">
+#修改实际
+        UPDATE mm_monthly_plan_basis  m,
+        (
+          SELECT
+	is_parking,
+	product_code_sale,
+	version_id,
+	product_id,
+	sum( un_sale_stall_num ) + sum( un_sale_room_num ) room_num_actual,
+	sum( un_sale_stall_price ) + sum( un_sale_room_price ) house_commodity_value_actual
+FROM
+	v_sman_value_report  where product_id in (${resProductId}) and end_date=#{kc_date} group by product_id
+        )ab
+        SET
+        m.reserve_can_sell_funds = ab.house_commodity_value_actual/10000 ,
+        m.reserve_can_sell_set = ab.room_num_actual,
+        m.version_id = ab.version_id,
+        m.is_parking = ab.is_parking,
+        m.product_code_sale = ab.product_code_sale
+        WHERE   m.prepared_by_unit_org_id = ab.product_id AND months = #{months} and m.prepared_by_level=6;
+
+        #修改计划
+        UPDATE mm_monthly_plan_basis  m,
+        (SELECT
+            SUM(IFNULL(house_commodity_value,0)) + SUM(IFNULL(not_commodity_value,0)) AS house_commodity_value ,
+            SUM(IFNULL(room_num,0)) + SUM(IFNULL(parking_num,0))  AS room_num,a.version_id,product_id,a.create_time,
+            a.is_parking,a.product_code_sale
+        FROM v_sman_supply_plan a
+        WHERE a.supply_date BETWEEN  #{startDate} AND #{endDate}  and
+            (a.supply_date_actual is null or a.supply_date_actual &gt;=#{startDate} ) and product_id in (${resProductId})  GROUP BY a.product_id
+        )ab
+        SET
+            m.new_reserve_funds = ab.house_commodity_value/10000 ,
+            m.new_reserve_set = ab.room_num,
+            m.version_id = ab.version_id,
+            m.is_parking = ab.is_parking,
+            m.product_code_sale = ab.product_code_sale
+        WHERE   m.prepared_by_unit_org_id = ab.product_id AND months = #{months} and m.prepared_by_level=6;
+    </update>
+
+    <!-- 修改面地段存可售金额、库存可售套数、 新增可售金额、新增可售套数、合计可售金额、合计可售套数   非车位-->
+    <update id="updateHousePackageValue" parameterType="java.util.Map">
+#修改实际
+        UPDATE mm_monthly_plan_basis  m,
+        (
+            SELECT
+	is_parking,
+	product_code_sale,
+	version_id,
+	mini_granularity_id,
+	sum( un_sale_stall_num ) + sum( un_sale_room_num ) room_num_actual,
+	sum( un_sale_stall_price ) + sum( un_sale_room_price ) house_commodity_value_actual
+FROM
+	v_sman_value_report  where mini_granularity_id in (${resHouseId}) and end_date=#{kc_date} group by mini_granularity_id
+        )ab
+        SET m.reserve_can_sell_funds = ab.house_commodity_value_actual/10000 ,
+        m.reserve_can_sell_set = ab.room_num_actual,
+            m.version_id = ab.version_id,
+            m.is_parking = ab.is_parking,
+            m.product_code_sale = ab.product_code_sale
+        WHERE   m.prepared_by_unit_org_id = ab.mini_granularity_id AND months = #{months} and m.prepared_by_level=7;
+
+
+
+        #修改计划
+         UPDATE mm_monthly_plan_basis  m,
+        (SELECT
+            SUM(IFNULL(house_commodity_value,0)) + SUM(IFNULL(not_commodity_value,0)) AS house_commodity_value ,
+            SUM(IFNULL(room_num,0)) + SUM(IFNULL(parking_num,0))  AS room_num,a.version_id,a.house_package_id,
+            a.create_time,a.is_parking,a.product_code_sale
+        FROM v_sman_supply_plan a
+        WHERE a.supply_date BETWEEN  #{startDate} AND #{endDate}  and
+            (a.supply_date_actual is null or a.supply_date_actual &gt;=#{startDate} ) and a.house_package_id in (${resHouseId}) GROUP BY a.house_package_id
+        )ab
+        SET
+            m.new_reserve_funds = ab.house_commodity_value/10000 ,
+            m.new_reserve_set = ab.room_num,
+            m.version_id = ab.version_id,
+            m.is_parking = ab.is_parking,
+            m.product_code_sale = ab.product_code_sale
+        WHERE   m.prepared_by_unit_org_id = ab.house_package_id AND months = #{months} and m.prepared_by_level=7;
+
+    </update>
+
+
+    <!-- 修改区域库存可售金额、库存可售套数、 新增可售金额、新增可售套数、合计可售金额、合计可售套数、版本id-->
+    <update id="updateAreaValue" parameterType="java.util.Map">
+           UPDATE mm_monthly_plan_basis m,(
+           SELECT
+                SUM(IFNULL(b.new_reserve_funds,0)) new_reserve_funds,SUM(IFNULL(b.new_reserve_set,0)) new_reserve_set,
+                SUM(IFNULL(b.reserve_can_sell_funds,0)) reserve_can_sell_funds,SUM(IFNULL(b.reserve_can_sell_set,0)) reserve_can_sell_set,
+                SUM(IFNULL(b.total_reserve_funds,0)) total_reserve_funds,SUM(IFNULL(b.total_reserve_set,0)) total_reserve_set,
+                a.business_unit_name,business_unit_id ,create_time
+            FROM mm_idm_business_unit_project_rel  a INNER JOIN mm_monthly_plan_basis b
+            ON a.project_id=b.prepared_by_unit_org_id WHERE
+              b.months  BETWEEN  #{startDate} AND #{endDate}
+              and  a.business_unit_id =#{qyId}
+            )ss
+            SET m.new_reserve_funds=ss.new_reserve_funds, m.new_reserve_set=ss.new_reserve_set,
+                m.reserve_can_sell_funds=ss.reserve_can_sell_funds,m.reserve_can_sell_set=ss.reserve_can_sell_set,
+                m.total_reserve_funds=ss.total_reserve_funds,m.total_reserve_set=ss.total_reserve_set
+           WHERE ss.business_unit_id= m.prepared_by_unit_org_id  AND m.months = #{months}
+    </update>
+
+    <!-- 修改集团库存可售金额、库存可售套数、 新增可售金额、新增可售套数、合计可售金额、合计可售套数、版本id-->
+    <update id="updateGroupValue" parameterType="java.util.Map">
+       	    UPDATE mm_monthly_plan_basis  m,
+            (SELECT
+                SUM(IFNULL(new_reserve_funds,0)) AS new_reserve_funds,SUM(IFNULL(new_reserve_set,0)) AS new_reserve_set,
+                SUM(IFNULL(reserve_can_sell_funds,0)) AS reserve_can_sell_funds,SUM(IFNULL(reserve_can_sell_set,0)) AS reserve_can_sell_set,
+                SUM(IFNULL(total_reserve_funds,0)) AS total_reserve_funds,SUM(IFNULL(total_reserve_set,0)) AS total_reserve_set ,create_time
+            FROM mm_monthly_plan_basis WHERE  months BETWEEN  #{startDate} AND #{endDate} AND  prepared_by_level =2
+            )a
+            SET
+                m.new_reserve_funds = a.new_reserve_funds,
+                m.new_reserve_set = a.new_reserve_set,
+                m.reserve_can_sell_funds = a.reserve_can_sell_funds,
+                m.reserve_can_sell_set = a.reserve_can_sell_set,
+                m.total_reserve_funds = a.total_reserve_funds,
+                m.total_reserve_set = a.total_reserve_set
+            WHERE  m.prepared_by_unit_org_id = "00000001" AND m.months = #{months}
+    </update>
+    <update id="updateTotalPlan" parameterType="java.util.Map">
+UPDATE mm_monthly_plan_basis
+SET total_reserve_set = reserve_can_sell_set + new_reserve_set,
+total_reserve_funds = reserve_can_sell_funds + new_reserve_funds
+WHERE
+	months = #{months}
+    </update>
+    <!--通过这个来查询是否可以跳转-->
+    <select id="getGroupMonthPlanForProject" parameterType="java.util.Map" resultType="java.util.Map">
+
+        SELECT
+
+        ( CASE mpb.`plan_status`
+        WHEN 0  THEN '集团未下发'
+        WHEN 1  THEN'集团已下发'
+        WHEN 2 THEN '编制完成'
+        ELSE '其他'  END ) AS plan_status,
+        mpb.plan_status AS
+        plan_status_code
+
+        FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_business_unit` bu ON bu.`type` = 1
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+        -- 集团下达数据
+        LEFT JOIN  (
+
+        SELECT total_sign_funds ,mpb.months, mpi.`prepared_by_unit_org_id`
+        FROM `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`  AND mpb.`months` = mpi.`months`
+        WHERE bu.`type` = 1 AND mpi.prepared_by_unit_type = 1 AND mpb.`plan_status` != 0
+        GROUP BY mpi.months
+
+        ) group_release ON  group_release.months = mp.`months`
+
+        -- 项目上报数据
+        LEFT JOIN  (
+
+        SELECT total_sign_funds ,mpi.months, mpi.`prepared_by_unit_org_id` FROM `mm_monthly_plan_index` mpi
+        LEFT JOIN mm_business_unit bu ON bu.`business_id` = mpi.`prepared_by_unit_org_id`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id`  AND mpb.`months` = mpi.`months`
+        WHERE bu.`type` = 1 AND mpi.prepared_by_unit_type = 3 AND mpb.`plan_status` != 0
+        GROUP BY mpi.months
+
+        ) project_release ON  project_release.months = mp.`months`
+
+        -- 区域上报集团数量
+        LEFT JOIN  (
+
+        SELECT COUNT(*) cou ,mp.months   FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_business_unit` bu ON  0=0
+        LEFT JOIN  mm_monthly_plan_basis mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mp.`months` = mpb.`months`
+        WHERE bu.`type` = 2  AND mpb.`plan_status` &gt;= 2
+        GROUP BY mp.months
+
+        ) qysbsl ON  qysbsl.months = mp.`months`
+
+
+
+            where mp.`months`like #{months}"%"
+        group by mpb.months
+        order by mpb.months desc
+
+
+    </select>
+
+    <update id="updateMonthlyPlanBasis"  parameterType="java.util.Map">
+        UPDATE mm_monthly_plan_basis mpb
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid`
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        <trim prefix="set" suffixOverrides=",">
+            <if test="reserve_can_sell_set!=null">reserve_can_sell_set=#{reserve_can_sell_set},</if>
+            <if test="reserve_can_sell_funds!=null">reserve_can_sell_funds=#{reserve_can_sell_funds},</if>
+            <if test="new_reserve_set">new_reserve_set=#{new_reserve_set},</if>
+            <if test="new_reserve_funds!=null">new_reserve_funds=#{new_reserve_funds},</if>
+            <if test="total_reserve_set!=null">total_reserve_set=#{total_reserve_set},</if>
+            <if test="total_reserve_funds!=null">total_reserve_funds=#{total_reserve_funds},</if>
+            <if test="year_plan_sign!=null">year_plan_sign=#{year_plan_sign},</if>
+            <if test="year_grand_total_sign!=null">year_grand_total_sign=#{year_grand_total_sign},</if>
+            <if test="top_three_month_average_sign_set!=null">
+                top_three_month_average_sign_set=#{top_three_month_average_sign_set},
+            </if>
+            <if test="top_three_month_average_sign_funds!=null">
+                top_three_month_average_sign_funds=#{top_three_month_average_sign_funds},
+            </if>
+            <if test="upper_moon_sign_set!=null">upper_moon_sign_set=#{upper_moon_sign_set},</if>
+            <if test="upper_moon_sign_funds!=null">upper_moon_sign_funds=#{upper_moon_sign_funds},</if>
+            <if test="reserve_sign_funds!=null">reserve_sign_funds=#{reserve_sign_funds},</if>
+            <if test="new_sign_funds!=null">new_sign_funds=#{new_sign_funds},</if>
+            <if test="total_sign_funds!=null">total_sign_funds=#{total_sign_funds},</if>
+            <if test="business_name!=null">business_name=#{business_name},</if>
+            <if test="marketing_promotion_cost!=null">marketing_promotion_cost=#{marketing_promotion_cost},</if>
+        </trim>
+        where mpb.guid=#{basisGuid}
+
+
+        AND prepared_by_unit_type = #{prepared_by_unit_type}
+
+    </update>
+</mapper>

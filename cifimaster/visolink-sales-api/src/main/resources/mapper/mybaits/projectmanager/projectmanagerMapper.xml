@@ -1,0 +1,368 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.system.projectmanager.dao.projectmanagerDao">
+	<!--查询项目信息-->
+    <select id="projectListSelect" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        project_code as ID,
+        project_id,
+        project_name as ProjectName,
+        cast(flag as CHAR)  flag,
+        cast(monthly_type as CHAR)  as monthlyType,
+        cast(first_plan_type as CHAR)  as firstPlanType,
+        case trader_type when 0 then '独立操盘'  when 1 then '联合操盘' when 2 then '非操盘' end as trader_type,
+        case project_stage when 0 then '首开阶段'  when 1 then '续销阶段' when 2 then '尾盘阶段' end as project_stage,
+        case sales_master_type when 0 then '否'  when 1 then '是'  else '' end as sales_master_type,
+        case cifi_assume_money when 0 then '否'  when 1 then '是'  else '' end as cifi_assume_money,
+        case tenement_wp_project when 0 then '否'  when 1 then '是'  else '' end as tenement_wp_project,
+        case business_travel_project when 0 then '否'  when 1 then '是'  else '' end as business_travel_project
+        FROM
+        mm_sell_project
+        WHERE 1=1
+    <if test="ProjectName!=null and ProjectName!='' ">
+      and project_name LIKE '%${ProjectName}%'
+    </if>
+    <if test="trader_type!=null and trader_type!='' ">
+      and trader_type =#{trader_type}
+    </if>
+    <if test="project_stage!=null and project_stage!='' ">
+      and project_stage =#{project_stage}
+    </if>
+    <if test="sales_master_type!=null and sales_master_type!='' ">
+      and sales_master_type =#{sales_master_type}
+    </if>
+    <if test="cifi_assume_money!=null and cifi_assume_money!='' ">
+      and cifi_assume_money =#{cifi_assume_money}
+    </if>
+    <if test="tenement_wp_project!=null and tenement_wp_project!='' ">
+      and tenement_wp_project =#{tenement_wp_project}
+    </if>
+    <if test="business_travel_project!=null and business_travel_project!='' ">
+        and business_travel_project =#{business_travel_project}
+    </if>
+    LIMIT #{pageIndex},#{pageSize}
+    </select>
+
+    <!--项目管理导出-->
+    <select id="exportProject" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        project_code as ID,
+        project_name as ProjectName,
+        IFNull(case flag when 0 then '否' when 1 then '是' else '否' end,'') flag,
+        IFNULL(case monthly_type when 0 then '否' when 1 then '是' else '否'  end,'') monthly_type,
+        IFNULL(case trader_type when 0 then '独立操盘'  when 1 then '联合操盘' when 2 then '非操盘' end,'')as trader_type,
+        IFNULL(case project_stage when 0 then '首开阶段'  when 1 then '续销阶段' when 2 then '尾盘阶段' end,'') as project_stage,
+        IFNULL(case sales_master_type when 0 then '否'  when 1 then '是'  else '' end,'') as sales_master_type,
+        IFNULL(case cifi_assume_money when 0 then '否'  when 1 then '是'  else '' end,'') as cifi_assume_money,
+        IFNULL(case tenement_wp_project when 0 then '否'  when 1 then '是'  else '' end,'') as tenement_wp_project,
+        IFNULL(case business_travel_project when 0 then '否'  when 1 then '是'  else '' end,'')  as business_travel_project
+        FROM
+        mm_sell_project
+        WHERE 1=1
+        <if test="ProjectName!=null and ProjectName!='' ">
+            and project_name LIKE '%${ProjectName}%'
+        </if>
+        <if test="trader_type!=null and trader_type!='' ">
+            and trader_type =#{trader_type}
+        </if>
+        <if test="project_stage!=null and project_stage!='' ">
+            and project_stage =#{project_stage}
+        </if>
+        <if test="sales_master_type!=null and sales_master_type!='' ">
+            and sales_master_type =#{sales_master_type}
+        </if>
+        <if test="cifi_assume_money!=null and cifi_assume_money!='' ">
+            and cifi_assume_money =#{cifi_assume_money}
+        </if>
+        <if test="tenement_wp_project!=null and tenement_wp_project!='' ">
+            and tenement_wp_project =#{tenement_wp_project}
+        </if>
+        <if test="business_travel_project!=null and business_travel_project!='' ">
+            and business_travel_project =#{business_travel_project}
+        </if>
+    </select>
+    <!--查询项目信息-->
+    <select id="projectListSelectCount" resultType="java.lang.Integer" parameterType="java.util.Map">
+        SELECT
+       count(1)
+        FROM
+        mm_sell_project
+        WHERE 1=1
+        <if test="ProjectName!=null and ProjectName!='' ">
+            and project_name LIKE '%${ProjectName}%'
+        </if>
+        <if test="trader_type!=null and trader_type!='' ">
+            and trader_type =#{trader_type}
+        </if>
+        <if test="project_stage!=null and project_stage!='' ">
+            and project_stage =#{project_stage}
+        </if>
+        <if test="sales_master_type!=null and sales_master_type!='' ">
+            and sales_master_type =#{sales_master_type}
+        </if>
+        <if test="cifi_assume_money!=null and cifi_assume_money!='' ">
+            and cifi_assume_money =#{cifi_assume_money}
+        </if>
+        <if test="tenement_wp_project!=null and tenement_wp_project!='' ">
+            and tenement_wp_project =#{tenement_wp_project}
+        </if>
+        <if test="business_travel_project!=null and business_travel_project!='' ">
+            and business_travel_project =#{business_travel_project}
+        </if>
+    </select>
+	<!--启用禁用项目-->
+	<update id="projectIsEnableUpdate" parameterType="java.util.Map">
+		UPDATE b_project bp
+SET bp.`Status` =#{Status},
+ bp.Editor = #{UserID},
+ bp.EditTime = NOW()
+WHERE
+	bp.ID = #{ProjectID}
+	</update>
+
+	<!--删除项目-->
+	<delete id="projectDeleteUpdate" parameterType="java.util.Map">
+DELETE FROM mm_sell_project where project_code =#{ID}
+	</delete>
+
+
+	<!--插入一条新项目-->
+<insert id="addNewProjectInfoInsert">
+    INSERT INTO b_project (
+    ID,
+    ProjectNum,
+    ProjectName,
+    ProjectStatus,
+    Status,
+    AuthCompanyID,
+    OrgID,
+    ProductID,
+    Creator,
+    CreateTime,
+    province,
+    ProvinceCode,
+    city,
+    CityCode,
+    county,
+    CountyCode,
+    TokerResetType,
+    AnChangResetType,
+    IsPrintStatus
+    )
+    VALUES
+    (
+    #{ID},
+    #{ProjectNum},
+    #{ProjectName},
+    #{ProjectStatus},
+    #{Status},
+    #{AuthCompanyID},
+    #{OrgID},
+    #{ProductID},
+    #{UserID},
+     now(),
+    #{ProvivceName},
+    #{ProvinceCode},
+    #{CityName},
+    #{CityCode},
+    #{AreaName},
+    #{AreaCode},
+    #{TokerResetType},
+    #{AnChangResetType},
+    #{IsPrintStatus}
+    );
+
+</insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateProjectorgrel">
+	 insert into b_projectorgrel(ID,OrgID,ProjectID) VALUES(UUID(),#{ProjectOrgID},#{ID});
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateOne">
+	INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,1);
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateTwo">
+	INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,2);
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateThree">
+	INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,3);
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateFour">
+	INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,4);
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateFive">
+	INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,5);
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateSix">
+	INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,6);
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateSeven">
+    INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,7);
+	 </insert>
+    <!--以下这些插入条数是和插入新项目一起执行的-->
+    <insert id="addNewProjectSaleRelUpdateEight">
+	INSERT INTO b_project_protect_rule (ID,ProjectID,SourceType,TreeType) VALUES (UUID(),#{ID},3,8);
+	 </insert>
+
+	<!--修改项目信息-->
+<update id="updateProject">
+    UPDATE mm_sell_project
+
+    <trim prefix="set" suffixOverrides=",">
+    <if test="ProjectName!=null and ProjectName !=''">
+        project_name=#{ProjectName},
+    </if>
+    <if test="flag!=null and flag !=''">
+        flag=#{flag},
+    </if>
+
+    <if test="project_stage!=null and project_stage !=''">
+        project_stage=#{project_stage},
+    </if>
+    <if test="sales_master_type!=null and sales_master_type !=''">
+        sales_master_type=#{sales_master_type},
+    </if>
+    <if test="cifi_assume_money!=null and cifi_assume_money !=''">
+        cifi_assume_money=#{cifi_assume_money},
+    </if>
+    <if test="tenement_wp_project!=null and tenement_wp_project !=''">
+        tenement_wp_project=#{tenement_wp_project},
+    </if>
+    <if test="business_travel_project!=null and business_travel_project !=''">
+        business_travel_project=#{business_travel_project}
+    </if>
+<!--    <if test="trader_type!=null and trader_type !=''">
+        trader_type=#{trader_type}
+    </if>-->
+    </trim>
+    WHERE
+    project_code = #{ID};
+</update>
+    <select id="getWglProject" parameterType="java.util.Map" resultType="java.util.Map">
+   SELECT
+	a.projectCode as ID,
+	a.projectName as ProjectName,
+	a.projectID as projectId
+FROM
+	 t_mm_project a
+	 where
+	 a.projectCode  not in
+	(select Project_Code from mm_sell_project) and a.isDelete=0
+    </select>
+
+    <delete id="delProject">
+        delete from t_mm_project where isDelete=1
+    </delete>
+
+    <insert id="addGlProject" parameterType="java.util.Map">
+INSERT INTO mm_sell_project (
+`project_code`, `project_name`,`project_id`
+)
+VALUES
+	( #{ID}, #{ProjectName},#{projectId});
+    </insert>
+
+<!--新增销售系统与售前系统的关联,先跟新，然後插入，这里是跟新-->
+	<update id="addNewProjectSaleRelUpdate">
+		 update C_ProjectSaleRel sr3 set sr3.IsDel=1 where not INSTR(#{SaleProjectID},sr3.SaleID) and sr3.ProjectID=#{ID};
+	</update>
+
+	<!--新增销售系统与售前系统的关联,先跟新，然後插入，这里是插入数据-->
+<insert id="addNewProjectSaleRelInsert">
+      INSERT INTO c_projectsalerel(ID,ProjectID,SaleID,IsDel)
+      VALUES(UUID(),#{ID},#{SaleProjectID},0);
+</insert>
+
+
+	<!--项目关联组织, 先找到項目ID，再跟新项目，这里是查找项目ID-->
+<select id="newProjectOrgSelect" resultType="java.util.Map" parameterType="java.util.Map">
+	SELECT ProjectID, ID FROM s_organization WHERE ID = #{ProjectOrgID}
+</select>
+	<!--项目关联组织, 先找到項目ID，再跟新项目，这里是跟新项目-->
+	<update id="newProjectOrgUpdate">
+UPDATE s_organization org
+SET org.ProjectID = #{NewProjectID} where org.ProjectID=#{ProjectID};
+	</update>
+
+<!--是否关联销售系统项目，判断当前内容不为空时，判断当前是否已经存在过关联关系-->
+<select id="projectSaleRelCountBySaleProjectIdSelect" resultType="java.util.Map" parameterType="java.util.Map">
+    select count(*) as A from c_projectsalerel  where ProjectID=#{ID} AND SaleID=#{SaleProjectID};
+</select>
+	<!--是否关联销售系统项目，判断当前内容不为空时，且判断当前有关联关系执行此方法-->
+<update id="newProjectSaleRelNoDel">
+       update C_ProjectSaleRel sr3 set sr3.IsDel=0 where sr3.SaleID= #{SaleProjectID} and sr3.ProjectID=#{ID};
+</update>
+
+
+	<!--判断项目编号是否已存在-->
+<select id="projectNumIsExsit"  resultType="java.util.Map" parameterType="java.util.Map">
+	select * from  b_project  where ProjectNum=#{ProjectNum};
+</select>
+
+    <!--查看单条项目数据的信息-->
+    <select id="selectOneProject"  resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+	bp.ID,
+	bp.ProjectName,
+	bp.ProjectNum,
+	bp.ProjectStatus,
+	   (case bp.ProjectStatus when 5001 then '在售' when 5002 then '待售' when 5003 then '热销' when 5004 then '售罄' else '' end ) as  ProjectStatusName,
+	bp.`Status`,
+	so.ID ProjectOrgID,
+	so.OrgName ProjectOrgName,
+	bp.province,
+	bp.city,
+	bp.county,
+	bp.TokerResetType,
+	bp.AnChangResetType,
+	bp.IsPrintStatus,
+	bp.AreaID,
+	bp.AreaName
+FROM
+	b_project bp
+LEFT JOIN s_organization so ON bp.OrgID = so.ID
+WHERE
+	bp.ID = #{ID}
+    </select>
+
+    <!--修改菜单的状态-->
+    <update id="updateMenuStatus" parameterType="java.util.Map">
+        UPDATE s_menus SET Status =#{status} WHERE ID = #{ID}
+    </update>
+
+    <!--修改Menus信息-->
+    <select id="systemMenuOldPathSelect" resultType="java.util.Map">
+        SELECT a.FullPath as OldPath FROM s_menus a WHERE a.ID = #{ID}
+    </select>
+    <select id="systemMenuNewPathSelect" resultType="java.util.Map">
+        select concat(IFNULL(concat((SELECT FullPath FROM s_menus WHERE ID = (SELECT b.PID FROM s_menus b WHERE b.ID = #{ID})) , '/') ,'') , #{MenuSysName}) as  NewPath;
+    </select>
+    <update id="systemMenuInfoUpdate">
+        UPDATE s_menus m
+        SET
+        m.MenuName = #{MenuName},
+        m.MenuSysName = #{MenuSysName},
+        m.Url = #{Url},
+        m.ImageUrl = #{ImageUrl},
+        m.IconClass = #{IconClass},
+        m.IsHomePage = #{IsHomePage},
+        m.IsShow = #{IsShow},
+        m.Levels = #{Levels},
+        m.ListIndex = #{ListIndex},
+        m.FullPath = #{NewPath},
+        m.IsLast = #{IsLast},
+        m.Editor = #{Editor},
+        m.EditTime = now(),
+        m.Status = #{Status}
+        WHERE m.ID = #{ID};
+    </update>
+
+
+
+</mapper>

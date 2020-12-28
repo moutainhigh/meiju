@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.homenotice.dao.HomeNoticeDao">
+
+    <select id="getHomeNotice" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.id,a.notice_title,'更新通知' as notice_type,a.notice_system,a.notice_text, t.usercn as creator,a.create_time,a.notice_status,'' as SaveUrl
+        from mm_home_notice a
+        left join t_sys_user t on a.creator = t.alias
+        where a.isdel = 0 and notice_status = 2
+        and a.id not in(select notice_id from mm_home_notice_read where username = #{username})
+        ORDER BY create_time desc limit 1
+    </select>
+
+    <insert id="intoHomeNoticeRead" parameterType="java.util.Map">
+        insert mm_home_notice_read (username,notice_id)
+        values(#{username},#{id})
+    </insert>
+
+    <select id="selectHomeNotice" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.id,a.notice_title,'更新通知' as notice_type,a.notice_system,a.notice_text, t.usercn as creator,a.create_time,a.notice_status,'' as SaveUrl
+        from mm_home_notice a
+        left join t_sys_user t on a.creator = t.alias
+        where a.isdel = 0
+        <if test="notice_system != null  and notice_system!=''">
+            and a.notice_system=#{notice_system}
+        </if>
+        <if test="notice_status != null  and notice_status!=''">
+            and a.notice_status=#{notice_status}
+        </if>
+        <if test="notice_title != null  and notice_title!=''">
+            and a.notice_title like '%${notice_title}%'
+        </if>
+        order by create_time desc
+    </select>
+
+    <select id="selectHomeNoticeById" parameterType="java.lang.String" resultType="java.util.Map">
+        select a.* from mm_home_notice a where a.id = #{id}
+    </select>
+
+    <update id="isDelFile" parameterType="java.lang.String">
+        update s_attach set IsDel = 1
+        where BizID = #{id}
+    </update>
+
+
+    <update id="updateFileList">
+        update s_attach set BizID = #{id} ,IsDel = 0
+        where id in
+        <foreach collection="fileList" index="index"  open='(' separator=',' close=')'  item="item">
+            #{item}
+        </foreach>
+    </update>
+
+
+    <select id="getFileLists" parameterType="java.lang.String" resultType="java.util.Map">
+        select id,ShowName as name,SaveUrl as url,ListIndex as orderIndex from s_attach where BizID=#{id} and IsDel = 0 order by ListIndex
+    </select>
+
+    <insert id="initHomeNotice" parameterType="java.util.Map">
+        insert into
+        mm_home_notice(id,
+            notice_title,notice_system,notice_text,notice_status,
+            isdel,create_time,creator,job_org_id,job_id,org_id)
+        values(#{id},
+            #{notice_title},#{notice_system},#{notice_text},1,
+            0,now(),#{username},#{job_org_id},#{job_id},#{org_id}
+        )
+    </insert>
+
+
+    <update id="updateHomeNotice" parameterType="java.util.Map">
+        update mm_home_notice set
+            <if test="notice_title != null" >notice_title = #{notice_title},</if>
+            <if test="notice_system != null" >notice_system = #{notice_system},</if>
+            <if test="notice_text != null" >notice_text = #{notice_text},</if>
+            <if test="notice_status != null" >notice_status = #{notice_status},</if>
+
+            <if test="job_org_id != null" >job_org_id = #{job_org_id},</if>
+            <if test="job_id != null" >job_id = #{job_id},</if>
+            <if test="org_id != null" >org_id = #{org_id},</if>
+            <if test="username != null" >editor = #{username},</if>
+            edit_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="deleteHomeNotice" parameterType="java.util.Map">
+        update mm_home_notice set
+        isdel = 1,
+        <if test="username != null" >editor = #{username},</if>
+        edit_time = now()
+        where id = #{id}
+    </update>
+
+</mapper>

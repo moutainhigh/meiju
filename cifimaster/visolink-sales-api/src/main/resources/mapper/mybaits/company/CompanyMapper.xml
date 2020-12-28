@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.system.company.dao.CompanyMapper">
+
+    <select id="getAllList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        sc.ID ,
+        sc.companyName,
+        sc.companyCode,
+        DATE_FORMAT(sc.StartTime,'%Y-%m-%d') as StartTime,
+        DATE_FORMAT(sc.EndTime,'%Y-%m-%d') as EndTime,
+        (Case sc.Status when 1 then '启用' else '禁用' END) as StatusDesc,
+        sc.Status,
+        sa.EmployeeName,
+        date_format(sc.CreateTime, '%Y-%m-%d %H:%i:%s') CreateTime,
+        date_format(sc.EditTime, '%Y-%m-%d %H:%i:%s') EditTime,
+        sc.companyAttr,
+        ss.ProjectNames,
+        ss.orgName,
+        ss.orgType
+        FROM
+        s_company_info sc left join b_account sa on sa.ID=sc.Creator
+        left join
+        (select GROUP_CONCAT(bp.ProjectName) as ProjectNames,
+        GROUP_CONCAT(org.orgName) AS orgName,
+        GROUP_CONCAT(org.orgType) AS orgType,
+        org.OrgCompanyID from s_organization org inner join b_project bp on bp.ID=org.ProjectID and OrgCompanyID is not
+        null GROUP BY OrgCompanyID) ss on ss.OrgCompanyID=sc.ID
+        WHERE
+        sc.IsDel = 0
+        <if test="companyName!=null and companyName!=''">
+            and sc.companyName like '%${companyName}%'
+        </if>
+        <if test="startTime!=null and startTime!=''">
+            and startTime&gt;#{startTime}
+        </if>
+        <if test="endTime!=null and endTime!=''">
+            and endTime&lt;#{endTime}
+        </if>
+        <if test="projectName!=null and projectName!=''">
+            and ss.ProjectNames like '%${projectName}%'
+        </if>
+        ORDER BY
+        sc.CreateTime DESC
+        LIMIT #{pageIndex},#{pageSize}
+    </select>
+
+
+    <select id="getAllListCount" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT
+      COUNT(1) AS total
+        FROM
+        s_company_info sc left join b_account sa on sa.ID=sc.Creator
+        left join
+        (select GROUP_CONCAT(bp.ProjectName) as ProjectNames,
+        GROUP_CONCAT(org.orgName) AS orgName,
+        GROUP_CONCAT(org.orgType) AS orgType,
+        org.OrgCompanyID from s_organization org inner join b_project bp on bp.ID=org.ProjectID and OrgCompanyID is not
+        null GROUP BY OrgCompanyID) ss on ss.OrgCompanyID=sc.ID
+        WHERE
+        sc.IsDel = 0
+        <if test="companyName!=null and companyName!=''">
+            and sc.companyName like '%${companyName}%'
+        </if>
+        <if test="startTime!=null and startTime!=''">
+            and startTime&gt;#{startTime}
+        </if>
+        <if test="endTime!=null and endTime!=''">
+            and endTime&lt;#{endTime}
+        </if>
+        <if test="projectName!=null and projectName!=''">
+            and ss.ProjectNames like '%${projectName}%'
+        </if>
+        ORDER BY
+        sc.CreateTime DESC
+    </select>
+
+
+    <insert id="insertCompany" parameterType="java.util.Map">
+		insert into s_company_info(ID,companyCode,companyName,shortName,createTime,creator,companyAttr,Status,IsDel,startTime,endTime)
+		values(uuid(),#{companyCode},#{companyName},#{companyName},now(),#{userId},#{companyAttr},#{Status},0,#{startTime},#{endTime})
+	</insert>
+
+    <select id="getAllProject" resultType="java.util.Map">
+        select ID,ProjectName from b_project
+	</select>
+
+    <select id="getAssInforData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+			bp.Id,
+			bp.ProjectName,
+			org.orgName,
+			org.OrgType,
+			org.OrgCompanyID,
+			sc.companyName,
+			(Case org.OrgType
+
+ WHEN  1 then '自渠'
+
+ WHEN  2 then  '外渠'
+
+ WHEN 3 then '自销'
+ WHEN 4 then '代理'
+ END) as OrgTypeDesc
+
+
+FROM
+			s_organization org
+LEFT JOIN
+			b_project bp ON bp.ID = org.ProjectID
+LEFT JOIN
+			s_company_info sc on sc.id=org.OrgCompanyID
+AND OrgCompanyID IS NOT NULL  AND OrgCompanyID !=''
+where sc.Id=#{companyId}
+and sc.IsDel=0
+</select>
+    <update id="updateCompanyById" parameterType="java.util.Map">
+		UPDATE s_company_info SET  companyName=#{companyName},startTime=#{startTime},endTime=#{endTime},
+		Status=#{Status} where ID=#{companyId}
+
+	</update>
+
+    <update id="deleteCompanyById" parameterType="java.lang.String">
+
+UPDATE s_company_info
+SET isDel = 1
+WHERE
+	Id =#{value}
+	</update>
+</mapper>

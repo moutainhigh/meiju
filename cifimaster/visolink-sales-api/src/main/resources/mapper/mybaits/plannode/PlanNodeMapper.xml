@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.plannode.dao.PlanNodeDao">
+
+    <select id="getPlanNodePower"  resultType="java.util.Map" parameterType="java.util.Map">
+        (select
+		    CASE  WHEN  fpn.plan_approval = '4' THEN  'true' when fpn.plan_approval = '' THEN '' ELSE 'false' end as power ,
+		    '提示！前置节点无审批完成版，该节点不可重新创建版本' as error
+        from fp_plan fp
+            inner JOIN fp_plan_node fpn ON fp.id = fpn.plan_id
+        and EXISTS( select 1 from fp_plan_node a where fp.id = a.plan_id and a.id=#{planNodeId} and  fpn.node_level =(a.node_level)-1 and  a.node_level &lt;&gt; 1)
+        where  fp.project_id = #{projectId}
+         and IF((SELECT COUNT(1) from fp_plan a LEFT JOIN fp_plan_node b ON  a.id = b.plan_id where a.project_id=fp.project_id and b.node_level = fpn.node_level)&gt;1 ,fpn.plan_approval &lt;&gt; 2,1=1)
+         ORDER BY power desc LIMIT 1)
+        union all
+        (select
+		    CASE  WHEN  fpn.plan_approval = '4' THEN  'true' when fpn.plan_approval = '' THEN '' ELSE 'false' end as power ,
+		    '提示！前置节点无审批完成版或审批中，该节点不可重新创建版本' as error
+        from fp_plan fp
+            inner JOIN fp_plan_node fpn ON fp.id = fpn.plan_id
+        and EXISTS( select 1 from fp_plan_node a where fp.id = a.plan_id and a.id=#{planNodeId} and  fpn.node_level =(a.node_level)-1 and  a.node_level &lt;&gt; 1)
+        where  fp.project_id = #{projectId} and fpn.plan_approval=3
+         and IF((SELECT COUNT(1) from fp_plan a LEFT JOIN fp_plan_node b ON  a.id = b.plan_id where a.project_id=fp.project_id and b.node_level = fpn.node_level)&gt;1 ,fpn.plan_approval &lt;&gt; 2,1=1)
+         ORDER BY fpn.create_time desc LIMIT 1)
+        union all
+        (select
+		    CASE  WHEN  fpn.plan_approval = '4' THEN  'false' WHEN  fpn.plan_approval = '3' THEN  'false'  when fpn.plan_approval = '' THEN null ELSE 'true' end as power  ,
+		    '提示！后续节点已经发起审批，该节点不可重新创建版本' as error
+        from fp_plan fp
+            LEFT JOIN fp_plan_node fpn ON fp.id = fpn.plan_id
+        and EXISTS( select 1 from fp_plan_node a where fp.id = a.plan_id and a.id=#{planNodeId} and  fpn.node_level = (a.node_level)+1 and a.node_level &lt;&gt; 9 and a.node_level &lt;&gt; 3)
+        where  fp.project_id = #{projectId} ORDER BY fpn.create_time desc LIMIT 1)
+        	union all
+        (select
+            CASE  WHEN  fpn.plan_approval = '4' THEN  'false'  WHEN  fpn.plan_approval = '3' THEN  'false' when fpn.plan_approval = '' THEN null ELSE 'true' end as power  ,
+            '提示！后续节点已经发起审批，该节点不可重新创建版本' as error
+        from fp_plan fp
+            LEFT JOIN fp_plan_node fpn ON fp.id = fpn.plan_id
+        and EXISTS( select 1 from fp_plan_node a where fp.id = a.plan_id and a.id=#{planNodeId} and  fpn.node_level = 8 and a.node_level=3)
+        where fp.project_id = #{projectId} ORDER BY fpn.create_time desc LIMIT 1)
+            union all
+        (select
+            CASE  WHEN  fpn.plan_approval = '3' THEN  'false'  ELSE 'true' end as power  ,
+            '提示！后续节点已经发起审批，该节点不可重新创建版本' as error
+        from fp_plan fp
+            LEFT JOIN fp_plan_node fpn ON fp.id = fpn.plan_id
+            and EXISTS( select 1 from fp_plan_node a where fp.id = a.plan_id and a.id=#{planNodeId} and  fpn.node_level &gt; a.node_level and fpn.node_level &lt; 10 and a.node_level=3)
+        where fp.project_id = #{projectId} )
+    </select>
+
+
+    <select id="getOpenTwoApproval"   resultType="java.util.Map" parameterType="java.util.Map" >
+        select CASE WHEN  fpn.plan_approval = '3' THEN  'false' ELSE 'true' end as planApproval
+        from  fp_plan fp
+            LEFT JOIN fp_plan_node fpn on fp.id = fpn.plan_id and  fpn.node_level = 3
+        where  fp.project_id = #{projectId}
+        ORDER BY fpn.create_time desc LIMIT 1
+    </select>
+
+    <select id="getPlanNodeApproval"  resultType="java.util.Map" parameterType="java.util.Map" >
+        select case when COUNT(1) = 0 then 'false' else 'true' end as planApproval from fp_plan_node where id=#{planNodeId} and is_del = 0 and plan_approval = 4
+    </select>
+
+
+    <select id="selectDesigntwoIndicators" resultType="java.util.Map" parameterType="java.util.Map" >
+        select
+            invest_selling_value/invest_take_card_value*100 as invest_selling_take, #首开取证货值去化率
+            rules_selling_value/rules_take_card_value*100 as rules_selling_take,
+            designtwo_selling_value/designtwo_take_card_value*100 as designtwo_selling_take,
+
+            invest_selling_value/invest_push_value*100 as invest_selling_push, #首开推售货值去化率(%)
+            rules_selling_value/rules_push_value*100 as rules_selling_push,
+            designtwo_selling_value/designtwo_push_value*100 as designtwo_selling_push,
+
+            cost_open_sales_price/designtwo_selling_value*100 as open_designtwo_selling, #首开营销费率(%)
+            cost_sales_generalize_price/designtwo_selling_value*100  as sales_designtwo_selling #首开销售推广费率(%)
+        from
+            fp_designtwo_code_index
+        where plan_node_id = #{plan_node_id}
+    </select>
+
+    <select id="selectMonthSundayDay"  resultType="java.util.Map" >
+        select v.*,CONCAT((@rowNum:=@rowNum+1),'') as rowNo
+        from (
+            SELECT 	date as days,dayname(date) as week
+            FROM (select
+                    DATE_ADD(t1.dayed,INTERVAL t2.number DAY) date from
+                    (select DATE_ADD(curdate(),interval -day(curdate())+1 day) dayed) t1,
+                    (SELECT @xi:=@xi+1 as number from
+                    (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4) xc1,
+                    (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8) xc2,
+                    (SELECT @xi:=-1) xc0 ) t2
+                    where DATE_ADD(t1.dayed ,INTERVAL t2.number DAY) )time
+            WHERE SUBSTRING(date,1,7)=SUBSTRING(CURDATE(),1,7)
+        )as v ,(Select (@rowNum :=0)) as a	where week = 'Sunday' ORDER BY days
+    </select>
+
+    <insert id="insertCommonWeekPlan"  parameterType="arraylist">
+        insert into mm_common_week_plan(id,start_time,end_time,`year_month`,plan_week,how_week,this_time,is_del,windows_start,windows_end)
+        select
+            uuid(),
+            if(vv.rowNo = 1 &amp;&amp; vv.num &lt;&gt; 1,DATE_ADD(curdate(),interval -day(curdate())+1 day),IF(vv.num = 1,STR_TO_DATE(CONCAT(vv.staDate ,'00:00:00') , '%Y%m%d%H:%i:%s'),STR_TO_DATE(CONCAT(vv.staDate-1,'18:00:00') , '%Y%m%d%H:%i:%s')))as staDate,vv.endDate,
+            date_format(CURDATE(), '%Y-%m'),if(vv.rowNo = 1 &amp;&amp;  vv.num &lt;&gt; 1,'12',vv.num)as plan_week,vv.rowNo as how_weed,vv.endDate as this_time,0 as is_del,
+            STR_TO_DATE(CONCAT(vv.Sunday ,'18:15:00') , '%Y%m%d%H:%i:%s')as windows_start,
+            STR_TO_DATE(CONCAT(vv.Sunday ,'23:59:59') , '%Y%m%d%H:%i:%s')as windows_end
+        from (
+            select a.num,
+            case when a.Monday &lt;&gt; 0 then a.Monday
+            when a.Tuesday &lt;&gt; 0 then a.Tuesday
+            when a.Wednesday &lt;&gt; 0 then a.Wednesday
+            else a.Monday-1 end as staDate,
+            a.Sunday,
+            STR_TO_DATE(CONCAT(a.Sunday ,'18:00:00') , '%Y%m%d%H:%i:%s')as endDate,
+            (@rowNum:=@rowNum+1) as rowNo
+            from (
+            select num,
+            SUM(CASE WHEN v.week = 'Monday' THEN date ELSE 0 END ) AS Monday,
+            SUM(CASE WHEN v.week = 'Tuesday' THEN date ELSE 0 END ) AS Tuesday,
+            SUM(CASE WHEN v.week = 'Wednesday' THEN date ELSE 0 END ) AS Wednesday,
+            SUM(CASE WHEN v.week = 'Thursday' THEN date ELSE 0 END ) AS Thursday,
+            SUM(CASE WHEN v.week = 'Friday' THEN date ELSE 0 END ) AS Friday,
+            SUM(CASE WHEN v.week = 'Saturday' THEN date ELSE 0 END ) AS Saturday,
+            SUM(CASE WHEN v.week = 'Sunday' THEN date ELSE 0 END ) AS Sunday
+            from (SELECT 	date,dayname(date) as week ,
+            case
+        <foreach collection="list" index="index"  item="item">
+            when date &lt;= #{item.days} then #{item.rowNo}
+        </foreach>
+            else '0' end as num
+            FROM(select DATE_ADD(t1.dayed,INTERVAL t2.number DAY) date from
+            (select DATE_ADD(curdate(),interval -day(curdate())+1 day) dayed) t1,
+            (SELECT @xi:=@xi+1 as number from
+            (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4) xc1,
+            (SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8) xc2,
+            (SELECT @xi:=-1) xc0 ) t2
+            where DATE_ADD(t1.dayed ,INTERVAL t2.number DAY))time
+            WHERE SUBSTRING(date,1,7)=SUBSTRING(CURDATE(),1,7)
+            ) v  where num != 0
+            GROUP BY num ) a ,(Select (@rowNum :=0)) as r
+            where a.Wednesday &lt;&gt; 0
+        ) vv
+    </insert>
+    <delete id="deleteCommonWeekPlan">
+        DELETE from mm_common_week_plan where `year_month` = date_format(CURDATE(), '%Y-%m')
+    </delete>
+    
+    <!--查询此节点是否被略过节点-->
+    <select id="queryThisNodeIsSkipped" resultType="java.util.Map" parameterType="java.util.Map">
+    SELECT
+        *
+    FROM
+        fp_guest_storage_flow
+    WHERE
+        approval_stuat = 7
+	    AND plan_node_id =#{plan_node_id}
+	ORDER BY version desc
+	limit  1
+    </select>
+
+    <select id="selectNodeNum" parameterType="java.util.Map" resultType="java.lang.Integer" >
+        select
+            count(1)
+        from
+            fp_plan_node a
+        where
+            is_del = '0'
+            and exists(
+                select 1 from fp_plan_node b
+                where
+                    b.id=#{planNodeId}
+                    and b.plan_id =a.plan_id
+                    and b.node_level = a.node_level
+            )
+    </select>
+
+    <select id="selectflowNum" parameterType="java.util.Map" resultType="java.lang.Integer" >
+        select count(1) from fp_guest_storage_flow where  plan_node_id=#{planNodeId}
+    </select>
+
+
+    <update id="delPlanNode">
+        update
+            fp_plan_node
+        set
+            is_del = '1',
+            is_effective = '1',
+            update_time = now(),
+            editor = #{username}
+        where
+            id=#{planNodeId}
+		    and plan_approval not in ('3','4')
+    </update>
+
+    <delete id="delPlanNodeFlow">
+        delete from fp_guest_storage_node_plan where flow_id in (select id from fp_guest_storage_flow where id=#{planNodeId} and approval_stuat not in('3','4'));
+        delete from fp_guest_storage_week where flow_id in (select id from fp_guest_storage_flow where id=#{planNodeId} and approval_stuat not in('3','4'));
+        delete from fp_guest_storage_node_plan where flow_id in (select id from fp_guest_storage_flow where plan_node_id=#{planNodeId});
+        delete from fp_guest_storage_week where flow_id in (select id from fp_guest_storage_flow where plan_node_id=#{planNodeId});
+        delete from fp_guest_storage_flow where id = #{planNodeId} and approval_stuat not in('3','4');
+    </delete>
+
+    <delete id="delNodeSeven">
+        delete from fp_seven_day_competingproducts where delay_id in (select id from fp_seven_day_index where id = #{planNodeId} and approval_stuat not in('3','4'));
+        delete from fp_seven_day_open_avg where day_id in (select id from fp_seven_day_index where id = #{planNodeId} and approval_stuat not in('3','4'));
+        delete from fp_seven_day_index where id = #{planNodeId} and approval_stuat not in('3','4');
+    </delete>
+
+</mapper>

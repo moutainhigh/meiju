@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.system.org.dao.OrganizationDao">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.visolink.system.org.model.Organization">
+        <id column="ID" property="id"/>
+        <result column="PID" property="pid"/>
+        <result column="OrgCode" property="OrgCode"/>
+        <result column="OrgName" property="OrgName"/>
+        <result column="OrgShortName" property="OrgShortName"/>
+        <result column="OrgCategory" property="OrgCategory"/>
+        <result column="ListIndex" property="ListIndex"/>
+        <result column="Levels" property="Levels"/>
+        <result column="FullPath" property="FullPath"/>
+        <result column="AuthCompanyID" property="AuthCompanyID"/>
+        <result column="ProductID" property="ProductID"/>
+        <result column="Creator" property="Creator"/>
+        <result column="CreateTime" property="CreateTime"/>
+        <result column="Editor" property="Editor"/>
+        <result column="EditTime" property="EditTime"/>
+        <result column="Status" property="Status"/>
+        <result column="IsDel" property="IsDel"/>
+        <result column="CurrentPoint" property="CurrentPoint"/>
+        <result column="ProjectID" property="ProjectID"/>
+        <result column="OrgCompanyID" property="OrgCompanyID"/>
+        <result column="OrgType" property="OrgType"/>
+        <result column="PName" property="pName"/>
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        ID, PID, OrgCode, OrgName, OrgShortName, OrgCategory, ListIndex, Levels, FullPath, AuthCompanyID, ProductID, Creator, CreateTime, Editor, EditTime, Status, IsDel, CurrentPoint, ProjectID, OrgCompanyID, OrgType
+    </sql>
+
+    <select id="findOrgListByOrgIdAndProIdAndCompanyId" resultType="cn.visolink.system.org.model.Organization"
+            parameterType="java.util.Map">
+        <choose>
+            <when test="jobCode!='20001'">
+                SELECT * FROM (
+                SELECT A.ID ,
+                A.OrgCode ,
+                A.OrgName ,
+                A.OrgShortName ,
+                A.OrgCategory ,
+                A.ListIndex ,
+                A.FullPath ,
+                A.Levels ,
+                A.PID ,
+                A.Status,
+                (SELECT OrgName FROM S_Organization B WHERE B.ID = A.PID) AS PName,
+                A.IsDel,
+                A.ProjectID,
+                A.OrgCompanyID,
+                A.OrgType,
+                A.orgLevel,
+                A.orgLevelName,
+                A.parentLevelID,
+                A.parentLevelName,
+                A.FullNo
+                FROM S_Organization A
+                <if test='isNeedShow=="0"'>
+                    WHERE A.Status=1
+                </if>
+                ) t
+                ORDER BY Levels ASC,ListIndex ASC,id
+            </when>
+            <otherwise>
+                SELECT * FROM (
+                SELECT A.ID ,
+                A.OrgCode ,
+                A.OrgName ,
+                A.OrgShortName ,
+                A.OrgCategory ,
+                A.ListIndex ,
+                A.FullPath ,
+                A.Levels ,
+                A.PID ,
+                A.Status,
+                (SELECT OrgName FROM S_Organization B WHERE B.ID = A.PID) AS PName,
+                A.IsDel,
+                A.ProjectID,
+                A.OrgCompanyID,
+                A.OrgType,
+                A.orgLevel,
+                A.orgLevelName,
+                A.parentLevelID,
+                A.parentLevelName,
+                A.FullNo
+                FROM S_Organization A
+
+                WHERE 1=1
+                <if test='isNeedShow=="0"'>
+                    AND  A.Status=1
+                </if>
+                and FullPath like CONCAT((select so.FullPath from b_account ac join s_jobsuserrel sjr on
+                ac.ID=sjr.AccountID
+                join s_jobs job on job.ID=sjr.JobID
+                join s_organization so on job.JobOrgID=so.ID where ac.UserName=#{userName}), '%')
+                ) t
+
+                ORDER BY Levels ASC,ListIndex ASC,id
+            </otherwise>
+        </choose>
+
+    </select>
+
+
+    <update id="updateStatusById" parameterType="cn.visolink.system.org.model.form.OrganizationForm">
+              UPDATE S_Organization SET Status=#{status},Editor=#{userName},EditTime=NOW() WHERE ID=#{id}
+    </update>
+
+
+    <select id="queryChildOrgs" resultType="cn.visolink.system.org.model.form.OrganizationForm"  parameterType="java.util.Map">
+             SELECT *FROM S_Organization where pid=#{id}
+               ORDER BY Levels ASC,ListIndex ASC
+              LIMIT #{pageIndex},#{pageSize}
+
+    </select>
+    <select id="queryChildOrgsCount" resultType="java.lang.String"  parameterType="java.util.Map">
+             SELECT COUNT(1) as total FROM S_Organization where pid=#{id}
+             ORDER BY Levels ASC,ListIndex ASC
+    </select>
+
+    <select id="getParentProject" resultType="java.util.Map"  parameterType="java.lang.String">
+             SELECT ProjectId,OrgName FROM S_Organization where id=#{value}
+    </select>
+    <select id="updateChildFullPath"   parameterType="java.util.Map">
+            UPDATE S_Organization set fullPath=#{fullPath} where id=#{id}
+    </select>
+
+    <select id="getAreaProjectRel"  resultType="java.util.Map"  parameterType="java.util.Map" >
+         select * from (
+          select 0 as pid,business_unit_id id,business_unit_name name,2 type,1 checks
+                from mm_idm_business_unit_project_rel a
+                        LEFT JOIN s_jobprorel  b on a.business_unit_id=b.project_id
+                        where jobId=#{jobId}
+                        group by a.business_unit_id
+        UNION
+            select 0 as pid,business_unit_id id,business_unit_name name,2 type,0 checks
+                from mm_idm_business_unit_project_rel a
+                        group by a.business_unit_id
+        )temp GROUP BY id
+    </select>
+    <select id="getCityRel"  resultType="java.util.Map"  parameterType="java.util.Map" >
+       select * from (
+          select business_unit_id pid,city_id id,city_name name,3 type,1 checks
+                from mm_idm_business_unit_project_rel a
+                        LEFT JOIN s_jobprorel  b on a.city_id=b.project_id
+                        where jobId=#{jobId}
+                        group by id
+        UNION
+            select business_unit_id pid,city_id id,city_name name,3 type,0 checks
+                from mm_idm_business_unit_project_rel a
+                        group by id
+        )temp GROUP BY id
+    </select>
+    <select id="getAreaProjectItemRel"  resultType="java.util.Map"  >
+     select * from (
+      select a.city_id pid,a.project_id id,a.project_name name,4 type,1 checks
+            from mm_idm_business_unit_project_rel a
+                    LEFT JOIN s_jobprorel  b on a.project_id=b.project_id
+                    where jobId=#{jobId}
+                    GROUP BY id
+    UNION
+        select a.city_id pid,a.project_id id,a.project_name name,4 type,0 checks
+            from mm_idm_business_unit_project_rel a
+
+    )temp GROUP BY id
+    </select>
+    <select id="getJiTuanProjectItemRel"  resultType="java.util.Map"  >
+        select a.project_id id From s_jobprorel a where jobId=#{jobId} and type=1 limit 1
+    </select>
+
+    <delete id="delAreaProjectRel"  parameterType="java.lang.String" >
+
+        delete  from s_jobprorel where jobId=#{jobId}
+    </delete>
+
+
+    <insert id="addAreaProjectRel"  parameterType="java.util.Map" >
+         insert into s_jobprorel(id,jobId,project_id,type,issys)
+         VALUES
+        <foreach collection ="list" item="item" separator =",">
+            (UUID(),#{item.jobId},#{item.id},#{item.type},1)
+        </foreach >
+    </insert>
+
+    <insert id="deleteUserProjectRel"  parameterType="java.util.Map" >
+        -- 删除初始化的
+        DELETE from s_user_project_rel where userId=#{userid} and project_id=#{project_id}
+    </insert>
+
+    <insert id="synOrgFourLevel">
+        delete from s_four_level_org;
+        INSERT INTO `saleman`.`s_four_level_org`(`guid`, `bloc_id`, `bloc_name`, `business_unit_id`, `business_unit_name`, `project_id`, `project_name`, `project_code`, `business_unit_sort`, `project_status`, `trade_mode`, `city_id`, `city_name`)
+select
+guid,
+'00000001',
+'旭辉集团',
+business_unit_id,
+business_unit_name,
+project_id,
+project_name,
+project_code,
+business_unit_sort,
+project_status,
+trade_mode,
+city_id,
+city_name
+from mm_idm_business_unit_project_rel
+    </insert>
+
+    <update id="updateProjectOrgId">
+        update s_four_level_org flo,(
+select org.id,a.project_name from (select
+project_id,
+project_name
+from mm_idm_business_unit_project_rel where project_id not in (select id from s_organization)
+) a  join s_organization org on org.orgName=a.project_name
+) b set flo.project_id=b.id where flo.project_name=b.project_name
+    </update>
+
+
+    <update id="updateOrgLevel">
+        update s_organization set orgLevel=null,orgLevelName=null,parentLevelID=null,parentLevelName=null;
+    </update>
+
+    <!--更新集团层级-->
+    <update id="updateJituanLevel">
+        update  s_organization set orgLevel='1',orgLevelName='集团层',parentLevelID='00000001',parentLevelName='旭辉集团' where FullPath like '%旭辉集团%' and hrOrgTypeId &gt;=11 and hrOrgTypeId &lt;=15;
+        update  s_organization set orgLevel='1',orgLevelName='集团层',parentLevelID='00000001',parentLevelName='旭辉集团' where ID='00000000';
+    </update>
+
+    <!--获取区域公司-->
+    <select id="getQuYuCommony" resultType="java.util.Map">
+         SELECT DISTINCT
+	business_unit_id AS ID,
+	business_unit_name AS NAME,bloc_id AS PID,
+	0 AS PPID,
+	0 AS Levels,
+	org.FullPath
+FROM
+	s_four_level_org mm left join s_organization org on mm.business_unit_id=org.ID  GROUP BY project_id
+    </select>
+
+    <!--更新区域层级-->
+    <update id="updateQuYuLevel" parameterType="java.util.Map">
+        update s_organization set orgLevel='2',orgLevelName='区域层',parentLevelID=#{ID},parentLevelName=#{NAME} where FullPath like '%${FullPath}%' and hrOrgTypeId &lt;21
+    </update>
+
+    <!--二次更新区域层级-->
+    <update id="updateQuYuLevelTwo" parameterType="java.util.Map">
+        update s_organization set orgLevel='2',
+        orgLevelName='区域层',
+        parentLevelID=#{ID},
+        parentLevelName=#{NAME}
+        where FullPath like '%${FullPath}%' and orgLevel is null and hrOrgTypeId is not null and hrOrgTypeId &lt;&gt;23 and hrOrgTypeId &lt;31
+    </update>
+
+    <!--获取城市公司-->
+    <select id="getCityCompany" resultType="java.util.Map">
+    SELECT DISTINCT
+    mm.city_id AS ID,
+    mm.city_name AS NAME,
+    mm.business_unit_id AS PID,
+    0 AS PPID,
+    1 AS Levels,
+    org.FullPath
+FROM
+    s_four_level_org mm left join s_organization org on mm.city_id=org.ID
+GROUP BY
+    project_id
+    </select>
+
+    <update id="updateCityLevel" parameterType="java.util.Map">
+        update s_organization set orgLevel='3',orgLevelName='城市层',parentLevelID=#{ID},parentLevelName=#{NAME} where FullPath like '%${FullPath}%' and hrOrgTypeId &gt;=21 and hrOrgTypeId &lt;=25 and hrOrgTypeId &lt;&gt;23;
+    </update>
+
+    <select id="getProject" resultType="java.util.Map">
+        SELECT
+    mm.project_id AS ID,
+    mm.project_name AS NAME,
+    0 AS PID,
+    mm.city_id AS PPID,
+    99 AS Levels,
+     org.FullPath
+FROM
+   s_four_level_org mm  join s_organization org on mm.project_id=org.ID
+GROUP BY
+    project_id
+    </select>
+
+    <update id="updateProjectLevel" parameterType="java.lang.String">
+    update  s_organization set  orgLevel='4',orgLevelName='项目层',parentLevelID=#{ID},parentLevelName=#{NAME}  where FullPath like '%${FullPath}%' and (hrOrgTypeId>=31 or hrOrgTypeId=23)
+    </update>
+
+
+    <select id="getFourLevelRel" resultType="java.util.Map">
+        select job.ID,org.parentLevelID as orgId,org.orgLevel,org.parentLevelName from s_jobs job left join s_organization org on job.JobOrgID=org.ID where org.orgLevel is not null  group by jobCode
+    </select>
+
+    <delete id="delJobOrgRel">
+        delete from s_jobsorgrel where isIdm=1;
+    </delete>
+    <insert id="insertJobOrgRel" parameterType="java.util.Map">
+        INSERT INTO `saleman`.`s_jobsorgrel`(`jobId`, `orgId`, `orgLevel`, `groupOrgId`, `groupOrgName`, `areaOrgId`, `areaOrgName`, `cityOrgId`, `cityOrgName`, `projectOrgId`, `projectOrgName`,isIdm) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.ID},#{item.orgId},#{item.orgLevel},#{item.groupOrgId},#{item.groupOrgName},#{item.areaOrgId},
+            #{item.areaOrgName},#{item.cityOrgId},#{item.cityOrgName},#{item.projectOrgId},#{item.projectOrgName},1 )
+        </foreach>
+    </insert>
+
+    <update id="updateStageLevel" parameterType="java.lang.String">
+    update  s_organization set  orgLevel='4',orgLevelName='项目层',parentLevelID=#{ID},parentLevelName=#{NAME}  where FullPath like '%${NAME}%' and hrOrgTypeId>31
+    </update>
+
+    <select id="getJobOrgRel" resultType="java.util.Map">
+        select * from s_jobsorgrel
+    </select>
+
+    <!--获取父级层级ID-->
+    <select id="getParentOrg" parameterType="java.lang.String" resultType="java.util.Map">
+        select ID,PID,parentLevelID,parentLevelName,orgLevel from s_organization where ID=#{orgId} and ID &lt;&gt;'00000000'
+    </select>
+    <insert id="addUserProjectRel"  parameterType="java.lang.String" >
+        insert into s_user_project_rel(id,userId,project_id,iscity)
+        select UUID(),sjr.AccountID,sjp.project_id,1 from
+        s_jobsuserrel sjr
+        INNER JOIN s_jobprorel sjp on sjp.jobId=sjr.jobId
+        where sjp.jobId=#{jobId}
+    </insert>
+
+
+    <select id="selectUserId"  parameterType="java.util.Map" resultType="java.util.Map">
+         select sjl.AccountID userid,sj.project_id from s_jobprorel sj,
+				s_jobsuserrel sjl where sjl.JobID=sj.jobId
+             and  sj.JobID=#{jobId} GROUP BY sjl.AccountID
+    </select>
+
+    <!--获取用户岗位-->
+    <select id="getUserJobs" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	jr.ID
+FROM
+	b_account u
+	LEFT JOIN s_jobsuserrel jr ON u.id = jr.AccountID
+	LEFT JOIN s_jobs job ON job.id = jr.JobID
+WHERE
+	u.id =#{userId}
+	AND u.STATUS = 1
+	AND u.IsDel = 0
+	AND job.STATUS = 1
+	AND job.IsDel = 0
+    </select>
+
+    <select id="getProjectJob" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	u.id,
+	u.UserName,
+	job.id jobId,
+	job.JobOrgID,
+	job.JobName,
+	sjr.orgLevel,
+	sjr.orgId,
+	menu.MenuName,
+	menu.id MenuID
+FROM
+	b_account u
+	LEFT JOIN s_jobsuserrel jr ON u.id = jr.AccountID
+	LEFT JOIN s_jobs job ON jr.JobID = job.id
+	LEFT JOIN s_jobsorgrel sjr ON job.id = sjr.jobId
+	left join s_jobsmenurel sjm on sjm.JobID=job.id
+ left join s_menus menu on menu.id=sjm.MenuID
+WHERE
+	u.id = #{userId} and menu.id=#{menuId}  and sjr.orgId=#{projectId}
+union all
+	SELECT
+	u.id,
+	u.UserName,
+	job.id jobId,
+	job.JobOrgID,
+	job.JobName,
+	sjr.orgLevel,
+	sjr.orgId,
+	menu.MenuName,
+	menu.id MenuID
+FROM
+	b_account u
+	LEFT JOIN s_jobsuserrel jr ON u.id = jr.AccountID
+	LEFT JOIN s_jobs job ON jr.JobID = job.id
+	LEFT JOIN s_jobsorgrel sjr ON job.id = sjr.jobId
+	LEFT JOIN s_commonjobs scj ON scj.id = job.CommonJobID
+	left join s_commonjobsmenurel sjm on sjm.JobID=scj.id
+ left join s_menus menu on menu.id=sjm.MenuID
+WHERE
+	u.id = #{userId} and menu.id=#{menuId} and sjr.orgId=#{projectId}
+    </select>
+    <select id="getNextProjectJob" parameterType="java.lang.String" resultType="java.util.Map">
+select * from (SELECT
+	u.id,
+	u.UserName,
+	job.id jobId,
+	job.JobOrgID,
+	job.JobName,
+	sjr.orgLevel,
+	sjr.orgId,
+	menu.MenuName,
+	menu.id MenuID
+FROM
+	b_account u
+	LEFT JOIN s_jobsuserrel jr ON u.id = jr.AccountID
+	LEFT JOIN s_jobs job ON jr.JobID = job.id
+	LEFT JOIN s_jobsorgrel sjr ON job.id = sjr.jobId
+	left join s_jobsmenurel sjm on sjm.JobID=job.id
+ left join s_menus menu on menu.id=sjm.MenuID
+WHERE
+	u.id = #{userId} and menu.id=#{menuId}
+union all
+	SELECT
+	u.id,
+	u.UserName,
+	job.id jobId,
+	job.JobOrgID,
+	job.JobName,
+	sjr.orgLevel,
+	sjr.orgId,
+	menu.MenuName,
+	menu.id MenuID
+FROM
+	b_account u
+	LEFT JOIN s_jobsuserrel jr ON u.id = jr.AccountID
+	LEFT JOIN s_jobs job ON jr.JobID = job.id
+	LEFT JOIN s_jobsorgrel sjr ON job.id = sjr.jobId
+	LEFT JOIN s_commonjobs scj ON scj.id = job.CommonJobID
+	left join s_commonjobsmenurel sjm on sjm.JobID=scj.id
+ left join s_menus menu on menu.id=sjm.MenuID
+WHERE
+	u.id =#{userId} and menu.id=#{menuId} ) b order by orgLevel desc limit 1
+    </select>
+</mapper>

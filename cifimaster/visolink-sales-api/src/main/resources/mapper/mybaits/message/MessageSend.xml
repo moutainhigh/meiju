@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.message.dao.MessageSendDao">
+    <!--查询出此模版关联的通用岗位，获取发送人列表-->
+    <select id="getSendUserList" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT *FROM (SELECT
+	ba.userName,
+	ba.OfficeMail,
+	ba.Mobile,
+	sc.JobDesc,
+	CONCAT( ba.EmployeeName, '(', sc.JobName, ')' ) AS EmployeeName
+FROM
+	s_jobs sj
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+WHERE
+	sc.id IN ( SELECT msjob.cjob_id FROM ms_template_commonjob msjob WHERE template_id =#{message_template_id}   GROUP BY msjob.cjob_id )
+	AND sj.JobOrgID IN (
+SELECT business_unit_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id}
+UNION
+SELECT ID from s_organization where PID IN (SELECT business_unit_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id})
+UNION
+SELECT ID from s_organization where PID IN (SELECT ID from s_organization where PID in (SELECT ID from s_organization where PID=(SELECT business_unit_id FROM mm_idm_business_unit_project_rel WHERE project_id =#{project_id})))
+UNION
+SELECT city_id FROM mm_idm_business_unit_project_rel WHERE project_id =#{project_id}
+UNION
+	SELECT ID FROM s_organization WHERE PID IN ( SELECT city_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id})
+UNION
+	SELECT ID FROM s_organization WHERE PID IN (	SELECT ID FROM s_organization WHERE PID =( SELECT city_id FROM mm_idm_business_unit_project_rel WHERE project_id =#{project_id} ) )
+UNION
+	SELECT project_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id}
+UNION
+	SELECT ID FROM s_organization WHERE PID IN ( SELECT project_id FROM mm_idm_business_unit_project_rel WHERE project_id = #{project_id})
+)
+	GROUP BY UserName
+
+	UNION ALL
+SELECT
+	ba.userName,
+	ba.OfficeMail,
+	ba.Mobile,
+	sc.JobDesc,
+	CONCAT( ba.EmployeeName, '(', sc.JobName, ')' ) AS EmployeeName
+FROM
+	s_jobs sj
+	INNER JOIN s_organization so ON so.id = sj.JobOrgID
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+WHERE
+	sc.id IN ( SELECT msjob.cjob_id FROM ms_template_commonjob msjob WHERE template_id =#{message_template_id}
+  GROUP BY msjob.cjob_id )
+	AND so.hrOrgTypeId IN ( 11, 12, 13, 14, 15 )
+	GROUP BY UserName
+	) s
+	GROUP BY UserName
+    </select>
+	<!--查询出指定的消息-->
+	<select id="getMessageInfo" resultType="java.util.Map" parameterType="java.lang.String">
+		SELECT *FROM ms_message where id=#{id}
+	</select>
+	<!--查询出所有截止到当前时间未发送、并且设置为自动发送的消息-->
+	<select id="getSendMessageList" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT *FROM ms_message where  create_time &lt;=NOW() AND message_send_type=2 AND message_send_status=0  AND is_del=0
+	</select>
+	<!--发送成功后将消息设置为发送成功-->
+	<update id="updateMessageSendStatus" parameterType="java.lang.String">
+		UPDATE ms_message SET message_send_status=1,message_send_time=NOW() WHERE ID=#{id}
+	</update>
+
+
+	<!--根据消息id查询所属的模块类型-->
+	<select id="getMessageModelType" resultType="java.lang.String" parameterType="java.lang.String">
+SELECT
+	template_name
+FROM
+	ms_template_info
+WHERE
+	id =(
+	SELECT
+		message_template_id
+	FROM
+		ms_message
+WHERE
+	id = #{id})
+	</select>
+	
+	<!--记录消息发送人-->
+	<insert id="recordMessageSendUser" parameterType="java.util.Map">
+		insert into ms_message_send_users
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			id,
+			<if test="message_id != null" >
+				message_id,
+			</if>
+			<if test="username != null" >
+				username,
+			</if>
+			<if test="employee_name != null" >
+				employee_name,
+			</if>
+			<if test="send_type!=null">
+				send_type,
+			</if>
+			<if test="operator!=null and operator!=''">
+				operator,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			UUID(),
+			<if test="message_id != null" >
+				#{message_id,jdbcType=VARCHAR},
+			</if>
+			<if test="username != null" >
+				#{username,jdbcType=VARCHAR},
+			</if>
+			<if test="employee_name != null" >
+				#{employee_name,jdbcType=VARCHAR},
+			</if>
+			<if test="send_type!=null">
+				#{send_type},
+			</if>
+			<if test="operator!=null and operator!=''">
+				#{operator},
+			</if>
+		</trim>
+	</insert>
+</mapper>

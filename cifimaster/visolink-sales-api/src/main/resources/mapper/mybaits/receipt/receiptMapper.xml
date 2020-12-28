@@ -1,0 +1,1153 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.receipt.dao.ReceiptDao">
+
+    <insert id="initReceipt" parameterType="java.util.Map">
+        insert into cm_receipt(id,
+			checklist_id,checklist_code,main_data_project_id,project_code,
+            receipt_code,payment_status,
+            status,isdel,create_time,creator,org_id,job_org_id,job_id)
+        select #{uuid},
+            id,checklist_code,main_data_project_id,project_code,
+            #{receipt_code},'1'
+            ,'1','0',now(),#{userId},#{orgId},#{jobOrgId},#{jobId}
+            from cm_checklist where  id=#{id}
+    </insert>
+
+    <insert id="initReceiptDetail">
+        insert into cm_receipt_detail(id,
+        receipt_id,checklist_detail_id,commission_id,
+        room_id,business_attribution_code,
+        transaction_id,opportunity_id,project_code,project_amount,
+        applicant,amount_paid,unpaid_amount,
+        application_amount,system_risk,artificial_risk,
+        status,isdel,create_time,creator,org_id,job_org_id,job_id)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (uuid(),
+            #{item.uuid},#{item.id},#{item.commission_id},
+            #{item.room_id},#{item.business_attribution_code},
+            #{item.transaction_id},#{item.opportunity_id},#{item.project_code},#{item.project_amount},
+            #{item.applicant},#{item.amount_paid},#{item.unpaid_amount},
+            #{item.application_amount},#{item.system_risk},#{item.artificial_risk},
+            '1','0',now(),#{map.userId},#{map.orgId},#{map.jobOrgId},#{map.jobId})
+        </foreach>
+    </insert>
+
+
+    <select id="selectReceipt" parameterType="java.util.Map" resultType="java.util.Map">
+        select p.business_unit_name,p.project_name,
+        case when a.payment_status = '1' then '草稿'
+        when a.payment_status = '2' then '已审核'
+        when a.payment_status = '3' then '审批中'
+        when a.payment_status = '4' then '付款通过'
+        when a.payment_status = '5' then '付款驳回'
+        when a.payment_status = '6' then '开票审批中'
+        else '草稿' end as paymentStatus,
+        a.*,
+        (select c.gain_by from cm_receipt_detail r
+        left join cm_commission c on r.commission_id=c.id
+        where receipt_id=a.id limit 1) as gain_by,
+        c.commission_type,
+        f.flow_status,
+        b.EmployeeName
+        from cm_receipt a
+        left join mm_idm_business_unit_project_rel p on a.main_data_project_id = p.project_id
+        left join b_account b on a.creator =b.id
+        left join cm_checklist c on a.checklist_id = c.id
+        left join cm_receipt_invoice i on a.id = i.receipt_id and i.isdel = 0
+        left join mm_ap_flow_info f on i.id = f.json_id
+        where  a.status = 1 and a.isdel = 0
+        AND CASE WHEN #{orgId} IS NULL THEN TRUE ELSE a.org_id IN
+        (SELECT DISTINCT orgId FROM `s_jobsorgrel` WHERE
+        CASE WHEN #{orgLevel} = 1 THEN groupOrgId = #{orgId}
+        WHEN #{orgLevel} = 2 THEN areaOrgId = #{orgId}
+        WHEN #{orgLevel} = 3 THEN cityOrgId = #{orgId}
+        WHEN #{orgLevel} = 4 THEN projectOrgId = #{orgId} ELSE FALSE END) END
+        <if test="checklist_id != null and  checklist_id!=''">
+            and a.checklist_id = #{checklist_id}
+        </if>
+
+        <if test="keyType == 'receipt_code' and  value != null and  value!=''">
+            and a.receipt_code like '%${value}%'
+        </if>
+        <if test="keyType == 'project_code' and  value != null and  value!=''">
+            and a.project_code like '%${value}%'
+        </if>
+        <if test="keyType == 'payment_code' and  value != null and  value!=''">
+            and a.payment_code like '%${value}%'
+        </if>
+        <if test="keyType == 'checklist_code' and  value != null and  value!=''">
+            and a.checklist_code like '%${value}%'
+        </if>
+        and EXISTS(
+            select 1 from cm_receipt_detail r
+            left join cm_commission v on r.commission_id = v.id
+            where r.receipt_id = a.id
+            <if test="source_type_desc != null  and source_type_desc!=''">
+                and v.source_type_desc=#{source_type_desc}
+            </if>
+            <if test="keyType == 'room_name' and  value != null and  value!=''">
+                and v.room_name like '%${value}%'
+            </if>
+            <if test="keyType == 'customer_name' and  value != null and  value!=''">
+                and v.customer_name like '%${value}%'
+            </if>
+            <if test="keyType == 'employee_name' and  value != null and  value!=''">
+                and v.employee_name like '%${value}%'
+            </if>
+            <if test="keyType == 'gain_by' and  value != null and  value!=''">
+                and v.gain_by like '%${value}%'
+            </if>
+            <if test="keyType == 'bank_num' and  value != null and  value!=''">
+                and v.bank_num like '%${value}%'
+            </if>
+            <if test="keyType == 'reportIdCard' and  value != null and  value!=''">
+                and v.reportIdCard like '%${value}%'
+            </if>
+        )
+        <if test="create_time_start != null  and create_time_start!=''">
+            and a.create_time &gt;= #{create_time_start}
+        </if>
+        <if test="create_time_end != null  and create_time_end!=''">
+            and a.create_time &lt;= #{create_time_end}
+        </if>
+
+        <if test="payment_status != null  and payment_status!='' and  payment_status!='0'">
+            and a.payment_status = #{payment_status}
+        </if>
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectWaitReceipt" parameterType="java.util.Map" resultType="java.util.Map">
+        select
+            a.checklist_id,
+            a.id,
+            a.applicant,
+            a.business_attribution_code,
+            b.checklist_code,
+            b.project_code,
+            a.opportunity_id,
+            v.id as commission_id,
+            v.business_unit_name,
+            v.project_name,
+            v.mproject_id,
+            v.room_name,
+            v.room_id,
+            v.transaction_id,
+            v.transaction_status,
+            v.now_price,
+            v.back_price,
+            v.collection_proportion,
+            v.collection_proportion2,
+            a.project_amount,
+            a.commission_point,
+            v.built_up_area,
+            a.amount_closed,
+            a.outstanding_amount,
+            a.amount_paid,
+            a.unpaid_amount,
+            a.application_amount,
+            a.com_payment_ratio,
+            v.gain_by,
+            v.source_type_desc,
+            v.current_role,
+            v.employee_name,
+            v.customer_name,
+            v.signing_date,
+            v.subscription_date,
+            v.bank_num,
+            v.bank_name,
+            v.reportIdCard,
+            v.commission_money
+        from cm_checklist_detail a
+        left join v_commission v on a.commission_id = v.id
+        left join cm_checklist b on a.checklist_id = b.id
+        where a.outstanding_amount != 0 and b.project_status = 4
+        and v.my_STATUS !='关闭'
+        and a.isdel = 0 and b.isdel = 0
+        AND CASE WHEN #{orgId} IS NULL THEN TRUE ELSE a.org_id IN
+        (SELECT DISTINCT orgId FROM `s_jobsorgrel` WHERE
+        CASE WHEN #{orgLevel} = 1 THEN groupOrgId = #{orgId}
+        WHEN #{orgLevel} = 2 THEN areaOrgId = #{orgId}
+        WHEN #{orgLevel} = 3 THEN cityOrgId = #{orgId}
+        WHEN #{orgLevel} = 4 THEN projectOrgId = #{orgId} ELSE FALSE END) END
+        <if test="source_type_desc != null  and source_type_desc!=''">
+            and v.source_type_desc=#{source_type_desc}
+        </if>
+        <if test="keyType == 'project_code' and  value != null and  value!=''">
+            and b.project_code like '%${value}%'
+        </if>
+        <if test="keyType == 'room_name' and  value != null and  value!=''">
+            and v.room_name like '%${value}%'
+        </if>
+        <if test="keyType == 'customer_name' and  value != null and  value!=''">
+            and v.customer_name like '%${value}%'
+        </if>
+        <if test="keyType == 'employee_name' and  value != null and  value!=''">
+            and v.employee_name like '%${value}%'
+        </if>
+        <if test="keyType == 'gain_by' and  value != null and  value!=''">
+            and v.gain_by like '%${value}%'
+        </if>
+        <if test="keyType == 'bank_num' and  value != null and  value!=''">
+            and v.bank_num like '%${value}%'
+        </if>
+        <if test="keyType == 'bank_name' and  value != null and  value!=''">
+            and v.bank_name like '%${value}%'
+        </if>
+        <if test="keyType == 'reportIdCard' and  value != null and  value!=''">
+            and v.reportIdCard like '%${value}%'
+        </if>
+        <if test="keyType == 'current_role' and  value != null and  value!=''">
+            and v.current_role like '%${value}%'
+        </if>
+        <if test="keyType == 'checklist_code' and  value != null and  value!=''">
+            and b.checklist_code like '%${value}%'
+        </if>
+
+        <if test="subscription_date_start != null  and subscription_date_start!=''">
+            and v.subscription_date &gt;= #{subscription_date_start}
+        </if>
+        <if test="subscription_date_end != null  and subscription_date_end!=''">
+            and v.subscription_date &lt;= #{subscription_date_end}
+        </if>
+        <if test="signing_date_start != null  and signing_date_start!=''">
+            and v.signing_date &gt;= #{signing_date_start}
+        </if>
+        <if test="signing_date_end != null  and signing_date_end!=''">
+            and v.signing_date &lt;= #{signing_date_end}
+        </if>
+
+        <if test="collection_proportion != null  and collection_proportion!=''">
+            and v.collection_proportion2 &gt;= #{collection_proportion}
+        </if>
+        <if test="collection_proportion2 != null  and collection_proportion2!=''">
+            and v.collection_proportion2 &lt;= #{collection_proportion2}
+        </if>
+
+        <if test="commission_point != null  and commission_point!=''">
+            and a.commission_point &gt;= #{commission_point}
+        </if>
+        <if test="commission_point2 != null  and commission_point2!=''">
+            and a.commission_point &lt;= #{commission_point2}
+        </if>
+
+        <if test="project_amount != null  and project_amount!=''">
+            and a.project_amount &gt;= #{project_amount}
+        </if>
+        <if test="project_amount2 != null  and project_amount2 !=''">
+            and a.project_amount &lt;= #{project_amount2}
+        </if>
+
+        <if test="is_receipt!=null and is_receipt!='' ">
+            and case
+            when #{is_receipt} = '0' then a.amount_closed = 0
+            when #{is_receipt} = '1' then a.amount_closed > 0
+            else 1=1 end
+        </if>
+
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectCommissionStanding" parameterType="java.util.Map" resultType="java.util.Map">
+        select
+            a.checklist_id,
+            a.id,
+            a.applicant,
+            a.business_attribution_code,
+            b.checklist_code,
+            b.project_code,
+            a.opportunity_id,
+            v.id as commission_id,
+            v.business_unit_name,
+            v.project_name,
+            v.mproject_id,
+            v.room_name,
+            v.room_id,
+            v.transaction_id,
+            v.transactionStatus as transaction_status,
+            v.now_price,
+            v.back_price,
+            v.collection_proportion,
+            v.collection_proportion2,
+            a.project_amount,
+            a.commission_point,
+            v.built_up_area,
+            a.amount_closed,
+            a.outstanding_amount,
+            a.amount_paid,
+            a.unpaid_amount,
+            a.application_amount,
+            a.com_payment_ratio,
+            v.gain_by,
+            v.source_type_desc,
+            v.current_role,
+            v.employee_name,
+            v.customer_name,
+            v.signing_date,
+            v.subscription_date,
+            v.bank_num,
+            v.bank_name,
+            v.reportIdCard,
+            v.commission_money,
+            case when b.project_status = '1' then '草稿'
+            when b.project_status = '2' then '已审核'
+            when b.project_status = '3' then '已立项'
+            when b.project_status = '4' then '立项通过'
+            when b.project_status = '5' then '立项驳回'
+            when b.project_status = '6' then '立项撤销'
+            else '' end as project_status,
+            b.commission_type,
+            case when c.payment_status = '1' then '草稿'
+            when c.payment_status = '2' then '已审核'
+            when c.payment_status = '3' then '审批中'
+            when c.payment_status = '4' then '付款通过'
+            when c.payment_status = '5' then '付款驳回'
+            when c.payment_status = '6' then '开票审批中'
+            else '' end as payment_status
+        from v_commission v
+            left join cm_checklist_detail a on v.id = a.commission_id and a.isdel = 0
+            left join cm_checklist b on a.checklist_id = b.id and b.isdel = 0
+            left join (
+                select rd.commission_id,cr.payment_status from (
+                select commission_id,SUBSTRING_INDEX(GROUP_CONCAT(receipt_id order by create_time desc),',',1) as receipt_id
+                from cm_receipt_detail where isdel = 0 GROUP BY commission_id ) rd
+                left join cm_receipt cr on rd.receipt_id = cr.id and cr.isdel = 0
+            ) c on v.id = c.commission_id
+            WHERE  (v.my_STATUS='激活' or (v.my_STATUS='关闭'and v.is_bill = 0))
+            and v.transaction_status != '付款后退房'
+            AND CASE WHEN #{orgId} IS NULL THEN TRUE ELSE v.org_id IN
+            (SELECT DISTINCT orgId FROM `s_jobsorgrel` WHERE
+            CASE WHEN #{orgLevel} = 1 THEN groupOrgId = #{orgId}
+            WHEN #{orgLevel} = 2 THEN areaOrgId = #{orgId}
+            WHEN #{orgLevel} = 3 THEN cityOrgId = #{orgId}
+            WHEN #{orgLevel} = 4 THEN projectOrgId = #{orgId} ELSE FALSE END) END
+        <if test="source_type_desc != null  and source_type_desc!=''">
+            and v.source_type_desc=#{source_type_desc}
+        </if>
+        <if test="project_status != null  and project_status !='' and project_status != '全部' ">
+            and b.project_status = #{project_status}
+        </if>
+        <if test="payment_status != null  and payment_status !='' and payment_status != '全部' ">
+            and c.payment_status = #{payment_status}
+        </if>
+
+        <if test="keyType == 'project_code' and  value != null and  value!=''">
+            and b.project_code like '%${value}%'
+        </if>
+        <if test="keyType == 'room_name' and  value != null and  value!=''">
+            and v.room_name like '%${value}%'
+        </if>
+        <if test="keyType == 'customer_name' and  value != null and  value!=''">
+            and v.customer_name like '%${value}%'
+        </if>
+        <if test="keyType == 'employee_name' and  value != null and  value!=''">
+            and v.employee_name like '%${value}%'
+        </if>
+        <if test="keyType == 'gain_by' and  value != null and  value!=''">
+            and v.gain_by like '%${value}%'
+        </if>
+        <if test="keyType == 'bank_num' and  value != null and  value!=''">
+            and v.bank_num like '%${value}%'
+        </if>
+        <if test="keyType == 'bank_name' and  value != null and  value!=''">
+            and v.bank_name like '%${value}%'
+        </if>
+        <if test="keyType == 'reportIdCard' and  value != null and  value!=''">
+            and v.reportIdCard like '%${value}%'
+        </if>
+        <if test="keyType == 'current_role' and  value != null and  value!=''">
+            and v.current_role like '%${value}%'
+        </if>
+        <if test="keyType == 'checklist_code' and  value != null and  value!=''">
+            and b.checklist_code like '%${value}%'
+        </if>
+
+        <if test="subscription_date_start != null  and subscription_date_start!=''">
+            and v.subscription_date &gt;= #{subscription_date_start}
+        </if>
+        <if test="subscription_date_end != null  and subscription_date_end!=''">
+            and v.subscription_date &lt;= #{subscription_date_end}
+        </if>
+        <if test="signing_date_start != null  and signing_date_start!=''">
+            and v.signing_date &gt;= #{signing_date_start}
+        </if>
+        <if test="signing_date_end != null  and signing_date_end!=''">
+            and v.signing_date &lt;= #{signing_date_end}
+        </if>
+
+        <if test="collection_proportion != null  and collection_proportion!=''">
+            and v.collection_proportion2 &gt;= #{collection_proportion}
+        </if>
+        <if test="collection_proportion2 != null  and collection_proportion2!=''">
+            and v.collection_proportion2 &lt;= #{collection_proportion2}
+        </if>
+
+        <if test="commission_point != null  and commission_point!=''">
+            and a.commission_point &gt;= #{commission_point}
+        </if>
+        <if test="commission_point2 != null  and commission_point2!=''">
+            and a.commission_point &lt;= #{commission_point2}
+        </if>
+
+        <if test="project_amount != null  and project_amount!=''">
+            and a.project_amount &gt;= #{project_amount}
+        </if>
+        <if test="project_amount2 != null  and project_amount2 !=''">
+            and a.project_amount &lt;= #{project_amount2}
+        </if>
+
+        <if test="is_receipt!=null and is_receipt!='' ">
+            and case
+            when #{is_receipt} = '0' then (a.amount_closed = 0 or (a.amount_closed ='' and v.is_commission = 1))
+            when #{is_receipt} = '1' then a.amount_closed > 0
+            else 1=1 end
+        </if>
+
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectExcelCommissionStanding"  parameterType="java.util.Map" resultType="java.util.Map">
+        select
+        a.checklist_id,
+        a.id,
+        a.applicant,
+        a.business_attribution_code,
+        b.checklist_code,
+        b.project_code,
+        a.opportunity_id,
+        v.id as commission_id,
+        v.business_unit_name,
+        v.project_name,
+        v.mproject_id,
+        v.room_name,
+        v.room_id,
+        v.transaction_id,
+        v.transactionStatus as transaction_status,
+        v.now_price,
+        v.back_price,
+        v.collection_proportion,
+        v.collection_proportion2,
+        a.project_amount,
+        a.commission_point,
+        v.built_up_area,
+        a.amount_closed,
+        a.outstanding_amount,
+        a.amount_paid,
+        a.unpaid_amount,
+        a.application_amount,
+        a.com_payment_ratio,
+        v.gain_by,
+        v.source_type_desc,
+        v.current_role,
+        v.employee_name,
+        v.customer_name,
+        v.signing_date,
+        v.subscription_date,
+        v.bank_num,
+        v.bank_name,
+        v.reportIdCard,
+        v.commission_money,
+        case when b.project_status = '1' then '草稿'
+        when b.project_status = '2' then '已审核'
+        when b.project_status = '3' then '已立项'
+        when b.project_status = '4' then '立项通过'
+        when b.project_status = '5' then '立项驳回'
+        when b.project_status = '6' then '立项撤销'
+        else '' end as project_status,
+        b.commission_type,
+        case when c.payment_status = '1' then '草稿'
+        when c.payment_status = '2' then '已审核'
+        when c.payment_status = '3' then '审批中'
+        when c.payment_status = '4' then '付款通过'
+        when c.payment_status = '5' then '付款驳回'
+        when c.payment_status = '6' then '开票审批中'
+        else '' end as payment_status
+        from v_commission v
+        left join cm_checklist_detail a on v.id = a.commission_id and a.isdel = 0
+        left join cm_checklist b on a.checklist_id = b.id and b.isdel = 0
+        left join (select checklist_id,payment_status,create_time from cm_receipt GROUP BY checklist_id ORDER BY create_time) c on b.id = c.checklist_id
+        WHERE  (v.my_STATUS='激活' or (v.my_STATUS='关闭'and v.is_bill = 0))
+        and v.transaction_status != '付款后退房'
+        AND CASE WHEN #{orgId} IS NULL THEN TRUE ELSE v.org_id IN
+        (SELECT DISTINCT orgId FROM `s_jobsorgrel` WHERE
+        CASE WHEN #{orgLevel} = 1 THEN groupOrgId = #{orgId}
+        WHEN #{orgLevel} = 2 THEN areaOrgId = #{orgId}
+        WHEN #{orgLevel} = 3 THEN cityOrgId = #{orgId}
+        WHEN #{orgLevel} = 4 THEN projectOrgId = #{orgId} ELSE FALSE END) END
+        <if test="ids != null and ids != ''">
+            and a.id in ('${ids}')
+        </if>
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="selectExcelWaitReceipt" parameterType="java.util.Map" resultType="java.util.Map">
+                select
+            a.checklist_id,
+            a.id,
+            a.applicant,
+            a.business_attribution_code,
+            b.checklist_code,
+            b.project_code,
+            a.opportunity_id,
+            v.id as commission_id,
+            v.business_unit_name,
+            v.project_name,
+            v.mproject_id,
+            v.room_name,
+            v.room_id,
+            v.transaction_id,
+            v.transaction_status,
+            v.now_price,
+            v.back_price,
+            v.collection_proportion,
+            v.collection_proportion2,
+            a.project_amount,
+            a.commission_point,
+            v.built_up_area,
+            a.amount_closed,
+            a.outstanding_amount,
+            a.amount_paid,
+            a.unpaid_amount,
+            a.application_amount,
+            a.com_payment_ratio,
+            v.gain_by,
+            v.source_type_desc,
+            v.current_role,
+            v.employee_name,
+            v.customer_name,
+            v.signing_date,
+            v.subscription_date,
+            v.bank_num,
+            v.bank_name,
+            v.reportIdCard,
+            v.commission_money
+        from cm_checklist_detail a
+        left join v_commission v on a.commission_id = v.id
+        left join cm_checklist b on a.checklist_id = b.id
+        where a.outstanding_amount != 0 and b.project_status = 4
+        and a.isdel = 0 and b.isdel = 0
+        and v.my_STATUS !='关闭'
+        <if test="ids != null and ids != ''">
+            and a.id in ('${ids}')
+        </if>
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="selectExcelWaitReceipt2" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.*,
+        case when r.payment_status = '1' then '草稿'
+        when r.payment_status = '2' then '已审核'
+        when r.payment_status = '3' then '审批中'
+        when r.payment_status = '4' then '付款通过'
+        when r.payment_status = '5' then '付款驳回'
+        when r.payment_status = '6' then '开票审批中'
+        else '草稿' end as paymentStatus,
+        v.room_name as roomName,
+        v.business_unit_name,
+        v.project_name,
+        v.mproject_id,
+        v.customer_name,
+        v.customer_code,
+        v.gain_by,
+        v.source_type_desc,
+        v.current_role,
+        v.my_STATUS,
+        v.transactionStatus transaction_status,
+        v.transaction_id,
+        v.subscription_date,
+        v.signing_date,
+        v.now_price,
+        v.back_price,
+        v.collection_proportion,
+        v.employee_name,
+        v.customer_mobile,
+        v.report_mobile,
+        v.commission_money,
+        v.commission_percentage,
+        v.reportIdCard,
+        v.bank_name,
+        v.bank_num,
+        v.isAuthentication,
+        c.commission_point,
+        c.amount_closed,
+        c.outstanding_amount,
+        r.receipt_code,
+        r.payment_code,
+        r.payment_status,
+        r.checklist_code,
+        r.project_code,
+        r.actual_payment_status,
+        case when r.actual_payment_status = 1 then '支付中'
+        when r.actual_payment_status = 2 then '已支付'
+        else '未支付' end as actual_paymentStatus,
+        r.pay_time,
+        b.EmployeeName,
+        (select 1 from s_attach s where s.BizID = a.id GROUP BY BizID)as attach,
+        cl.commission_type,
+        v.isAuthentication
+        from cm_receipt_detail a
+        left join v_commission v on a.commission_id = v.id and v. status = 1 and v.is_del = 0
+        left join cm_checklist_detail c on a.checklist_detail_id = c.id
+        left join cm_checklist cl on c.checklist_id =cl.id
+        left join cm_receipt r on a.receipt_id = r.id
+        left join b_account b on a.creator =b.id
+        where  a.status = 1 and a.isdel = 0
+        AND CASE WHEN #{orgId} IS NULL THEN TRUE ELSE a.org_id IN
+        (SELECT DISTINCT orgId FROM `s_jobsorgrel` WHERE
+        CASE WHEN #{orgLevel} = 1 THEN groupOrgId = #{orgId}
+        WHEN #{orgLevel} = 2 THEN areaOrgId = #{orgId}
+        WHEN #{orgLevel} = 3 THEN cityOrgId = #{orgId}
+        WHEN #{orgLevel} = 4 THEN projectOrgId = #{orgId} ELSE FALSE END) END
+        <if test="receipt_id != null  and receipt_id!=''">
+            and a.receipt_id = #{receipt_id}
+        </if>
+        <if test="checklist_detail_id != null  and checklist_detail_id!=''">
+            and c.id = #{checklist_detail_id}
+        </if>
+
+        <if test="source_type_desc != null  and source_type_desc!=''">
+            and v.source_type_desc=#{source_type_desc}
+        </if>
+
+        <if test="keyType == 'room_name' and  value != null and  value!=''">
+            and v.room_name like '%${value}%'
+        </if>
+        <if test="keyType == 'customer_name' and  value != null and  value!=''">
+            and v.customer_name like '%${value}%'
+        </if>
+        <if test="keyType == 'employee_name' and  value != null and  value!=''">
+            and v.employee_name like '%${value}%'
+        </if>
+        <if test="keyType == 'gain_by' and  value != null and  value!=''">
+            and v.gain_by like '%${value}%'
+        </if>
+        <if test="keyType == 'bank_num' and  value != null and  value!=''">
+            and v.bank_num like '%${value}%'
+        </if>
+        <if test="keyType == 'reportIdCard' and  value != null and  value!=''">
+            and v.reportIdCard like '%${value}%'
+        </if>
+
+        <if test="system_risk!=null and system_risk!='' and system_risk!='全部'">
+            and v.system_risk = #{system_risk}
+        </if>
+        <if test="artificial_risk!=null and artificial_risk!='' and artificial_risk!='全部'">
+            and v.artificial_risk = #{artificial_risk}
+        </if>
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+
+    <select id="selectReceiptDetail" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.*,
+            case when r.payment_status = '1' then '草稿'
+            when r.payment_status = '2' then '已审核'
+            when r.payment_status = '3' then '审批中'
+            when r.payment_status = '4' then '付款通过'
+            when r.payment_status = '5' then '付款驳回'
+            when r.payment_status = '6' then '开票审批中'
+            else '草稿' end as paymentStatus,
+            v.room_name as roomName,
+            v.business_unit_name,
+            v.project_name,
+            v.mproject_id,
+            v.customer_name,
+            v.customer_code,
+            v.gain_by,
+            v.source_type_desc,
+            v.current_role,
+            v.my_STATUS,
+            v.transactionStatus transaction_status,
+            v.transaction_id,
+            v.subscription_date,
+            v.signing_date,
+            v.now_price,
+            v.back_price,
+            v.collection_proportion,
+            v.employee_name,
+            v.customer_mobile,
+            v.report_mobile,
+            v.commission_money,
+            v.commission_percentage,
+            v.reportIdCard,
+            v.bank_name,
+            v.bank_num,
+            v.isAuthentication,
+            c.commission_point,
+            c.amount_closed,
+            c.outstanding_amount,
+            r.receipt_code,
+            r.payment_code,
+            r.payment_status,
+            r.checklist_code,
+            r.project_code,
+            r.actual_payment_status,
+            case when r.actual_payment_status = 1 then '支付中'
+            when r.actual_payment_status = 2 then '已支付'
+            else '未支付' end as actual_paymentStatus,
+            r.pay_time,
+            b.EmployeeName,
+            (select 1 from s_attach s where s.BizID = a.id GROUP BY BizID)as attach,
+            cl.commission_type,
+            v.isAuthentication
+        from cm_receipt_detail a
+        left join v_commission v on a.commission_id = v.id and v. status = 1 and v.is_del = 0
+        left join cm_checklist_detail c on a.checklist_detail_id = c.id
+        left join cm_checklist cl on c.checklist_id =cl.id
+        left join cm_receipt r on a.receipt_id = r.id
+        left join b_account b on a.creator =b.id
+        where  a.status = 1 and a.isdel = 0
+        <if test="receipt_id != null  and receipt_id!=''">
+            and a.receipt_id = #{receipt_id}
+        </if>
+        <if test="checklist_detail_id != null  and checklist_detail_id!=''">
+            and c.id = #{checklist_detail_id}
+        </if>
+
+        <if test="keyType == 'room_name' and  value != null and  value!=''">
+            and v.room_name like '%${value}%'
+        </if>
+        <if test="keyType == 'customer_name' and  value != null and  value!=''">
+            and v.customer_name like '%${value}%'
+        </if>
+        <if test="keyType == 'employee_name' and  value != null and  value!=''">
+            and v.employee_name like '%${value}%'
+        </if>
+        <if test="keyType == 'gain_by' and  value != null and  value!=''">
+            and v.gain_by like '%${value}%'
+        </if>
+        <if test="keyType == 'bank_num' and  value != null and  value!=''">
+            and v.bank_num like '%${value}%'
+        </if>
+        <if test="keyType == 'reportIdCard' and  value != null and  value!=''">
+            and v.reportIdCard like '%${value}%'
+        </if>
+
+        <if test="system_risk!=null and system_risk!='' and system_risk!='全部'">
+            and v.system_risk = #{system_risk}
+        </if>
+        <if test="artificial_risk!=null and artificial_risk!='' and artificial_risk!='全部'">
+            and v.artificial_risk = #{artificial_risk}
+        </if>
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <select id="selectOrderFk"  parameterType="java.util.Map" resultType="java.util.Map">
+        select info.system_risk,info.risk_approve_status
+        from vs_xsgl_order_fk o
+        LEFT JOIN vs_buyer  b  ON b.SaleGUID = o.orderGuid
+        LEFT JOIN mm_risk_control_info info ON info.id_number = b.CardID AND  o.project_id=info.project_id
+        where TradeGuid = #{transaction_id}
+    </select>
+
+    <select id="selectProgectFk"  parameterType="java.util.Map" resultType="java.lang.Integer">
+        select count(1) from vs_xsgl_order_fk where project_id = #{mproject_id} GROUP BY project_id
+    </select>
+
+
+
+    <select id="selectExcelReceiptDetail" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.*,
+            case when r.payment_status = '1' then '草稿'
+            when r.payment_status = '2' then '已审核'
+            when r.payment_status = '3' then '审批中'
+            when r.payment_status = '4' then '付款通过'
+            when r.payment_status = '5' then '付款驳回'
+            when r.payment_status = '6' then '开票审批中'
+            else '草稿' end as paymentStatus,
+            v.room_name as roomName,
+            v.business_unit_name,
+            v.project_name,
+            v.customer_name,
+            v.gain_by,
+            v.source_type_desc,
+            v.current_role,
+            v.transactionStatus transaction_status,
+            v.subscription_date,
+            v.signing_date,
+            v.now_price,
+            v.back_price,
+            v.collection_proportion,
+            v.employee_name,
+            v.customer_mobile,
+            v.report_mobile,
+            v.commission_money,
+            v.commission_percentage,
+            v.reportIdCard,
+            v.bank_name,
+            v.bank_num,
+            c.commission_point,
+            c.amount_closed,
+            c.outstanding_amount,
+            r.receipt_code,
+            r.payment_code,
+            r.payment_status,
+            r.checklist_code,
+            r.project_code,
+            b.EmployeeName
+        from cm_receipt_detail a
+        left join v_commission v on a.commission_id = v.id and v. status = 1 and v.is_del = 0
+        left join cm_checklist_detail c on a.checklist_detail_id = c.id
+        left join cm_receipt r on a.receipt_id = r.id
+        left join b_account b on a.creator =b.id
+        where  a.status = 1 and a.isdel = 0
+        <if test="rids != null and rids !=''">
+            and a.receipt_id in ('${rids}')
+        </if>
+        <if test="ids != null and ids != ''">
+            and a.id in ('${ids}')
+        </if>
+        <choose>
+            <when test="orderBy != null and orderBy != '' and orderType != null and orderType != ''" >
+                ORDER BY ${orderBy} ${orderType}
+            </when>
+            <otherwise>
+                order by a.create_time desc
+            </otherwise>
+        </choose>
+    </select>
+
+
+    <update id="updatePaymentStatus" parameterType="java.util.Map">
+        update cm_receipt set payment_status = #{paymentStatus},edit_time = now() where id = #{receiptId}
+    </update>
+    <update id="updatePaymentStatus2" parameterType="java.util.Map">
+        update cm_receipt set payment_status = #{payment_status},edit_time = now() where id = #{id}
+    </update>
+
+    <update id="updatePaymentStatus3" parameterType="java.util.Map">
+        update cm_receipt a
+        left join cm_receipt_invoice b on a.id = b.receipt_id
+        set a.payment_status = #{payment_status},edit_time = now()
+        where b.id = #{id}
+    </update>
+
+
+    <update id="updateApplicationTime" parameterType="java.util.Map">
+        update cm_receipt set payment_code = #{paymentCode},application_time = #{approvalDate},edit_time = now() where id = #{receiptId}
+    </update>
+
+    <update id="updateAmountClosed" parameterType="java.util.Map">
+        update cm_receipt r
+        left join cm_checklist a on r.checklist_code = a.checklist_code and a.isdel = '0'
+        set a.payment_closed = a.payment_closed+(select sum(rd.application_amount) from cm_receipt_detail rd where rd.receipt_id = r.id )
+        where  r.isdel = '0' and r.id = #{receiptId};
+
+        update cm_receipt_detail r
+        left join cm_checklist_detail a on r.checklist_detail_id = a.id and a.isdel = '0'
+        set a.amount_closed = a.amount_closed+r.application_amount,
+        a.outstanding_amount = a.project_amount-(a.amount_closed+r.application_amount)
+        where  r.isdel = '0' and r.receipt_id = #{receiptId};
+        update cm_receipt set actual_payment_status = 1 where id = #{receiptId}
+    </update>
+
+    <update id="updateAmountClosed2" parameterType="java.util.Map">
+        update cm_receipt r
+        left join cm_checklist a on r.checklist_code = a.checklist_code and a.isdel = '0'
+        set a.payment_closed = a.payment_closed-(select sum(rd.application_amount) from cm_receipt_detail rd where rd.receipt_id = r.id )
+        where  r.isdel = '0' and r.id = #{receiptId};
+
+        update cm_receipt_detail r
+        left join cm_checklist_detail a on r.checklist_detail_id = a.id and a.isdel = '0'
+        set a.amount_closed = a.amount_closed-r.application_amount,
+        a.outstanding_amount = a.project_amount-(a.amount_closed-r.application_amount)
+        where  r.isdel = '0' and r.receipt_id = #{receiptId};
+        update cm_receipt set actual_payment_status = 1 where id = #{receiptId}
+    </update>
+
+    <update id="updateReceiptDetail"  parameterType="java.util.Map" >
+        update cm_receipt_detail set application_amount = #{application_amount},edit_time = now(),editor = #{username} where id=#{id}
+    </update>
+
+    <update id="updateReceiptDetailList" >
+        <foreach collection="list" index="index" item="item" >
+            <if test="item.application_amount != null and item.application_amount != ''">
+                update cm_receipt_detail set application_amount = #{item.application_amount},edit_time = now(),editor = #{userName} where id=#{item.id};
+            </if>
+        </foreach>
+    </update>
+
+    <!-- -->
+    <update id="updateReceiptAmount"  parameterType="java.util.Map">
+        update  cm_receipt r
+        left join cm_receipt_detail cr on r.id = cr.receipt_id and cr.id = #{id}
+        set r.payment_amount =  (select SUM(rd.application_amount) from  cm_receipt_detail rd where rd.receipt_id= r.id ),
+        r.edit_time = now(),r.editor = #{uaername}
+    </update>
+
+    <update id="updateReceiptAmountAll"  parameterType="java.util.Map">
+        update  cm_receipt r
+        set r.payment_amount =  (select SUM(rd.application_amount) from  cm_receipt_detail rd where rd.receipt_id= r.id ),
+        r.edit_time = now(),r.editor = #{username}
+        where id = #{id}
+    </update>
+
+    <delete id="deleteReceiptDetail"  parameterType="java.util.Map">
+        delete from cm_receipt_detail where id=#{id}
+    </delete>
+
+    <delete id="deleteReceipt"  parameterType="java.util.Map">
+        delete from cm_receipt where id=#{id}
+    </delete>
+
+    <delete id="deleteReceiptDetailAll"  parameterType="java.util.Map">
+        delete from cm_receipt_detail where receipt_id=#{id}
+    </delete>
+
+    <!-- 查询当前付款单审批状态 -->
+    <select id="getPaymentStatus"  parameterType="java.util.Map" resultType="java.util.Map">
+        select
+            cc.id as checklistId,cr.receipt_code,v.room_name,cr.payment_status,cr.actual_payment_status,cc.project_status,ccd.project_amount,
+            ccd.outstanding_amount,v.my_STATUS,ccd.transaction_id,
+            (select sum(case when c.remarks = '欠款' and cmrd.id is null  then 1 else 0 end) from cm_checklist_detail a
+            left join cm_commission c on a.commission_id =c.id
+            left join cm_receipt_detail cmrd on a.id = cmrd.checklist_detail_id
+            where cc.id = a.checklist_id and a.id not in ('${ids}')) as qk
+        from cm_checklist_detail ccd
+            left join cm_receipt_detail crd on ccd.id = crd.checklist_detail_id
+            left join cm_receipt cr on crd.receipt_id = cr.id
+            left join cm_commission v on ccd.commission_id = v.id
+            left join cm_checklist cc on ccd.checklist_id = cc.id
+        where ccd.id in ('${ids}')
+    </select>
+
+    <select id="getFileLists" parameterType="java.lang.String" resultType="java.util.Map">
+        select id,ShowName as name,SaveUrl as url,ListIndex as orderIndex from s_attach where BizID=#{id} order by ListIndex
+    </select>
+
+    <!--删除上传文件-->
+    <delete id="delFile" parameterType="java.lang.String">
+        delete from s_attach where id=#{id}
+    </delete>
+
+
+    <select id="getRiskInfo" parameterType="java.lang.String" resultType="java.util.Map">
+        select risk_approve_status,client_id from mm_risk_control_info where id_number = #{idNumber}
+    </select>
+
+
+    <update id="updateActualPaymentStatus" parameterType="java.util.List">
+        <foreach collection="list"  index="index" item="item" >
+            update cm_receipt b
+            left join cm_receipt_detail r on b.id= r.receipt_id
+            left join cm_checklist_detail a on r.checklist_detail_id = a.id and a.isdel = '0'
+            set a.amount_paid = a.amount_paid+r.application_amount,
+            a.unpaid_amount = a.project_amount-(a.amount_paid+r.application_amount),
+            a.com_payment_ratio = ((a.amount_paid+r.application_amount)/a.project_amount)*100
+            where b.payment_status = '4' and r.isdel = '0' and actual_payment_status =1 and b.id = #{item.CommissionFKGUID};
+            update cm_receipt set actual_payment_status = '2',pay_time=#{item.Paydate}
+            where payment_status = '4'and actual_payment_status =1 and id=#{item.CommissionFKGUID};
+        </foreach>
+    </update>
+
+    <select id="getCmreceipt" parameterType="java.util.Map" resultType="java.lang.Integer">
+        select payment_status from cm_receipt where id=#{receiptId}
+    </select>
+
+
+    <select id="getVlinkDataByReceiptId" parameterType="java.lang.String" resultType="java.util.Map">
+        select v.*,CONCAT(v.checklist_name,'-第',v.batchNo,'笔') as name from(
+            select
+                r.receipt_code,
+                            c.checklist_name,
+                (select v.rowNo from
+                    (select (@rowNum:=@rowNum+1) as rowNo,a.id
+                    from cm_receipt a,(Select (@rowNum :=0)) as r
+                    where a.checklist_id in (select checklist_id from cm_receipt where id = #{id} )
+                    and isdel = 0 and status = 1
+                    ORDER BY a.create_time ) v
+                where v.id =r.id) as batchNo ,
+                (select count(1) from cm_receipt_detail where receipt_id = r.id and isdel = 0 and status = 1) as num,
+                r.payment_amount,
+                r.vlink_project_id,
+				c.commission_type
+            from cm_receipt r
+            left join cm_checklist c on r.checklist_id = c.id
+            where (r.id=#{id} or r.receipt_code=#{id}) and r.isdel = 0 and r.status = 1
+            limit 1
+		) v
+    </select>
+
+    <select id="getVlinkListDataByReceiptId" parameterType="java.lang.String" resultType="java.util.Map">
+        select v.gainBy,
+            v.reportIdCard,
+            v.bank_name,
+            v.bank_num,
+            b.application_amount,
+            v.customer_name,
+            v.customerMobile,
+            v.room_name,
+            v.source_type_desc,
+            v.subscription_date,
+            v.signing_date,
+            v.report_mobile,
+            v.subscription_price,
+            v.employee_name
+        from cm_receipt a
+        left join cm_receipt_detail b on a.id = b.receipt_id
+        left join v_commission v on b.commission_id = v.id
+        where (a.id=#{id} or a.receipt_code=#{id}) and b.isdel=0
+    </select>
+
+    <select id="getVlinkListByReceiptId" parameterType="java.lang.String" resultType="java.util.Map">
+        select b.id as orderNo,
+            b.application_amount as amount,
+            v.gainBy as payeeName,
+            v.bank_num as payeeAcc,
+            v.bank_name as bankName,
+            v.reportIdCard as idCard,
+            v.gain_mobile as mobile,
+            v.remarks as remark
+        from cm_receipt a
+        left join cm_receipt_detail b on a.id = b.receipt_id
+        left join v_commission v on b.commission_id = v.id
+        where (a.id=#{id} or a.receipt_code=#{id}) and b.isdel=0
+    </select>
+
+    <update id="updateVlinkProjectId" parameterType="java.lang.String">
+        update cm_receipt set vlink_project_id = #{projectId} where id = #{id}
+    </update>
+
+    <update id="updateVlinkPaymentStatus" parameterType="java.lang.String">
+        update cm_receipt set actual_payment_status = '2',pay_time=now()
+        where payment_status = '4'and actual_payment_status =1 and receipt_code=#{id};
+        update cm_receipt b
+        left join cm_receipt_detail r on b.id= r.receipt_id
+        left join cm_checklist_detail a on r.checklist_detail_id = a.id and a.isdel = '0'
+        set a.amount_paid = a.amount_paid+r.application_amount,
+        a.unpaid_amount = a.project_amount-(a.amount_paid+r.application_amount)
+        where b.payment_status = '4' and r.isdel = '0' and actual_payment_status =1 and b.receipt_code = #{id};
+    </update>
+
+    <select id="selectReceiptById" parameterType="java.lang.String" resultType="java.util.Map">
+        select p.business_unit_name,p.project_name,
+        case when a.payment_status = '1' then '草稿'
+        when a.payment_status = '2' then '已审核'
+        when a.payment_status = '3' then '审批中'
+        when a.payment_status = '4' then '付款通过'
+        when a.payment_status = '5' then '付款驳回'
+        when a.payment_status = '6' then '开票审批中'
+        else '草稿' end as paymentStatus,
+        c.commission_type,
+        a.main_data_project_id,
+        a.*,
+        (select c.gain_by from cm_receipt_detail r
+        left join cm_commission c on r.commission_id=c.id
+        where receipt_id=a.id limit 1) as gain_by,
+        c.commission_type,
+        b.EmployeeName
+        from cm_receipt a
+        left join mm_idm_business_unit_project_rel p on a.main_data_project_id = p.project_id
+        left join b_account b on a.creator =b.id
+		left join cm_checklist c on a.checklist_id = c.id
+        where  a.status = 1 and a.isdel = 0
+        and a.id = #{id}
+    </select>
+
+
+    <select id="getReceiptInvoiceByJsonId"  parameterType="java.lang.String" resultType="java.util.Map">
+        select t.* from cm_receipt_invoice t where t.id = #{id}
+    </select>
+
+
+    <insert id="initReceiptApply" parameterType="java.util.Map">
+        insert into
+        cm_receipt_invoice(id,
+            apply_name,apply_time,apply_region,apply_department,
+            apply_title, receipt_id,flow_code, isdel)
+        values(#{uuid},
+            #{apply_name},#{apply_time},#{apply_region},#{apply_department},
+            #{apply_title},#{receipt_id}, #{flow_code}, 0
+        )
+    </insert>
+
+    <update id="updateReceiptApply" parameterType="java.util.Map">
+        update cm_receipt_invoice
+        <trim prefix="set" suffixOverrides=",">
+            <if test="apply_name!=null">
+                apply_name=#{apply_name},
+            </if>
+            <if test="apply_time!=null">
+                apply_time=#{apply_time},
+            </if>
+            <if test="apply_region!=null">
+                apply_region=#{apply_region},
+            </if>
+            <if test="apply_department!=null">
+                apply_department=#{apply_department},
+            </if>
+            <if test="apply_title!=null">
+                apply_title=#{apply_title},
+            </if>
+            <if test="flow_code!=null">
+                flow_code=#{flow_code},
+            </if>
+        </trim>
+        where receipt_id=#{receiptId}
+    </update>
+
+    <select id="selectFlowInfoById" parameterType="java.lang.String" resultType="java.lang.String">
+        select b.id from cm_receipt_invoice a
+        left join mm_ap_flow_info b on a.id = b.json_id
+        where a.receipt_id = #{id}
+    </select>
+
+    <select id="selectReceiptApplyById" parameterType="java.lang.String" resultType="java.lang.String">
+        select a.id from cm_receipt_invoice a where a.receipt_id = #{id} and a.isdel = 0
+    </select>
+
+</mapper>

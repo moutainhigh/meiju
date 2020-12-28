@@ -1,0 +1,1130 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.commissionpolicy.dao.CmPolicyApplyMapper">
+
+
+    <!--获取所有政策-->
+    <select id="getPolicy" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        DISTINCT
+        cp.id,
+        cp.policy_name,
+        cp.policy_code,
+        fi.flow_status,
+        fi.flow_id,
+        cp.STATUS,
+        cp.creator_name,
+        cp.create_time,
+        cp.policy_type,
+        cp.org_id,
+        cp.project_name as projectOrgName,
+        sjr.areaOrgName,
+        cp.project_id
+        FROM
+        cm_policy cp left join mm_ap_flow_info fi on cp.id=fi.json_id
+        left  join policy_org_rel por on cp.id=por.biz_id
+        left join s_jobsorgrel sjr on sjr.orgId=por.org_id
+        WHERE
+        cp.policy_type = #{policy_type}
+        <if test="org_level == 1">
+            and sjr.groupOrgId=#{org_id}
+        </if>
+        <if test="org_level ==2">
+            and sjr.areaOrgId=#{org_id}
+        </if>
+        <if test="org_level ==3">
+            and sjr.cityOrgId=#{org_id}
+        </if>
+        <if test="org_level ==4">
+            and sjr.projectOrgId=#{org_id}
+        </if>
+        <if test="policy_code !=null and policy_code!=''">
+            and cp.policy_code LIKE '%${policy_code}%'
+        </if>
+        <if test="policy_name !=null and policy_name !=''">
+            and cp.policy_name LIKE '%${policy_name}%'
+        </if>
+        <if test="approve_status!=null and approve_status!=''">
+            and fi.flow_status in (${approve_status})
+        </if>
+        <!--    <if test="project_id!=null and project_id!=''">
+                    and cp.project_id=#{project_id}
+                </if>-->
+        <if test="state!=null and state!=''">
+            and cp.STATUS=#{state}
+        </if>
+        and cp.isDel=0 order by create_time desc
+    </select>
+
+    <select id="exportPolicy" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        DISTINCT
+        cp.id,
+        cp.policy_name,
+        cp.policy_code,
+        cp.project_name as projectOrgName,
+        sjr.areaOrgName,
+        case fi.flow_status
+        when 0 then '实例被删除'
+        when 1 then '1未发起'
+        when 2 then '草稿'
+        when 3 then '审批中'
+        when 4 then '审批通过'
+        when 5 then '驳回发起'
+        when 6 then '撤回发起'
+        when 7 then '流程放弃'
+        when 8 then '开始专业审核'
+        when 9 then '专业审核节点被撤回'
+        end as flow_status,
+        fi.flow_id,
+        case cp.STATUS
+        when 0 then '禁用'
+        when 1 then '启用'
+        end STATUS,
+        cp.creator_name,
+        cp.create_time,
+        case cp.policy_type
+        when 0 then '全民营销政策'
+        when 1 then '中介政策'
+        end
+        FROM
+        cm_policy cp left join mm_ap_flow_info fi on cp.id=fi.json_id
+        left join s_jobsorgrel sjr on sjr.orgId=cp.org_id
+        WHERE
+        cp.policy_type = #{policy_type}
+        <if test="org_level == 1">
+            and sjr.groupOrgId=#{org_id}
+        </if>
+        <if test="org_level ==2">
+            and sjr.areaOrgId=#{org_id}
+        </if>
+        <if test="org_level ==3">
+            and sjr.cityOrgId=#{org_id}
+        </if>
+        <if test="org_level ==4">
+            and sjr.projectOrgId=#{org_id}
+        </if>
+        <if test="policy_code !=null and policy_code!=''">
+            and cp.policy_code=#{policy_code}
+        </if>
+        <if test="policy_name !=null and policy_name !=''">
+            and cp.policy_name LIKE '%${policy_name}%'
+        </if>
+        <if test="approve_status!=null and approve_status!=''">
+            and fi.flow_status=#{approve_status}
+        </if>
+        and cp.isDel=0 order by create_time desc
+    </select>
+
+    <!--获取政策明细-->
+    <select id="getBrokerPolicyDetail" parameterType="java.lang.String" resultType="java.util.Map">
+        select  DISTINCT cpb.*,cp.*,jr.orgLevel from cm_policy_broker cpb join cm_policy cp on cpb.policy_id=cp.id left join s_jobsorgrel jr on jr.orgId=cp.org_id  where policy_id=#{policy_id} limit 1
+    </select>
+
+    <select id="getBizOrgList" parameterType="java.lang.String" resultType="java.util.Map">
+        select * from policy_org_rel where biz_id=#{bizId}
+    </select>
+
+    <select id="getAgencyPolicyDetail" parameterType="java.lang.String" resultType="java.util.Map">
+        select  DISTINCT cpb.*,cp.*,jr.orgLevel from cm_policy_agency cpb join cm_policy cp on cpb.policy_id=cp.id left join s_jobsorgrel jr on jr.orgId=cp.org_id where policy_id=#{policy_id} limit 1
+    </select>
+
+    <!--获取政策附件-->
+    <select id="getPolicyFile" parameterType="java.lang.String" resultType="java.util.Map">
+       select id,ShowName as name,SaveUrl as url from s_attach where BizID=#{policy_id} and  IsDel=0
+    </select>
+    <!--获取流程编号-->
+    <select id="getFlowId" parameterType="java.lang.String" resultType="java.lang.String">
+      select flow_id from mm_ap_flow_info where json_id=#{policy_id}
+    </select>
+
+    <!--获取分期-->
+    <select id="getProjectStage" parameterType="java.lang.String" resultType="java.util.Map">
+		select id,stageName from t_mm_staging where projectID= #{projectId}
+	</select>
+
+    <update id="updatePolicyStatus" parameterType="java.lang.String">
+		update cm_policy set status=#{state} where id=#{policyId}
+	</update>
+
+    <update id="updatePolicyStatusByDate" parameterType="java.lang.String">
+		update cm_policy set status=0 where end_time &lt;=#{date}
+	</update>
+
+    <update id="deletePolicy" parameterType="java.lang.String">
+		update cm_policy set isDel=1 where id=#{policyId}
+	</update>
+
+    <!--	<update id="deletePolicyDetail" parameterType="java.lang.String">
+            update cm_policy_broker where policy_id=#{policyId}
+        </update>-->
+
+    <delete id="deleteFile" parameterType="java.lang.String">
+		update  s_attach set IsDel=1 where BizID=#{policyId}
+	</delete>
+
+    <delete id="deleteFlow" parameterType="java.lang.String">
+		update  mm_ap_flow_info set isdel=1 where json_id=#{policyId}
+	</delete>
+    <!--保存政策主表信息-->
+    <insert id="saveCmPolicy" parameterType="java.util.Map">
+        INSERT INTO `cm_policy`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="policyId!=null and policyId!=''">
+                `id`,
+            </if>
+            <if test="policy_name!=null and policy_name!=''">
+                `policy_name`,
+            </if>
+            <if test="policy_code!=null and policy_code!=''">
+                `policy_code`,
+            </if>
+            <if test="project_id!=null and project_id!=''">
+                `project_id`,
+            </if>
+            <if test="project_name!=null and project_name!=''">
+                `project_name`,
+            </if>
+            `stage_id`,
+            `stage_name`,
+            <if test="start_time!=null and start_time!=''">
+                `start_time`,
+            </if>
+            <if test="end_time!=null and end_time!=''">
+                `end_time`,
+            </if>
+            `status`,
+            `create_time`,
+            <if test="creator_name!=null and creator_name!=''">
+                `creator_name`,
+            </if>
+            <if test="creator!=null and creator!=''">
+                `creator`,
+            </if>
+            <if test="job_org_id!=null and job_org_id!=''">
+                `job_org_id`,
+            </if>
+            <if test="job_id!=null and job_id!=''">
+                `job_id`,
+            </if>
+            <if test="policy_type!=null and policy_type!=''">
+                `policy_type`,
+            </if>
+
+            <if test="org_id!=null and org_id!=''">
+                `org_id`,
+            </if>
+            isDel
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="policyId!=null and policyId != ''">
+                #{policyId},
+            </if>
+            <if test="policy_name!=null and policy_name != ''">
+                #{policy_name},
+            </if>
+            <if test="policy_code!=null and policy_code != ''">
+                #{policy_code},
+            </if>
+            <if test="project_id!=null and project_id != ''">
+                #{project_id},
+            </if>
+            <if test="project_name!=null and project_name != ''">
+                #{project_name},
+            </if>
+            #{stage_id},
+            #{stage_name},
+            <if test="start_time!=null and start_time != ''">
+                #{start_time},
+            </if>
+            <if test="end_time!=null and end_time != ''">
+                #{end_time},
+            </if>
+            1,
+            now(),
+            <if test="creator_name!=null and creator_name != ''">
+                #{creator_name},
+            </if>
+            <if test="creator!=null and creator != ''">
+                #{creator},
+            </if>
+            <if test="job_org_id!=null and job_org_id != ''">
+                #{job_org_id},
+            </if>
+            <if test="job_id!=null and job_id != ''">
+                #{job_id},
+            </if>
+            <if test="policy_type!=null and policy_type != ''">
+                #{policy_type},
+            </if>
+            <if test="org_id!=null and org_id!=''">
+                #{org_id},
+            </if>
+            0
+        </trim>
+    </insert>
+
+    <!--插入全名经纪人表-->
+    <insert id="saveBrokerPolicy" parameterType="java.util.Map">
+        INSERT INTO `cm_policy_broker`
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            `id`,
+            <if test="policyId!=null and policyId!=''">
+                `policy_id`,
+            </if>
+            <if test="customer_area_desc!=null and customer_area_desc!=''">
+                `customer_area_desc`,
+            </if>
+            <if test="area_stock!=null and area_stock!=''">
+                `area_stock`,
+            </if>
+            <if test="intended_use!=null and intended_use!=''">
+                `intended_use`,
+            </if>
+            <if test="project_sell_ratio!=null and project_sell_ratio!=''">
+                `project_sell_ratio`,
+            </if>
+            <if test="project_stock_ratio!=null and project_stock_ratio!=''">
+                `project_stock_ratio`,
+            </if>
+            <if test="market_background!=null and market_background!=''">
+                `market_background`,
+            </if>
+            <if test="stage_sell_target!=null and stage_sell_target!=''">
+                `stage_sell_target`,
+            </if>
+            <if test="stage_num_target!=null and stage_num_target!=''">
+                `stage_num_target`,
+            </if>
+            <if test="sell_predict_ratio!=null and sell_predict_ratio!=''">
+                `sell_predict_ratio`,
+            </if>
+            <if test="sign_num_max!=null and sign_num_max!=''">
+                `sign_num_max`,
+            </if>
+            <if test="predict_award_total!=null and predict_award_total!=''">
+                `predict_award_total`,
+            </if>
+            <if test="project_sell_flow!=null and project_sell_flow!=''">
+                `project_sell_flow`,
+            </if>
+            <if test="predict_sell_flow!=null and predict_sell_flow!=''">
+                `predict_sell_flow`,
+            </if>
+            <if test="award_remark!=null and award_remark!=''">
+                `award_remark`,
+            </if>
+            <if test="cost_append!=null and cost_append!=''">
+                `cost_append`,
+            </if>
+            <if test="marketing_cost_append!=null and marketing_cost_append!=''">
+                `marketing_cost_append`,
+            </if>
+            <if test="marketing_rate_appoint!=null and marketing_rate_appoint!=''">
+                `marketing_rate_appoint`,
+            </if>
+            <if test="check_rate!=null and check_rate!=''">
+                `check_rate`,
+            </if>
+            <if test="has_cost_rate!=null and has_cost_rate!=''">
+                `has_cost_rate`,
+            </if>
+            <if test="residue_rate!=null and residue_rate!=''">
+                `residue_rate`,
+            </if>
+            <if test="cost_rate_change!=null and cost_rate_change!=''">
+                `cost_rate_change`,
+            </if>
+            <if test="elaborate!=null and elaborate!=''">
+                `elaborate`,
+            </if>
+            <if test="old_policy_use_desc!=null and old_policy_use_desc!=''">
+                `old_policy_use_desc`,
+            </if>
+            <if test="broker_man_desc!=null and broker_man_desc!=''">
+                `broker_man_desc`,
+            </if>
+            <if test="project_address!=null and project_address!=''">
+                project_address
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            uuid(),
+            <if test="policyId!=null and policyId!=''">
+                #{policyId},
+            </if>
+            <if test="customer_area_desc!=null and customer_area_desc!=''">
+                #{customer_area_desc},
+            </if>
+            <if test="area_stock!=null and area_stock!=''">
+                #{area_stock},
+            </if>
+            <if test="intended_use!=null and intended_use!=''">
+                #{intended_use},
+            </if>
+            <if test="project_sell_ratio!=null and project_sell_ratio!=''">
+                #{project_sell_ratio},
+            </if>
+            <if test="project_stock_ratio!=null and project_stock_ratio!=''">
+                #{project_stock_ratio},
+            </if>
+            <if test="market_background!=null and market_background!=''">
+                #{market_background},
+            </if>
+            <if test="stage_sell_target!=null and stage_sell_target!=''">
+                #{stage_sell_target},
+            </if>
+            <if test="stage_num_target!=null and stage_num_target!=''">
+                #{stage_num_target},
+            </if>
+            <if test="sell_predict_ratio!=null and sell_predict_ratio!=''">
+                #{sell_predict_ratio},
+            </if>
+            <if test="sign_num_max!=null and sign_num_max!=''">
+                #{sign_num_max},
+            </if>
+            <if test="predict_award_total!=null and predict_award_total!=''">
+                #{predict_award_total},
+            </if>
+            <if test="project_sell_flow!=null and project_sell_flow!=''">
+                #{project_sell_flow},
+            </if>
+            <if test="predict_sell_flow!=null and predict_sell_flow!=''">
+                #{predict_sell_flow},
+            </if>
+            <if test="award_remark!=null and award_remark!=''">
+                #{award_remark},
+            </if>
+            <if test="cost_append!=null and cost_append!=''">
+                #{cost_append},
+            </if>
+            <if test="marketing_cost_append!=null and marketing_cost_append!=''">
+                #{marketing_cost_append},
+            </if>
+            <if test="marketing_rate_appoint!=null and marketing_rate_appoint!=''">
+                #{marketing_rate_appoint},
+            </if>
+            <if test="check_rate!=null and check_rate!=''">
+                #{check_rate},
+            </if>
+            <if test="has_cost_rate!=null and has_cost_rate!=''">
+                #{has_cost_rate},
+            </if>
+            <if test="residue_rate!=null and residue_rate!=''">
+                #{residue_rate},
+            </if>
+            <if test="cost_rate_change!=null and cost_rate_change!=''">
+                #{cost_rate_change},
+            </if>
+            <if test="elaborate!=null and elaborate!=''">
+                #{elaborate},
+            </if>
+            <if test="old_policy_use_desc!=null and old_policy_use_desc!=''">
+                #{old_policy_use_desc},
+            </if>
+            <if test="broker_man_desc!=null and broker_man_desc!=''">
+                #{broker_man_desc},
+            </if>
+            <if test="project_address!=null and project_address!=''">
+                #{project_address}
+            </if>
+        </trim>
+    </insert>
+
+    <insert id="saveAgencyPolicy" parameterType="java.util.Map">
+        INSERT INTO cm_policy_agency
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            `id`,
+            <if test="policyId!=null and policyId!=''">
+                `policy_id`,
+            </if>
+            <if test="crux_name!=null and crux_name!=''">
+                `crux_name`,
+            </if>
+            <if test="start_type!=null and start_type!=''">
+                `start_type`,
+            </if>
+            <if test="sell_product!=null and sell_product!=''">
+                `sell_product`,
+            </if>
+            <if test="case_desc!=null and case_desc!=''">
+                `case_desc`,
+            </if>
+            <if test="project_sell_target!=null and project_sell_target!=''">
+                `project_sell_target`,
+            </if>
+            <if test="project_num_target!=null and project_num_target!=''">
+                `project_num_target`,
+            </if>
+            <if test="agency_sell_target!=null and agency_sell_target!=''">
+                `agency_sell_target`,
+            </if>
+            <if test="agency_num_target!=null and agency_num_target!=''">
+                `agency_num_target`,
+            </if>
+            <if test="agency_ratio!=null and agency_ratio!=''">
+                `agency_ratio`,
+            </if>
+            <if test="agency_ctro_ratio!=null and agency_ctro_ratio!=''">
+                `agency_ctro_ratio`,
+            </if>
+            <if test="commission_desc!=null and commission_desc!=''">
+                `commission_desc`,
+            </if>
+            <if test="closing_criteria!=null and closing_criteria!=''">
+                `closing_criteria`,
+            </if>
+            <if test="agency_json!=null and agency_json!=''">
+                `agency_json`,
+            </if>
+            <if test="task_target_total!=null and task_target_total!=''">
+                `task_target_total`,
+            </if>
+            <if test="estimate_commission_total!=null and estimate_commission_total!=''">
+                `estimate_commission_total`,
+            </if>
+            <if test="cost_append!=null and cost_append!=''">
+                `cost_append`,
+            </if>
+            <if test="marketing_cost_append!=null and marketing_cost_append!=''">
+                `marketing_cost_append`,
+            </if>
+            <if test="marketing_rate_appoint!=null and marketing_rate_appoint!=''">
+                `marketing_rate_appoint`,
+            </if>
+            <if test="total_has_cost_rate!=null and total_has_cost_rate!=''">
+                `total_has_cost_rate`,
+            </if>
+            <if test="total_residue_rate!=null and total_residue_rate!=''">
+                `total_residue_rate`,
+            </if>
+            <if test="total_cost_rate_change!=null and total_cost_rate_change!=''">
+                `total_cost_rate_change`,
+            </if>
+            <if test="year_check_rate!=null and year_check_rate!=''">
+                `year_check_rate`,
+            </if>
+            <if test="year_has_cost_rate!=null and year_has_cost_rate!=''">
+                `year_has_cost_rate`,
+            </if>
+            <if test="year_total_residue_rate!=null and year_total_residue_rate!=''">
+                `year_total_residue_rate`,
+            </if>
+            <if test="year_cost_rate_change!=null and year_cost_rate_change!=''">
+                `year_cost_rate_change`,
+            </if>
+            <if test="ds_cooperative!=null and ds_cooperative!=''">
+                `ds_cooperative`,
+            </if>
+            <if test="ds_take_money!=null and ds_take_money!=''">
+                `ds_take_money`,
+            </if>
+            <if test="ds_take_standard!=null and ds_take_standard!=''">
+                `ds_take_standard`,
+            </if>
+            <if test="preferential_caliber!=null and preferential_caliber!=''">
+                `preferential_caliber`,
+            </if>
+            <if test="dshz_start_time!=null and dshz_start_time!=''">
+                `dshz_start_time`,
+            </if>
+            <if test="dshz_end_time!=null and dshz_end_time!=''">
+                `dshz_end_time`,
+            </if>
+            <if test="policy_risk!=null and policy_risk!=''">
+                `policy_risk`,
+            </if>
+            <if test="project_sell_flow!=null and project_sell_flow!=''">
+                `project_sell_flow`,
+            </if>
+            <if test="predict_sell_flow!=null and predict_sell_flow!=''">
+                `predict_sell_flow`,
+            </if>
+            <if test="project_address!=null and project_address!=''">
+                `project_address`,
+            </if>
+            <if test="customer_area_desc!=null and customer_area_desc!=''">
+                `customer_area_desc`,
+            </if>
+            <if test="agency_intended_use!=null and agency_intended_use!=''">
+                `agency_intended_use`,
+            </if>
+            <if test="agency_sell_house!=null and agency_sell_house!=''">
+                `agency_sell_house`,
+            </if>
+            <if test="project_stock_ratio!=null and project_stock_ratio!=''">
+                `project_stock_ratio`,
+            </if>
+            <if test="agency_standard!=null and agency_standard!=''">
+                `agency_standard`,
+            </if>
+            <if test="agency_report_standard!=null and agency_report_standard!=''">
+                `agency_report_standard`,
+            </if>
+            <if test="agency_cost_desc!=null and agency_cost_desc!=''">
+                `agency_cost_desc`,
+            </if>
+            <if test="project_has_sell_rate!=null and project_has_sell_rate!=''">
+                project_has_sell_rate,
+            </if>
+            <if test="total_check_rate!=null and total_check_rate!=''">
+                total_check_rate
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            uuid(),
+            <if test="policyId!=null and policyId!=''">
+                #{policyId},
+            </if>
+            <if test="crux_name!=null and crux_name!=''">
+                #{crux_name},
+            </if>
+            <if test="start_type!=null and start_type!=''">
+                #{start_type},
+            </if>
+            <if test="sell_product!=null and sell_product!=''">
+                #{sell_product},
+            </if>
+            <if test="case_desc!=null and case_desc!=''">
+                #{case_desc},
+            </if>
+            <if test="project_sell_target!=null and project_sell_target!=''">
+                #{project_sell_target},
+            </if>
+            <if test="project_num_target!=null and project_num_target!=''">
+                #{project_num_target},
+            </if>
+            <if test="agency_sell_target!=null and agency_sell_target!=''">
+                #{agency_sell_target},
+            </if>
+            <if test="agency_num_target!=null and agency_num_target!=''">
+                #{agency_num_target},
+            </if>
+            <if test="agency_ratio!=null and agency_ratio!=''">
+                #{agency_ratio},
+            </if>
+            <if test="agency_ctro_ratio!=null and agency_ctro_ratio!=''">
+                #{agency_ctro_ratio},
+            </if>
+            <if test="commission_desc!=null and commission_desc!=''">
+                #{commission_desc},
+            </if>
+            <if test="closing_criteria!=null and closing_criteria!=''">
+                #{closing_criteria},
+            </if>
+            <if test="agency_json!=null and agency_json!=''">
+                #{agency_json},
+            </if>
+            <if test="task_target_total!=null and task_target_total!=''">
+                #{task_target_total},
+            </if>
+            <if test="estimate_commission_total!=null and estimate_commission_total!=''">
+                #{estimate_commission_total},
+            </if>
+            <if test="cost_append!=null and cost_append!=''">
+                #{cost_append},
+            </if>
+            <if test="marketing_cost_append!=null and marketing_cost_append!=''">
+                #{marketing_cost_append},
+            </if>
+            <if test="marketing_rate_appoint!=null and marketing_rate_appoint!=''">
+                #{marketing_rate_appoint},
+            </if>
+            <if test="total_has_cost_rate!=null and total_has_cost_rate!=''">
+                #{total_has_cost_rate},
+            </if>
+            <if test="total_residue_rate!=null and total_residue_rate!=''">
+                #{total_residue_rate},
+            </if>
+            <if test="total_cost_rate_change!=null and total_cost_rate_change!=''">
+                #{total_cost_rate_change},
+            </if>
+            <if test="year_check_rate!=null and year_check_rate!=''">
+                #{year_check_rate},
+            </if>
+            <if test="year_has_cost_rate!=null and year_has_cost_rate!=''">
+                #{year_has_cost_rate},
+            </if>
+            <if test="year_total_residue_rate!=null and year_total_residue_rate!=''">
+                #{year_total_residue_rate},
+            </if>
+            <if test="year_cost_rate_change!=null and year_cost_rate_change!=''">
+                #{year_cost_rate_change},
+            </if>
+            <if test="ds_cooperative!=null and ds_cooperative!=''">
+                #{ds_cooperative},
+            </if>
+            <if test="ds_take_money!=null and ds_take_money!=''">
+                #{ds_take_money},
+            </if>
+
+            <if test="ds_take_standard!=null and ds_take_standard!=''">
+                #{ds_take_standard},
+            </if>
+            <if test="preferential_caliber!=null and preferential_caliber!=''">
+                #{preferential_caliber},
+            </if>
+            <if test="dshz_start_time!=null and dshz_start_time!=''">
+                #{dshz_start_time},
+            </if>
+            <if test="dshz_end_time!=null and dshz_end_time!=''">
+                #{dshz_end_time},
+            </if>
+            <if test="policy_risk!=null and policy_risk!=''">
+                #{policy_risk},
+            </if>
+            <if test="project_sell_flow!=null and project_sell_flow!=''">
+                #{project_sell_flow},
+            </if>
+            <if test="predict_sell_flow!=null and predict_sell_flow!=''">
+                #{predict_sell_flow},
+            </if>
+            <if test="project_address!=null and project_address!=''">
+                #{project_address},
+            </if>
+            <if test="customer_area_desc!=null and customer_area_desc!=''">
+                #{customer_area_desc},
+            </if>
+            <if test="agency_intended_use!=null and agency_intended_use!=''">
+                #{agency_intended_use},
+            </if>
+            <if test="agency_sell_house!=null and agency_sell_house!=''">
+                #{agency_sell_house},
+            </if>
+            <if test="project_stock_ratio!=null and project_stock_ratio!=''">
+                #{project_stock_ratio},
+            </if>
+            <if test="agency_standard!=null and agency_standard!=''">
+                #{agency_standard},
+            </if>
+            <if test="agency_report_standard!=null and agency_report_standard!=''">
+                #{agency_report_standard},
+            </if>
+            <if test="agency_cost_desc!=null and agency_cost_desc!=''">
+                #{agency_cost_desc},
+            </if>
+            <if test="project_has_sell_rate!=null and project_has_sell_rate!=''">
+                #{project_has_sell_rate},
+            </if>
+            <if test="total_check_rate!=null and total_check_rate!=''">
+                #{total_check_rate}
+            </if>
+        </trim>
+
+    </insert>
+
+    <!--保存到流程表-->
+
+    <insert id="saveBrokerPolicyFlow" parameterType="java.util.Map">
+        INSERT INTO mm_ap_flow_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="project_id!=null and project_id!=''">
+                project_id,
+            </if>
+            <if test="stage_id!=null and stage_id!=''">
+                stage_id,
+            </if>
+            <if test="flow_type!=null and flow_type!=''">
+                flow_type,
+            </if>
+            <if test="flow_json!=null and flow_json!=''">
+                flow_json,
+            </if>
+            <if test="json_id!=null and json_id!=''">
+                json_id,
+            </if>
+            <if test="flow_code!=null and flow_code!=''">
+                flow_code,
+            </if>
+            <if test="creator!=null and creator!=''">
+                creator,
+            </if>
+            <if test="TITLE!=null and TITLE!=''">
+                title,
+            </if>
+            <if test="comcommon!=null and comcommon!=''">
+                comcommon,
+            </if>
+            <if test="post_name!=null and post_name!=''">
+                post_name,
+            </if>
+            <if test="orgName!=null and orgName!=''">
+                orgName,
+            </if>
+            id,
+            create_time,
+            edit_time,
+            isdel,
+            flow_status
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="project_id!=null and project_id!=''">
+                #{project_id},
+            </if>
+            <if test="stage_id!=null and stage_id!=''">
+                #{stage_id},
+            </if>
+            <if test="flow_type!=null and flow_type!=''">
+                #{flow_type},
+            </if>
+            <if test="flow_json!=null and flow_json!=''">
+                #{flow_json},
+            </if>
+            <if test="json_id!=null and json_id!=''">
+                #{json_id},
+            </if>
+            <if test="flow_code!=null and flow_code!=''">
+                #{flow_code},
+            </if>
+            <if test="creator!=null and creator!=''">
+                #{creator},
+            </if>
+            <if test="TITLE!=null and TITLE!=''">
+                #{TITLE},
+            </if>
+            <if test="comcommon!=null and comcommon!=''">
+                #{comcommon},
+            </if>
+            <if test="post_name!=null and post_name!=''">
+                #{post_name},
+            </if>
+            <if test="orgName!=null and orgName!=''">
+                #{orgName},
+            </if>
+            UUID( ), now( ), now( ), 0 ,2
+        </trim>
+    </insert>
+
+
+    <insert id="saveOrgList" parameterType="java.util.List">
+        INSERT INTO `saleman`.`policy_org_rel`(`biz_id`, `org_id`,org_level,org_name) VALUES
+        <foreach collection="list" separator="," index="index" item="item">
+            (
+            #{bizId},#{item.org_id},#{item.org_level},#{item.org_name}
+            )
+        </foreach>
+    </insert>
+
+    <delete id="delOrgList" parameterType="java.lang.String">
+        delete from policy_org_rel where biz_id=#{bizId}
+    </delete>
+
+    <!--更新附件表-->
+    <update id="updateFileBizId" parameterType="java.lang.String">
+		update s_attach set BizID=#{policyId},IsDel=0 where id=#{fileId}
+	</update>
+
+    <update id="updateFileStatus" parameterType="java.lang.String">
+		update s_attach set BizID=null,IsDel=1 where BizID=#{policyId}
+	</update>
+
+    <!--更新政策表-->
+    <update id="updatePolicy" parameterType="java.util.Map">
+        update cm_policy
+        <trim prefix="set" suffixOverrides=",">
+            <if test="policy_name!=null and policy_name!=''">
+                policy_name=#{policy_name},
+            </if>
+            <if test="project_name!=null and project_name!=''">
+                project_name=#{project_name},
+            </if>
+            <if test="stage_id!=null and stage_id!=''">
+                stage_id=#{stage_id},
+            </if>
+            <if test="stage_name!=null and stage_name!=''">
+                stage_name=#{stage_name},
+            </if>
+            <if test="start_time!=null and start_time!=''">
+                `start_time`=#{start_time},
+            </if>
+            <if test="end_time!=null and end_time!=''">
+                `end_time`=#{end_time},
+            </if>
+            update_time=now(),
+            <if test="creator!=null and creator!=''">
+                updator=#{creator}
+            </if>
+        </trim>
+        where id=#{policyId}
+    </update>
+
+    <!--更新经纪人政策表-->
+    <update id="updateBrokerPolicy" parameterType="java.util.Map">
+        update cm_policy_broker
+        <trim prefix="set" suffixOverrides=",">
+            id=id,
+            <if test="customer_area_desc!=null and customer_area_desc!=''">
+                `customer_area_desc`=#{customer_area_desc},
+            </if>
+            <if test="area_stock!=null and area_stock!=''">
+                `area_stock`=#{area_stock},
+            </if>
+            <if test="intended_use!=null and intended_use!=''">
+                `intended_use`=#{intended_use},
+            </if>
+            <if test="project_stock_ratio!=null and project_stock_ratio!=''">
+                `project_stock_ratio`=#{project_stock_ratio},
+            </if>
+            <if test="market_background!=null and market_background!=''">
+                `market_background`=#{market_background},
+            </if>
+
+            <if test="stage_sell_target!=null and stage_sell_target!=''">
+                `stage_sell_target`=#{stage_sell_target},
+            </if>
+
+            <if test="stage_num_target!=null and stage_num_target!=''">
+                `stage_num_target`=#{stage_num_target},
+            </if>
+
+            <if test="sell_predict_ratio!=null and sell_predict_ratio!=''">
+                `sell_predict_ratio`=#{sell_predict_ratio},
+            </if>
+
+            <if test="sign_num_max!=null and sign_num_max!=''">
+                `sign_num_max`=#{sign_num_max},
+            </if>
+
+            <if test="predict_award_total!=null and predict_award_total!=''">
+                `predict_award_total`=#{predict_award_total},
+            </if>
+
+            <if test="project_sell_flow!=null and project_sell_flow!=''">
+                `project_sell_flow`=#{project_sell_flow},
+            </if>
+            <if test="predict_sell_flow!=null and predict_sell_flow!=''">
+                `predict_sell_flow`=#{predict_sell_flow},
+            </if>
+
+            <if test="award_remark!=null and award_remark!=''">
+                `award_remark`=#{award_remark},
+            </if>
+
+            <if test="cost_append!=null and cost_append!=''">
+                `cost_append`=#{cost_append},
+            </if>
+
+            <if test="marketing_cost_append!=null and marketing_cost_append!=''">
+                `marketing_cost_append`=#{marketing_cost_append},
+            </if>
+
+            <if test="marketing_rate_appoint!=null and marketing_rate_appoint!=''">
+                `marketing_rate_appoint`=#{marketing_rate_appoint},
+            </if>
+
+            <if test="check_rate!=null and check_rate!=''">
+                `check_rate`=#{check_rate},
+            </if>
+
+            <if test="has_cost_rate!=null and has_cost_rate!=''">
+                `has_cost_rate`=#{has_cost_rate},
+            </if>
+
+            <if test="residue_rate!=null and residue_rate!=''">
+                `residue_rate`=#{residue_rate},
+            </if>
+
+            <if test="cost_rate_change!=null and cost_rate_change!=''">
+                `cost_rate_change`=#{cost_rate_change},
+            </if>
+
+            <if test="elaborate!=null and elaborate!=''">
+                `elaborate`=#{elaborate},
+            </if>
+
+            <if test="old_policy_use_desc!=null and old_policy_use_desc!=''">
+                `old_policy_use_desc`=#{old_policy_use_desc},
+            </if>
+
+            <if test="broker_man_desc!=null and broker_man_desc!=''">
+                `broker_man_desc`=#{broker_man_desc},
+            </if>
+
+            <if test="project_address!=null and project_address!=''">
+                project_address=#{project_address},
+            </if>
+            <if test="project_sell_ratio!=null and project_sell_ratio!=''">
+                project_sell_ratio=#{project_sell_ratio}
+            </if>
+
+        </trim>
+        where policy_id=#{policyId}
+    </update>
+
+    <!--更新中介政策表-->
+    <update id="updateAgencyrPolicy" parameterType="java.util.Map">
+        update cm_policy_agency
+        <trim prefix="set" suffixOverrides=",">
+            id=id,
+            <if test="crux_name!=null">
+                `crux_name`=#{crux_name},
+            </if>
+            <if test="total_check_rate!=null">
+                `total_check_rate`=#{total_check_rate},
+            </if>
+            <if test="project_has_sell_rate!=null">
+                `project_has_sell_rate`=#{project_has_sell_rate},
+            </if>
+            <if test="start_type!=null">
+                `start_type`=#{start_type},
+            </if>
+            <if test="sell_product!=null">
+                `sell_product`=#{sell_product},
+            </if>
+            <if test="case_desc!=null">
+                `case_desc`=#{case_desc},
+            </if>
+            <if test="project_sell_target!=null">
+                `project_sell_target`=#{project_sell_target},
+            </if>
+            <if test="project_num_target!=null">
+                `project_num_target`=#{project_num_target},
+            </if>
+            <if test="agency_sell_target!=null and agency_sell_target!=''">
+                `agency_sell_target`=#{agency_sell_target},
+            </if>
+            <if test="agency_num_target!=null">
+                `agency_num_target`=#{agency_num_target},
+            </if>
+            <if test="agency_ratio!=null">
+                `agency_ratio`=#{agency_ratio},
+            </if>
+            <if test="agency_ctro_ratio!=null">
+                `agency_ctro_ratio`=#{agency_ctro_ratio},
+            </if>
+            <if test="commission_desc!=null">
+                `commission_desc`=#{commission_desc},
+            </if>
+            <if test="closing_criteria!=null">
+                `closing_criteria`=#{closing_criteria},
+            </if>
+            <if test="agency_json!=null">
+                `agency_json`=#{agency_json},
+            </if>
+            <if test="task_target_total!=null and task_target_total!=''">
+                `task_target_total`=#{task_target_total},
+            </if>
+            <if test="estimate_commission_total!=null and estimate_commission_total!=''">
+                `estimate_commission_total`=#{estimate_commission_total},
+            </if>
+            <if test="cost_append!=null">
+                `cost_append`=#{cost_append},
+            </if>
+            <if test="marketing_cost_append!=null">
+                `marketing_cost_append`=#{marketing_cost_append},
+            </if>
+            <if test="marketing_rate_appoint!=null">
+                `marketing_rate_appoint`=#{marketing_rate_appoint},
+            </if>
+            <if test="total_has_cost_rate!=null">
+                `total_has_cost_rate`=#{total_has_cost_rate},
+            </if>
+            <if test="total_residue_rate!=null">
+                `total_residue_rate`=#{total_residue_rate},
+            </if>
+            <if test="total_cost_rate_change!=null">
+                `total_cost_rate_change`=#{total_cost_rate_change},
+            </if>
+            <if test="year_check_rate!=null">
+                `year_check_rate`=#{year_check_rate},
+            </if>
+            <if test="year_has_cost_rate!=null">
+                `year_has_cost_rate`=#{year_has_cost_rate},
+            </if>
+            <if test="start_type!=null">
+                `year_total_residue_rate`=#{year_total_residue_rate},
+            </if>
+            <if test="year_cost_rate_change!=null">
+                `year_cost_rate_change`=#{year_cost_rate_change},
+            </if>
+            <if test="ds_cooperative!=null">
+                `ds_cooperative`=#{ds_cooperative},
+            </if>
+            <if test="ds_take_money!=null">
+                `ds_take_money`=#{ds_take_money},
+            </if>
+            <if test="ds_take_standard!=null">
+                `ds_take_standard`=#{ds_take_standard},
+            </if>
+            <if test="preferential_caliber!=null">
+                `preferential_caliber`=#{preferential_caliber},
+            </if>
+            <if test="dshz_start_time!=null and dshz_start_time!=''">
+                `dshz_start_time`=#{dshz_start_time},
+            </if>
+            <if test="dshz_end_time!=null and dshz_end_time!=''">
+                `dshz_end_time`=#{dshz_end_time},
+            </if>
+            <if test="policy_risk!=null">
+                `policy_risk`=#{policy_risk},
+            </if>
+            <if test="project_sell_flow!=null">
+                `project_sell_flow`=#{project_sell_flow},
+            </if>
+            <if test="predict_sell_flow!=null">
+                `predict_sell_flow`=#{predict_sell_flow},
+            </if>
+            <if test="project_address!=null">
+                `project_address`=#{project_address},
+            </if>
+            <if test="customer_area_desc!=null">
+                `customer_area_desc`=#{customer_area_desc},
+            </if>
+            <if test="agency_intended_use!=null">
+                `agency_intended_use`=#{agency_intended_use},
+            </if>
+            <if test="agency_sell_house!=null">
+                `agency_sell_house`=#{agency_sell_house},
+            </if>
+            <if test="project_stock_ratio!=null">
+                `project_stock_ratio`=#{project_stock_ratio},
+            </if>
+            <if test="agency_standard!=null">
+                `agency_standard`=#{agency_standard},
+            </if>
+            <if test="agency_report_standard!=null">
+                `agency_report_standard`=#{agency_report_standard},
+            </if>
+            <if test="agency_cost_desc!=null">
+                `agency_cost_desc`=#{agency_cost_desc},
+            </if>
+        </trim>
+        where policy_id=#{policyId}
+    </update>
+
+    <!--更新流程审批-->
+    <update id="updateFlow" parameterType="java.util.Map">
+        update mm_ap_flow_info
+        <trim prefix="set" suffixOverrides=",">
+            flow_json=#{flow_json},
+            <if test="project_id!=null">
+                project_id=#{project_id},
+            </if>
+            <if test="stage_id!=null">
+                stage_id=#{stage_id},
+            </if>
+            <if test="TITLE!=null">
+                title=#{TITLE},
+            </if>
+            <if test="comcommon!=null">
+                comcommon=#{comcommon},
+            </if>
+            <if test="orgName!=null">
+                orgName=#{orgName},
+            </if>
+        </trim>
+        where json_id=#{policyId}
+    </update>
+
+    <!---->
+    <select id="getProjectByPolicyID" parameterType="java.lang.String" resultType="java.lang.String">
+        select project_id from cm_policy where id=#{policyId}
+    </select>
+
+    <select id="getFlowByPolicyID" parameterType="java.lang.String" resultType="java.lang.String">
+        select flow_id from mm_ap_flow_info  where json_id=#{policyId}
+    </select>
+    <select id="getDateByPolicyID" parameterType="java.lang.String" resultType="java.lang.String">
+        select create_time from mm_ap_flow_info  where json_id=#{policyId}
+    </select>
+</mapper>

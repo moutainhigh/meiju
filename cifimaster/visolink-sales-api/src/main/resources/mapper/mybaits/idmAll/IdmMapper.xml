@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.idmAll.dao.IdmMapper">
+    <select id="selectIdm" resultType="java.util.Map" >
+    select spo.jobDefinitionsName,spo.jobDefinitionsId,
+case when spo.z9121cjt='null' then '未知' else spo.z9121cjt end belongDepFullName,
+IFNULL(cjs.id,0) checks
+        from t_sys_post_org spo
+				left JOIN s_commonjobs cjs on cjs.ID=spo.jobDefinitionsId
+        where spo.isDel=0
+				GROUP BY spo.jobDefinitionsId
+    </select>
+
+
+    <insert id="addIdmCommonjobs"  >
+        -- 删除通用岗位
+        delete from s_commonjobs where isIdm=1;
+         -- 生成通用岗位
+        insert into s_commonjobs(JobType,id,jobcode,jobname,jobdesc,authcompanyid,productid,status,isdel,isIdm)
+		select jobDefinitionType,jobDefinitionsId,jobDefinitionsId,jobDefinitionsName,z9121cjt,
+        'ede1b679-3546-11e7-a3f8-5254007b6f02'
+        ,'ee3b2466-3546-11e7-a3f8-5254007b6f02',1,0,1
+        from t_sys_post_org a INNER JOIN temp_job_cheke n on n.id=a.jobDefinitionsId
+        where jobDefinitionStatus=0 and isdel=0 group by jobDefinitionsId;
+        -- 删除岗位
+        delete from s_jobs where isIdm=1;
+         -- 生成岗位
+        insert into s_jobs(id,JobCode,JobName,jobfullCode,JobDesc,JobPID,CommonJobID,JobOrgID,
+        AuthCompanyID,ProductID,Status,IsDel,isIdm
+        )
+        select b.jobNum,b.jobNum,b.jobName,b.belongDepFullNo,b.belongDepFullName,'f20c7c1f-d941-11e9-abaa-00163e05721',
+        b.belongJobDefId,b.belongDepId,'ede1b679-3546-11e7-a3f8-5254007b6f02','ee3b2466-3546-11e7-a3f8-5254007b6f02',
+        1,0,1 from s_commonjobs a LEFT JOIN t_sys_post b
+        on a.ID=b.belongJobDefId
+        where b.isdel=0 and b.belongDepFullNo like '00000000-00000001-%' GROUP BY	b.jobNum;
+        -- 删除组织岗位
+        delete from s_organization;
+        -- 生成组织岗位
+        insert into s_organization (id,pid,orgcode,orgname,OrgShortName,OrgCategory,ListIndex,
+        Levels,FullPath,AuthCompanyID,ProductID,Status,IsDel,ProjectID,
+        parentOrgid,hrOrgTypeId,FullNo
+        )
+select sor.orgdepid,ifnull(sor.parentOrgid,'-1'),sor.orgLunid,sor.orgname,sor.orgname,
+        length(sor.orgnamefullpath) - length(replace(sor.orgnamefullpath,'-',''))+1,
+        1,1,sor.orgnamefullpath,'ede1b679-3546-11e7-a3f8-5254007b6f02','ee3b2466-3546-11e7-a3f8-5254007b6f02',
+        1,0,'01802085-5D65-4348-8088-550A4EFDC2EB',sor.parentOrgid,sor.hrOrgTypeId,sor.orgnofullpath
+        from (
+					SELECT
+					orgdepid,
+					orgLunid,
+					orgname,
+					orgnamefullpath,
+					parentOrgid,
+					hrOrgTypeId,
+					orgnofullpath
+					FROM	t_sys_org
+        where orgdepid is not null
+				AND
+				(orgnofullpath like '00000000-00000001%' or orgnofullpath = '00000000')
+				AND orgname!='' AND orgname IS not NULL
+				GROUP BY orgdepid
+				) sor;
+        -- 添加用户岗位关系
+        -- 删除用户岗位关系中间表自建
+        delete  from  t_sys_userjob_rel;
+        -- 兼岗用户关系插入到我们表（数据量大需要建索引关联）
+        insert into t_sys_userjob_rel(userid,jobid)
+        SELECT
+        a.username AccountID,
+        substring_index(
+        substring_index(
+        a.parttimepost,
+        ';',
+        b.id+ 1
+        ),
+        ';' ,- 1
+        ) AS JobID
+        FROM
+        t_sys_user a
+        JOIN addself b ON b.id &lt; (
+        length(a.parttimepost) - length(
+        REPLACE (a.parttimepost, ';', '')
+        ) + 1
+        ) where a.username is not null;
+
+        -- 用户岗位关系表
+        -- 删除用户岗位关系
+        delete from s_jobsuserrel where isIdm =1;
+        -- 生成用户岗位关系
+        INSERT s_jobsuserrel(id,AccountID,JobID,CurrentJob,isIdm)
+        select UUID(),temp.* from (
+        SELECT username AccountID,positionid JobID,1 CurrentJob,1 from
+        s_jobs job LEFT JOIN
+        t_sys_user sur on job.ID=sur.positionid
+        where username is not null
+        GROUP BY AccountID,JobID
+        UNION all
+        select sur.userid AccountID,sur.jobid JobID,0 CurrentJob,1 from
+        s_jobs job LEFT JOIN t_sys_userjob_rel sur
+        on job.id=sur.jobid where userid is not null
+        GROUP BY userid,jobid )
+        temp GROUP BY JobID,AccountID;
+        delete  from b_account where id &lt;&gt; '000000000' and isIdm=1;
+        -- 营销用户导入
+        insert into b_account(id,UserName,Password,AccountType,EmployeeCode,
+        EmployeeName,Gender,OfficeTel,OfficeMail,Mobile,PostCode,Address,
+        UserOrgID,AuthCompanyID,ProductID,Status,IsDel,Creator,CreateTime,isIdm
+        )
+        select tsu.username,tsu.alias,'e10adc3949ba59abbe56e057f20f883e','2',tsu.alias,
+        tsu.usercn,tsu.genderId,0,tsu.mail,tsu.mobile,0,tsu.country,
+        tsu.departmentnumber,'ede1b679-3546-11e7-a3f8-5254007b6f02','ee3b2466-3546-11e7-a3f8-5254007b6f02',
+        1,0,0,now(),1
+         from s_jobsuserrel sjs INNER JOIN
+        t_sys_user tsu on sjs.AccountID=tsu.username
+        GROUP BY sjs.AccountID
+	</insert>
+
+
+    <insert id="addIUserProject"  >
+        delete  from s_jobprorel where issys=0;
+        insert into s_jobprorel(id,jobId,project_id,type,issys)
+        -- 集团权限
+        select UUID(),sj.id jobid,
+        case when locate('10270000',orgnofullpath)>0 then  '10270000'
+		else '00000001' end ganwei
+		,1,0 from s_jobs sj INNER JOIN
+        t_sys_org tso on tso.orgdepid=sj.JobOrgID
+        where tso.hrOrgTypeId='12'
+        or tso.hrOrgTypeId='13' or tso.hrOrgTypeId='14'
+        or tso.hrOrgTypeId='15';
+
+        -- 岗位区域公司
+        insert into s_jobprorel(id,jobId,project_id,type,issys)
+        select UUID(),sj.id jobid,
+        case when tso.hrOrgTypeId='20' then SUBSTRING_INDEX(jobfullCode, '-',-1)
+        else SUBSTRING_INDEX(SUBSTRING_INDEX(orgnofullpath,'-',3),'-',-1)
+        end projectid
+        ,2,0
+        from s_jobs sj INNER JOIN
+        t_sys_org tso on tso.orgdepid=sj.JobOrgID
+        where (tso.hrOrgTypeId='20' or tso.hrOrgTypeId='24'
+        or tso.hrOrgTypeId='25');
+
+        -- 岗位城市公司
+        insert into s_jobprorel(id,jobId,project_id,type,issys)
+        select  UUID(),temp.jobid,
+        project.projectid,3 type,0 issys from (
+        select sj.id jobid,tso.orgdepid orgid,sj.jobname
+           from s_jobs sj INNER JOIN
+        t_sys_org tso on tso.orgdepid=sj.JobOrgID
+        where tso.hrOrgTypeId='21'
+        ) temp INNER JOIN
+        (select  SUBSTRING_INDEX(SUBSTRING_INDEX(orgnofullpath, '-',-3),'-',1) pid,orgdepid projectid
+        From t_sys_org where
+         hrOrgTypeId = '31'
+        ) project on temp.orgid=project.pid;
+
+        -- 岗位对应的项目
+        insert into s_jobprorel(id,jobId,project_id,type,issys)
+        select UUID(),sj.id jobid,SUBSTRING_INDEX(SUBSTRING_INDEX(jobfullCode, '-',-2),'-',1)
+          projectid,4,0
+         from s_jobs sj INNER JOIN
+        t_sys_org tso on tso.orgdepid=sj.JobOrgID
+        where tso.hrOrgTypeId='32'
+        GROUP BY sj.id;
+        -- 初始化用户项目数据
+        delete  from s_user_project_rel;
+        insert into s_user_project_rel(id,userId,project_id,iscity)
+        select * from (
+        select UUID(),sjo.AccountID,sjr.project_id,
+        case when sjr.type=3 then 0 else 1 end iscity
+        from s_jobprorel sjr
+        INNER JOIN s_jobsuserrel sjo
+        on sjr.jobId=sjo.JobID
+        ORDER BY iscity desc
+        ) temp
+        GROUP BY AccountID,project_id;
+        delete from fp_comm_project_trader;
+        insert into fp_comm_project_trader(project_id,project_name,trader)
+        SELECT temp.projectId project_id,temp.projectname,temp.usercn trader
+         FROM (SELECT tsu.usercn,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(belongDepFullNo,'-',-2),'-',1) projectId,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(belongDepFullName,'-',-2),'-',1) projectname
+         FROM t_sys_post tsp
+        INNER JOIN t_sys_userjob_rel tsur
+        ON tsp.jobNum=tsur.jobid
+        INNER JOIN t_sys_user tsu ON tsu.username=tsur.userid
+        WHERE tsp.jobName LIKE '%项目营销PM%' AND tsp.isDel=0
+        AND tsu.username IS NOT NULL
+        ) temp
+        GROUP BY temp.projectId,temp.usercn
+
+    </insert>
+
+    <insert id="insertIdmCommonjobs"  parameterType="java.util.Map">
+        delete from temp_job_cheke;
+       INSERT INTO temp_job_cheke
+        (id)
+        VALUES
+        <foreach collection ="list" item="item" separator =",">
+            (#{item})
+        </foreach >
+    </insert>
+</mapper>

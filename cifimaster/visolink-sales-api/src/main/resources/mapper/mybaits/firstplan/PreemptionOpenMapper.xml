@@ -1,0 +1,1562 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.preemptionopen.dao.PreemptionOpenDao">
+
+    <!--查询当前计划的抢开数据-->
+    <select id="getPreemptionOpenVersionData" resultType="java.util.Map" parameterType="java.util.Map">
+  SELECT
+	id,
+	(
+	CASE
+			approval_stuat
+			WHEN 2 THEN
+			CONCAT( '抢开申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-编制中' )
+			WHEN 3 THEN
+			CONCAT( '抢开申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批中' )
+			WHEN 4 THEN
+			CONCAT( '抢开申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version )
+			WHEN 5 THEN
+			CONCAT( '抢开申请', 'v', DATE_FORMAT( create_time, '%Y%m%d' ), '-', version, '-审批驳回' )
+		END
+		) name,
+		approval_stuat
+	FROM
+	fp_seven_day_index
+WHERE
+	plan_id = #{plan_id} and plan_node_id=#{plan_node_id} order by create_time desc
+    </select>
+	<!--查询当前计划的抢开部分数据-->
+	<select id="getPreemptionOpenDelayData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	id as delayOpenId,
+	DATE_FORMAT(rules_time,'%Y-%m-%d') rules_time,
+	DATE_FORMAT(designtwo_time,'%Y-%m-%d') designtwo_time,
+	DATE_FORMAT(new_applay_21time,'%Y-%m-%d') new_applay_21time,
+	DATE_FORMAT(new_applay_7time,'%Y-%m-%d') new_applay_7time,
+	DATE_FORMAT(new_first_time,'%Y-%m-%d') new_first_time,
+
+	DATEDIFF(NOW(),new_applay_21time) now_diff_21time,
+	DATEDIFF(NOW(),new_applay_7time) now_diff_7time,
+	DATEDIFF(NOW(),new_first_time) now_diff_opentime,
+
+	plan_node_id,
+	delay_daynum,
+	delay_reasons,
+	level,
+	approval_stuat,
+	big_model,
+	little_model,
+	plan_id,
+	reach_plan_time,
+	reach_plan_visit_num,
+	reach_plan_little_num,
+	reach_plan_big_num,
+	reach_plan_big_per,
+	reach_plan_little_per,
+	reach_plan_sub_num,
+	reach_plan_take_per,
+	reach_actual_time,
+	reach_actual_visit_num,
+	reach_actual_littel_num,
+	reach_actual_littel_per,
+	reach_actual_big_num,
+	reach_actual_big_per,
+	reach_actual_sub_num,
+	reach_actual_take_per,
+	estimate_plan_time,
+	estimate_plan_visit_num,
+	estimate_plan_little_num,
+	estimate_plan_little_per,
+	estimate_plan_big_per,
+	estimate_plan_big_num,
+	estimate_plan_take_per,
+	estimate_plan_sub_num,
+	sum_time,
+	sum_visit_num,
+	sum_little_num,
+	sum_little_per,
+	sum_big_num,
+	sum_big_per,
+	sum_sub_num,
+	sum_take_per
+FROM
+fp_delay_apply WHERE plan_node_id=#{id} LIMIT 1
+	</select>
+	<!--查询当前节点是否存在已经审批通过的版本数据-->
+	<select id="getApplayadoptPreeOpen" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	id,
+	DATE_FORMAT(estimate_open_node,'%Y-%m-%d') estimate_open_node,
+	estimate_product_type,
+	estimate_take_card_value,
+	estimate_push_value,
+	estimate_selling_value,
+	estimate_this_per,
+	estimate_all_per,
+	estimate_irr,
+	estimate_payback,
+	cause_open_node,
+	cause_product_type,
+	cause_take_card_value,
+	cause_push_value,
+	cause_selling_value,
+	cause_take_card_per,
+	cause_this_per,
+	cause_all_per,
+	cause_irr,
+	cause_payback,
+	this_customer_visit,
+	sub_customer_actual,
+	this_customer_conversionper,
+	sub_customer_per,
+	trader_open_prediction,
+	version,
+	lesser_way,
+	big_way
+FROM
+	fp_seven_day_index
+WHERE
+	plan_node_id = #{plan_node_id}
+	AND approval_stuat = 4
+ORDER BY
+	version DESC limit  1
+	</select>
+	<!--查询抢开时间部分数据-->
+
+	<!--生成一条周拆分流程数据-->
+	<select id="insertGuestFlow" parameterType="java.util.Map">
+		insert into fp_guest_storage_flow
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				id,
+			</if>
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="approval_stuat != null" >
+				approval_stuat,
+			</if>
+			<if test="node_level != null" >
+				node_level,
+			</if>
+			create_time,
+			<if test="version != null" >
+				version,
+			</if>
+			<if test="approval_time != null" >
+				approval_time,
+			</if>
+			<if test="change != null" >
+				change,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			<if test="id != null" >
+				#{id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="approval_stuat != null" >
+				#{approval_stuat,jdbcType=TINYINT},
+			</if>
+			<if test="node_level != null" >
+				#{node_level,jdbcType=TINYINT},
+			</if>
+		NOW(),
+			<if test="version != null" >
+				#{version,jdbcType=VARCHAR},
+			</if>
+			<if test="approval_time != null" >
+				#{approval_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="change != null" >
+				#{change,jdbcType=TINYINT},
+			</if>
+		</trim>
+	</select>
+
+	<!--计算周拆分数据-->
+	<select id="getGuestWeekSplitData" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+		*
+		FROM
+		(
+		SELECT
+		UUID() AS id,
+		fgsw.plan_id,
+		#{plan_node_id} AS plan_node_id,
+		fgsw.week,
+		DATE_FORMAT( fgsw.start_time, '%Y-%m-%d' ) start_time,
+		DATE_FORMAT(fgsw.end_time, '%Y-%m-%d' ) end_time,
+		fgsw.day_date,
+		IFNULL ( fgsw.plan_add, 0 ) plan_add,
+		IFNULL ( fgsw.plan_total, 0 ) plan_total,
+		fgsw.plan_task_per,
+		IFNULL ( fcgs.visitCnt, 0 ) actual_add,
+		IFNULL ( fcgsall.visitCnt, 0 ) actual_total,
+		( CASE fgsw.plan_total WHEN 0 THEN 0 ELSE ROUND( IFNULL( fcgsall.visitCnt / fgsw.plan_total * 100, 0 ), 0 ) END ) actual_task_per,
+		fgsw.plan_total - IFNULL( fcgsall.visitCnt, 0 ) bias_value,
+		fgsw.plan_add - IFNULL( fcgs.visitCnt, 0 ) week_bais_value,
+		(
+		CASE
+		fgsw.plan_total
+		WHEN 0 THEN
+		0 ELSE ROUND( IFNULL( fgsw.plan_total - fcgsall.visitCnt, 0 )/ fgsw.plan_total * 100, 0 )
+		END
+		) bias_per,
+		#{flow_id} AS flow_id,
+		fgsw.bias_cause
+		FROM
+		fp_guest_storage_week fgsw
+		INNER JOIN (
+		SELECT
+		*
+		FROM
+		(
+		SELECT
+		id
+		FROM
+		fp_guest_storage_flow
+		WHERE
+		id=#{flow_id}
+		AND approval_stuat = 4
+		LIMIT 1
+		) a
+		LIMIT 1
+		) pni ON pni.id = fgsw.flow_id
+		LEFT JOIN (
+		SELECT
+		IFNULL( SUM( visitCnt ), 0 ) visitCnt,
+		project_id,
+		fgsw.id
+		FROM
+		fp_comm_guest_storage fcgs
+		LEFT JOIN fp_guest_storage_week fgsw ON 1 = 1
+		WHERE
+		project_id IN (
+		SELECT
+		fpr.project_id
+		FROM
+		fp_project_relationship fpr,
+		( SELECT ID FROM fp_project_relationship WHERE project_id =( SELECT project_id FROM fp_plan WHERE id = #{plan_id} ) ) PID
+		WHERE
+		( fpr.id = PID.ID OR fpr.pid = PID.ID ))
+		AND fcgs.total_time &lt;= fgsw.end_time AND fcgs.total_time >= fgsw.start_time
+		GROUP BY
+		fgsw.id
+		) fcgs ON fcgs.id = fgsw.id
+		LEFT JOIN (
+		SELECT
+		IFNULL( SUM( visitCnt ), 0 ) visitCnt,
+		project_id,
+		fgsw.id
+		FROM
+		fp_comm_guest_storage fcgs
+		LEFT JOIN (
+		SELECT
+		MIN( fgsw.start_time ) start_time,
+		fgsw.flow_id
+		FROM
+		fp_guest_storage_week fgsw
+		INNER JOIN (
+		SELECT
+		id
+		FROM
+		fp_guest_storage_flow
+		WHERE
+		id=#{flow_id}
+		AND approval_stuat = 4
+		LIMIT 1
+		) pni ON pni.id = fgsw.flow_id
+		) fgswMin ON 1 = 1
+		LEFT JOIN fp_guest_storage_week fgsw ON 1 = 1
+		WHERE
+		project_id IN (
+		SELECT
+		fpr.project_id
+		FROM
+		fp_project_relationship fpr,
+		( SELECT ID FROM fp_project_relationship WHERE project_id =( SELECT project_id FROM fp_plan WHERE id = #{plan_id} ) ) PID
+		WHERE
+		( fpr.id = PID.ID OR fpr.pid = PID.ID ))
+		AND fcgs.total_time &lt;= fgsw.end_time AND fcgs.total_time >= fgswMin.start_time
+		GROUP BY
+		fgsw.id
+		) fcgsall ON fcgsall.id = fgsw.id
+		ORDER BY
+		fgsw.start_time asc ,fgsw.end_time desc
+		) a
+	</select>
+	<!--删除原周拆分数据-->
+	<delete id="deleteOldWeekData" parameterType="java.util.Map">
+DELETE
+FROM
+	fp_guest_storage_flow
+WHERE
+	ID =#{flow_id};
+DELETE
+FROM
+	fp_guest_storage_week
+WHERE
+	flow_id = #{flow_id};
+	</delete>
+	
+	<!--查询首开前21天是否已完成-->
+	<select id="openThefirstTwentydays" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+DATE_FORMAT(plan_end_time,'%Y-%m-%d') new_applay_21time
+FROM fp_plan_node
+WHERE plan_id=#{plan_id}
+AND node_level=#{node_level} and  is_del=0 and  is_effective=0 limit 1
+	</select>
+
+	<!--清除数据-->
+	<delete id="clearFsData" parameterType="java.lang.String">
+		delete from fp_guest_storage_node_plan where flow_id=(
+		select id from fp_guest_storage_flow
+		where  plan_node_id=#{id}
+		);
+		delete from fp_guest_storage_flow where plan_node_id=#{id};
+		delete from fp_seven_day_competingproducts where delay_id=#{id};
+		delete from fp_seven_day_open_avg where day_id=#{id};
+		delete from fp_guest_storage_week where flow_id=(
+		select id from fp_guest_storage_flow
+		where plan_node_id=#{id}
+		);
+	</delete>
+
+	<!--更改数据状态-->
+	<update id="updatePreemptionOpen" parameterType="java.util.Map"  >
+		update fp_guest_storage_flow  set approval_stuat=#{status} where plan_node_id=#{id};
+		update fp_seven_day_index set approval_stuat=#{status} where id=#{id};
+		update fp_plan_node set plan_approval=#{status}
+		 where id=
+		(select plan_node_id from fp_seven_day_index where id=#{id} ) and plan_approval!=4;
+        update fp_delay_apply set approval_stuat=#{status} where plan_node_id=#{id};
+	</update>
+
+	<!--查询项目id-->
+	<select id="getProjectInfo" resultType="java.lang.String" parameterType="java.lang.String">
+SELECT
+	project_id
+FROM
+	fp_plan
+WHERE
+	id = #{plan_id}
+	</select>
+
+	<!--更改客储数据的状态-->
+	<update id="updateCustomerStorageStatus" parameterType="java.util.Map">
+		update fp_guest_storage_flow  set approval_stuat=#{status} where id=#{flow_id}
+	</update>
+	<!--查询顶设2的客储计划数据-->
+	<select id="designTwoCustomerStorageData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	nide_name AS node_name,
+	report_num,
+	visit_num,
+	little_num,
+	big_num,
+	little_per,
+	big_per,
+	make_per,
+	sub_num,
+	node_time,
+	level,
+	line_name,
+	node_level
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id=(
+select id from fp_guest_storage_flow where plan_node_id=
+(
+	SELECT id FROM fp_plan_node where plan_id=#{plan_id} AND node_level=3 AND is_del=0 AND is_effective=0
+)
+and approval_stuat=4 ORDER BY version desc limit  1
+)
+ORDER BY
+	node_time LIMIT #{count}
+	</select>
+	
+	
+	<!--对比当前时间和21天的计划完成时间-->
+	<select id="getTimeDifference" resultType="java.lang.String" parameterType="java.util.Map">
+SELECT
+	DATEDIFF(
+		DATE_FORMAT( plan_end_time, '%Y-%m-%d' ),
+	DATE_FORMAT( NOW(), '%Y-%m-%d' )) timediff
+FROM
+	fp_plan_node
+WHERE
+	id = #{plan_node_id}
+	</select>
+	<!--初始化客储数据-->
+	<insert id="initCustomerStorageData" parameterType="java.util.Map">
+		INSERT INTO fp_guest_storage_node_plan (
+		id,
+		plan_id,
+		plan_node_id,
+		nide_name,
+		node_time,
+		report_num,
+		visit_num,
+		little_num,
+		little_per,
+		big_num,
+		big_per,
+		sub_num,
+		make_per,
+		level,
+		line_name,
+		node_level,
+		create_time,
+		little_way,
+		flow_id,
+		big_way
+
+		)
+		select * from(
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前3个月'   AS nide_name,
+		#{threeTime} AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL  ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL  ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL  ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		4 AS node_level,
+		MAX(fcgs.create_time) create_time,
+		NULL AS little_way,
+		#{flow_id} AS flow_id,
+		NULL AS big_way
+
+		FROM
+		fp_comm_guest_storage fcgs
+
+		WHERE
+		fcgs.total_time &lt;= #{threeTime}
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前2个月'   AS nide_name,
+		#{twoTime} AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt)  END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card)  END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt)  END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		5 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way,#{flow_id} AS flow_id,  NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+
+		WHERE
+		fcgs.total_time &lt;= #{twoTime}
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+
+
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前21天'   AS nide_name,
+		fdn.open_time AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		6 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way,#{flow_id} AS flow_id,  NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+		LEFT JOIN
+		(SELECT
+		DATE_SUB(open_time,INTERVAL 21 DAY) open_time,project_id
+		FROM
+		fp_plan fp
+		WHERE id=#{plan_id}
+		) fdn
+		ON 1=1
+		WHERE
+		fcgs.total_time &lt;= fdn.open_time
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前7天'   AS nide_name,
+		fdn.open_time AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		7 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way, #{flow_id} AS flow_id, NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+		LEFT JOIN
+		(SELECT
+		DATE_SUB(open_time,INTERVAL 7 DAY) open_time,project_id
+		FROM
+		fp_plan fp
+		WHERE id=#{plan_id}
+		) fdn
+		ON 1=1
+		WHERE
+		fcgs.total_time &lt;= fdn.open_time
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开'   AS nide_name,
+		fdn.open_time AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		8 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way, #{flow_id} AS flow_id, NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+		LEFT JOIN
+		(SELECT
+		open_time
+		open_time,project_id
+		FROM
+		fp_plan fp
+		WHERE id=#{plan_id}
+		) fdn
+		ON 1=1
+		WHERE
+		fcgs.total_time &lt;= fdn.open_time
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+		UNION ALL
+		SELECT
+		UUID() AS id,
+		plan_id,
+		#{plan_node_id} AS plan_node_id,
+		nide_name,
+		node_time,
+		report_num,
+		visit_num,
+		little_num,
+		little_per,
+		big_num,
+		big_per,
+		sub_num,
+		make_per,
+		level,
+		line_name,
+
+		node_level,
+		NOW() create_time,
+		little_way,
+		#{flow_id} AS flow_id,
+		big_way
+		FROM
+		fp_guest_storage_node_plan fgsnp
+
+		INNER  JOIN
+		(
+		SELECT id FROM fp_guest_storage_flow where plan_node_id=#{json_id}  AND approval_stuat=4 AND node_level=6
+		) pni
+		ON pni.id=fgsnp.flow_id
+		AND level=1
+		)  a ;
+
+INSERT INTO fp_guest_storage_node_plan (
+  id,
+  plan_id,
+ plan_node_id,
+  nide_name,
+  node_time,
+  report_num,
+  visit_num,
+  little_num,
+
+  big_num,
+
+  sub_num,
+
+  level,
+  line_name,
+  node_level,
+  flow_id
+)
+SELECT
+  UUID() AS id,
+  LEVEL1.plan_id,
+  #{plan_node_id} AS plan_node_id,
+   LEVEL1.nide_name,
+  LEVEL1.node_time,
+  IFNULL(ROUND((LEVEL1.report_num- LEVEL2.report_num)/(CASE WHEN LEVEL1.report_num=0  THEN NULL ELSE LEVEL1.report_num END)*100,0) ,0)   report_num,
+   IFNULL(ROUND((LEVEL1.visit_num- LEVEL2.visit_num)/(CASE WHEN LEVEL1.visit_num=0  THEN NULL ELSE LEVEL1.visit_num END)*100,0),0)   visit_num,
+    IFNULL(ROUND((LEVEL1.little_num- LEVEL2.little_num)/(CASE WHEN LEVEL1.little_num=0  THEN NULL ELSE LEVEL1.little_num END)*100,0),0) little_num,
+
+  IFNULL(ROUND((LEVEL1.big_num- LEVEL2.big_num)/(CASE WHEN LEVEL1.big_num=0 THEN NULL ELSE LEVEL1.big_num END)*100,0) ,0) big_num,
+
+IFNULL(ROUND((LEVEL1.sub_num- LEVEL2.sub_num)/(CASE WHEN LEVEL1.sub_num=0 THEN NULL ELSE LEVEL1.sub_num END)*100,0) ,0)  sub_num,
+
+  3 AS level,
+  '偏差率%' AS line_name,
+   LEVEL1.node_level,
+   #{flow_id} AS flow_id
+FROM
+fp_guest_storage_node_plan LEVEL1
+LEFT JOIN
+(
+SELECT *FROM
+fp_guest_storage_node_plan
+WHERE LEVEL=2) LEVEL2
+ON LEVEL1.plan_node_id=LEVEL2.plan_node_id AND LEVEL1.node_time=LEVEL2.node_time
+AND   LEVEL1.nide_name=LEVEL2.nide_name
+WHERE
+LEVEL1.LEVEL=1
+AND
+LEVEL1.plan_node_id
+=#{json_id};
+
+	</insert>
+
+	<select id="getFlowMaxVersion" resultType="java.lang.Integer" parameterType="java.lang.String">
+SELECT
+	MAX( version )+ 1 maxVersion
+FROM
+	fp_guest_storage_flow
+WHERE
+	plan_node_id = #{plan_node_id}
+	</select>
+
+	<insert id="initWeekSpiltStorageData" parameterType="java.util.Map">
+INSERT INTO `saleman`.`fp_guest_storage_week` (
+`id`,
+`plan_id`,
+`plan_node_id`,
+`week`,
+`start_time`,
+`end_time`,
+`day_date`,
+`plan_add`,
+`plan_total`,
+`plan_task_per`,
+`actual_add`,
+`actual_total`,
+`actual_task_per`,
+`bias_value`,
+`week_bais_value`,
+`bias_per`,
+`bias_cause`,
+`node_level`,
+`version`,
+`create_time`,
+`flow_id`,
+`is_edit`
+)
+SELECT
+UUID() id,
+plan_id AS plan_id,
+#{plan_node_id} AS plan_node_id,
+`week`,
+start_time,
+end_time,
+day_date,
+plan_add,
+plan_total,
+`plan_task_per`,
+`actual_add`,
+`actual_total`,
+`actual_task_per`,
+`bias_value`,
+`week_bais_value`,
+`bias_per`,
+`bias_cause`,
+`node_level`,
+#{version} as  version,
+NOW(),
+#{flow_id} as flow_id,
+`is_edit`
+FROM fp_guest_storage_week WHERE flow_id=(
+SELECT id FROM fp_guest_storage_flow WHERE plan_node_id=#{json_id}
+)
+	</insert>
+
+	<select id="getNodeTime" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+DATE_FORMAT(node_time,'%Y-%m-%d %00:%00:%00') node_time
+from fp_guest_storage_node_plan WHERE flow_id=(select id from fp_guest_storage_flow WHERE plan_node_id=(
+SELECT id FROM fp_plan_node WHERE plan_id=#{plan_id} AND node_level=3 AND is_del=0 AND is_effective=0
+) AND approval_stuat=4 ORDER BY version desc limit  1)
+ AND node_level in (4,5,6) ORDER BY node_level
+	</select>
+
+	<!--查询最大版本号-->
+	<select id="getVersionNumber" resultType="java.lang.Integer" parameterType="java.util.Map">
+SELECT
+	MAX( version )+ 1 maxVersion
+FROM
+	fp_seven_day_index
+WHERE
+	plan_node_id = #{plan_node_id}
+	</select>
+
+	<select id="getAppllayData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	proj.projectName,
+	ba.employeeName,
+	flow.post_Name postName,
+	IFNULL(DATE_FORMAT(flow.zddate, '%Y-%m-%d' ),DATE_FORMAT(NOW(), '%Y-%m-%d' )) zddate
+FROM
+	fp_seven_day_index fa
+	LEFT JOIN mm_ap_flow_info flow ON flow.json_id = fa.id
+	LEFT JOIN b_account ba ON ba.UserName = flow.creator
+	LEFT JOIN t_mm_project proj ON proj.projectID = flow.project_id
+WHERE  fa.id = #{id}
+limit 1
+    </select>
+
+	<!--删除原来的数据-->
+	<delete id="deleteOladData" parameterType="java.util.Map">
+DELETE FROM fp_guest_storage_node_plan WHERE
+flow_id IN (
+SELECT id FROM fp_guest_storage_flow WHERE plan_node_id=#{plan_node_id}
+);
+DELETE FROM fp_guest_storage_week WHERE
+flow_id IN (
+SELECT id FROM fp_guest_storage_flow WHERE plan_node_id=#{plan_node_id}
+);
+DELETE FROM fp_guest_storage_flow WHERE plan_node_id=#{plan_node_id};
+	</delete>
+
+
+	<!--根据计划id，获取对应的节点id-->
+	<select id="getPlanNodeIdByPlan" resultType="java.lang.String" parameterType="java.lang.String">
+		SELECT
+		id
+		FROM fp_plan_node WHERE plan_id=#{plan_id} AND node_level=#{node_level};
+	</select>
+
+
+	<!--生成前7天主数据-->
+	<insert id="createSevenDayData" parameterType="java.util.Map">
+		INSERT INTO fp_seven_day_index(
+	`id`,
+	`plan_id`,
+	`plan_node_id`,
+	`product_type_code`,
+	`invest_open_node`,
+	`invest_product_type`,
+	`invest_take_card_area`,
+	`invest_take_card_value`,
+	`invest_push_area`,
+	`invest_push_value`,
+	`invest_selling_area`,
+	`invest_selling_value`,
+	`invest_avg_price`,
+	`invest_operation_name`,
+	`invest_take_card_per`,
+	`invest_this_per`,
+	`invest_all_per`,
+	`invest_irr`,
+	`invest_payback`,
+	`rules_open_node`,
+	`rules_product_type`,
+	`rules_take_card_area`,
+	`rules_take_card_value`,
+	`rules_push_area`,
+	`rules_push_value`,
+	`rules_selling_area`,
+	`rules_selling_value`,
+	`rules_avg_price`,
+	`rules_operation_name`,
+	`rules_take_card_per`,
+	`rules_this_per`,
+	`rules_all_per`,
+	`rules_irr`,
+	`rules_payback`,
+	`designtwo_open_node`,
+	`designtwo_product_type`,
+	`designtwo_take_card_area`,
+	`designtwo_take_card_value`,
+	`designtwo_push_area`,
+	`designtwo_push_value`,
+	`designtwo_selling_area`,
+	`designtwo_selling_value`,
+	`designtwo_avg_price`,
+	`designtwo_operation_name`,
+	`designtwo_take_card_per`,
+	`designtwo_this_per`,
+	`designtwo_all_per`,
+	`designtwo_irr`,
+	`designtwo_payback`,
+	`estimate_open_node`,
+	`estimate_product_type`,
+	`estimate_take_card_area`,
+	`estimate_take_card_value`,
+	`estimate_push_area`,
+	`estimate_push_value`,
+	`estimate_selling_area`,
+	`estimate_selling_value`,
+	`estimate_avg_price`,
+	`estimate_operation_name`,
+	`estimate_take_card_per`,
+	`estimate_this_per`,
+	`estimate_all_per`,
+	`estimate_irr`,
+	`estimate_payback`,
+	`deviation_open_node`,
+	`deviation_product_type`,
+	`deviation_take_card_area`,
+	`deviation_take_card_value`,
+	`deviation_push_area`,
+	`deviation_push_value`,
+	`deviation_selling_area`,
+	`deviation_selling_value`,
+	`deviation_avg_price`,
+	`deviation_operation_price`,
+	`deviation_take_card_per`,
+	`deviation_this_per`,
+	`deviation_all_per`,
+	`deviation_irr`,
+	`deviation_payback`,
+	`deviationper_open_node`,
+	`deviationper_product_type`,
+	`deviationper_take_card_area`,
+	`deviationper_take_card_value`,
+	`deviationper_push_area`,
+	`deviationper_push_value`,
+	`deviationper_selling_area`,
+	`deviationper_selling_value`,
+	`deviationper_avg_price`,
+	`deviationper_operation_price`,
+	`deviationper_take_card_per`,
+	`deviationper_this_per`,
+	`deviationper_all_per`,
+	`deviationper_irr`,
+	`deviationper_payback`,
+	`cause_open_node`,
+	`cause_product_type`,
+	`cause_take_card_area`,
+	`cause_take_card_value`,
+	`cause_push_area`,
+	`cause_push_value`,
+	`cause_selling_area`,
+	`cause_selling_value`,
+	`cause_avg_price`,
+	`cause_operation_price`,
+	`cause_take_card_per`,
+	`cause_this_per`,
+	`cause_all_per`,
+	`cause_irr`,
+	`cause_payback`,
+	`competing_relation`,
+	`competing_product`,
+	`plate_dynamic`,
+	`competing_condition`,
+	`repot_customer_target`,
+	`repot_customer_actual`,
+	`repot_customer_per`,
+	`come_way`,
+	`come_customer_target`,
+	`come_customer_actual`,
+	`come_customer_per`,
+	`lesser_way`,
+	`lesser_customer_target`,
+	`lesser_customer_actual`,
+	`lesser_customer_per`,
+	`big_way`,
+	`big_customer_target`,
+	`big_customer_actual`,
+	`big_customer_per`,
+	`sub_customer_target`,
+	`sub_customer_actual`,
+	`sub_customer_per`,
+	`this_customer_visit`,
+	`this_customer_conversionper`,
+	`customer_cause`,
+	`trader_open_prediction`,
+	`version`,
+	`create_time`,
+	`approval_stuat`,
+	`rules_operation_price`,
+	`invest_operation_price`,
+	`designtwo_operation_price`,
+	`estimate_operation_price`,
+	`rules_operation_bfb`,
+	`invest_operation_bfb`,
+	`designtwo_operation_bfb`,
+	`estimate_operation_bfb`
+)
+SELECT
+	#{id},
+	`plan_id`,
+	#{plan_node_id},
+	`product_type_code`,
+	`invest_open_node`,
+	`invest_product_type`,
+	`invest_take_card_area`,
+	`invest_take_card_value`,
+	`invest_push_area`,
+	`invest_push_value`,
+	`invest_selling_area`,
+	`invest_selling_value`,
+	`invest_avg_price`,
+	`invest_operation_name`,
+	`invest_take_card_per`,
+	`invest_this_per`,
+	`invest_all_per`,
+	`invest_irr`,
+	`invest_payback`,
+	`rules_open_node`,
+	`rules_product_type`,
+	`rules_take_card_area`,
+	`rules_take_card_value`,
+	`rules_push_area`,
+	`rules_push_value`,
+	`rules_selling_area`,
+	`rules_selling_value`,
+	`rules_avg_price`,
+	`rules_operation_name`,
+	`rules_take_card_per`,
+	`rules_this_per`,
+	`rules_all_per`,
+	`rules_irr`,
+	`rules_payback`,
+	`designtwo_open_node`,
+	`designtwo_product_type`,
+	`designtwo_take_card_area`,
+	`designtwo_take_card_value`,
+	`designtwo_push_area`,
+	`designtwo_push_value`,
+	`designtwo_selling_area`,
+	`designtwo_selling_value`,
+	`designtwo_avg_price`,
+	`designtwo_operation_name`,
+	`designtwo_take_card_per`,
+	`designtwo_this_per`,
+	`designtwo_all_per`,
+	`designtwo_irr`,
+	`designtwo_payback`,
+	`estimate_open_node`,
+	`estimate_product_type`,
+	`estimate_take_card_area`,
+	`estimate_take_card_value`,
+	`estimate_push_area`,
+	`estimate_push_value`,
+	`estimate_selling_area`,
+	`estimate_selling_value`,
+	`estimate_avg_price`,
+	`estimate_operation_name`,
+	`estimate_take_card_per`,
+	`estimate_this_per`,
+	`estimate_all_per`,
+	`estimate_irr`,
+	`estimate_payback`,
+	`deviation_open_node`,
+	`deviation_product_type`,
+	`deviation_take_card_area`,
+	`deviation_take_card_value`,
+	`deviation_push_area`,
+	`deviation_push_value`,
+	`deviation_selling_area`,
+	`deviation_selling_value`,
+	`deviation_avg_price`,
+	`deviation_operation_price`,
+	`deviation_take_card_per`,
+	`deviation_this_per`,
+	`deviation_all_per`,
+	`deviation_irr`,
+	`deviation_payback`,
+	`deviationper_open_node`,
+	`deviationper_product_type`,
+	`deviationper_take_card_area`,
+	`deviationper_take_card_value`,
+	`deviationper_push_area`,
+	`deviationper_push_value`,
+	`deviationper_selling_area`,
+	`deviationper_selling_value`,
+	`deviationper_avg_price`,
+	`deviationper_operation_price`,
+	`deviationper_take_card_per`,
+	`deviationper_this_per`,
+	`deviationper_all_per`,
+	`deviationper_irr`,
+	`deviationper_payback`,
+	`cause_open_node`,
+	`cause_product_type`,
+	`cause_take_card_area`,
+	`cause_take_card_value`,
+	`cause_push_area`,
+	`cause_push_value`,
+	`cause_selling_area`,
+	`cause_selling_value`,
+	`cause_avg_price`,
+	`cause_operation_price`,
+	`cause_take_card_per`,
+	`cause_this_per`,
+	`cause_all_per`,
+	`cause_irr`,
+	`cause_payback`,
+	`competing_relation`,
+	`competing_product`,
+	`plate_dynamic`,
+	`competing_condition`,
+	`repot_customer_target`,
+	`repot_customer_actual`,
+	`repot_customer_per`,
+	`come_way`,
+	`come_customer_target`,
+	`come_customer_actual`,
+	`come_customer_per`,
+	`lesser_way`,
+	`lesser_customer_target`,
+	`lesser_customer_actual`,
+	`lesser_customer_per`,
+	`big_way`,
+	`big_customer_target`,
+	`big_customer_actual`,
+	`big_customer_per`,
+	`sub_customer_target`,
+	`sub_customer_actual`,
+	`sub_customer_per`,
+	`this_customer_visit`,
+	`this_customer_conversionper`,
+	`customer_cause`,
+	`trader_open_prediction`,
+	#{version}+1,
+	NOW(),
+	#{approval_stuat},
+	`rules_operation_price`,
+	`invest_operation_price`,
+	`designtwo_operation_price`,
+	`estimate_operation_price`,
+	`rules_operation_bfb`,
+	`invest_operation_bfb`,
+	`designtwo_operation_bfb`,
+	`estimate_operation_bfb`
+	FROM fp_seven_day_index WHERE id=#{json_id};
+
+
+
+INSERT INTO `saleman`.`fp_seven_day_open_avg` (
+`id`,
+`plan_id`,
+`plan_node_id`,
+`product_type_code`,
+`product_type`,
+`invest_avg`,
+`rules_avg`,
+`designtwo_avg`,
+`open_estimate`,
+`bias_price`,
+`bias_per`,
+`bias_cause`,
+`day_id`
+)
+SELECT
+UUID(),
+`plan_id`,
+#{plan_node_id},
+`product_type_code`,
+`product_type`,
+`invest_avg`,
+`rules_avg`,
+`designtwo_avg`,
+`open_estimate`,
+`bias_price`,
+`bias_per`,
+`bias_cause`,
+#{id}
+FROM
+	fp_seven_day_open_avg
+WHERE
+	day_id = #{json_id};
+
+
+INSERT INTO
+`saleman`.`fp_seven_day_competingproducts`
+(
+`id`,
+`product_project`,
+`first_opentime`,
+`take_money`,
+`month_avg_flow`,
+`avg_price_product`,
+`plan_node_id`,
+`plan_id`,
+`delay_id`
+)
+SELECT
+UUID(),
+`product_project`,
+`first_opentime`,
+`take_money`,
+`month_avg_flow`,
+`avg_price_product`,
+#{plan_node_id},
+`plan_id`,
+#{id}
+FROM fp_seven_day_competingproducts WHERE delay_id=#{json_id};
+	</insert>
+
+
+	<insert id="createCustomerAndWeekData" parameterType="java.util.Map">
+	INSERT INTO `saleman`.`fp_guest_storage_week` (
+	`id`,
+	`plan_id`,
+	`plan_node_id`,
+	`week`,
+	`start_time`,
+	`end_time`,
+	`day_date`,
+	`plan_add`,
+	`plan_total`,
+	`plan_task_per`,
+	`actual_add`,
+	`actual_total`,
+	`actual_task_per`,
+	`bias_value`,
+	`week_bais_value`,
+	`bias_per`,
+	`bias_cause`,
+	`node_level`,
+	`version`,
+	`create_time`,
+	`flow_id`,
+	`is_edit`
+)
+SELECT
+	UUID(),
+	`plan_id`,
+	#{plan_node_id},
+	`week`,
+	`start_time`,
+	`end_time`,
+	`day_date`,
+	`plan_add`,
+	`plan_total`,
+	`plan_task_per`,
+	`actual_add`,
+	`actual_total`,
+	`actual_task_per`,
+	`bias_value`,
+	`week_bais_value`,
+	`bias_per`,
+	`bias_cause`,
+	7,
+	`version`,
+	`create_time`,
+	#{flow_id},
+	`is_edit`
+FROM fp_guest_storage_week WHERE flow_id=(
+SELECT id FROM fp_guest_storage_flow WHERE plan_node_id=#{twenyday_plan_node_id}
+AND approval_stuat=4 ORDER BY version DESC,create_time DESC LIMIT 1
+);
+INSERT INTO `saleman`.`fp_guest_storage_node_plan` (
+	`id`,
+	`plan_id`,
+	plan_node_id,
+	`nide_name`,
+	`node_time`,
+	`report_num`,
+	`visit_num`,
+	`little_num`,
+	`little_per`,
+	`big_num`,
+	`big_per`,
+	`sub_num`,
+	`make_per`,
+	`level`,
+	`line_name`,
+	`little_way`,
+	`big_way`,
+	`node_level`,
+	`version`,
+	flow_id,
+	create_time,
+	`changes`
+	)
+	SELECT
+	UUID(),
+	`plan_id`,
+	#{plan_node_id},
+	`nide_name`,
+	`node_time`,
+	`report_num`,
+	`visit_num`,
+	`little_num`,
+	`little_per`,
+	`big_num`,
+	`big_per`,
+	`sub_num`,
+	`make_per`,
+	`level`,
+	`line_name`,
+	`little_way`,
+	`big_way`,
+	`node_level`,
+	`version`,
+	#{flow_id},
+	NOW(),
+	`changes`
+FROM fp_guest_storage_node_plan WHERE flow_id=(
+SELECT id FROM fp_guest_storage_flow WHERE plan_node_id=#{twenyday_plan_node_id}
+AND approval_stuat=4 ORDER BY version DESC,create_time DESC LIMIT 1
+	);
+
+
+	</insert>
+	<!--初始化客储数据-->
+	<insert id="initCustomerStorageDataTwenty" parameterType="java.util.Map">
+		INSERT INTO fp_guest_storage_node_plan (
+		id,
+		plan_id,
+		plan_node_id,
+		nide_name,
+		node_time,
+		report_num,
+		visit_num,
+		little_num,
+		little_per,
+		big_num,
+		big_per,
+		sub_num,
+		make_per,
+		level,
+		line_name,
+		node_level,
+		create_time,
+		little_way,
+		flow_id,
+		big_way
+
+		)
+		select * from(
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前3个月'   AS nide_name,
+		#{threeTime} AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL  ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL  ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL  ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		4 AS node_level,
+		MAX(fcgs.create_time) create_time,
+		NULL AS little_way,
+		#{flow_id} AS flow_id,
+		NULL AS big_way
+
+		FROM
+		fp_comm_guest_storage fcgs
+
+		WHERE
+		fcgs.total_time &lt;= #{threeTime}
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前2个月'   AS nide_name,
+		#{twoTime} AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt)  END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card)  END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt)  END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		5 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way,#{flow_id} AS flow_id,  NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+
+		WHERE
+		fcgs.total_time &lt;= #{twoTime}
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+
+
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前21天'   AS nide_name,
+		#{twenTime} AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		6 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way,#{flow_id} AS flow_id,  NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+
+		WHERE
+		fcgs.total_time &lt;= #{twenTime}
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开前7天'   AS nide_name,
+		fdn.open_time AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		7 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way, #{flow_id} AS flow_id, NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+		LEFT JOIN
+		(SELECT
+		DATE_SUB(open_time,INTERVAL 7 DAY) open_time,project_id
+		FROM
+		fp_plan fp
+		WHERE id=#{plan_id}
+		) fdn
+		ON 1=1
+		WHERE
+		fcgs.total_time &lt;= fdn.open_time
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+
+		UNION ALL
+
+		SELECT
+		UUID() AS id,
+		#{plan_id} AS plan_id,
+		#{plan_node_id} AS plan_node_id,
+		'首开'   AS nide_name,
+		fdn.open_time AS node_time,
+		SUM(reportCnt) report_num,
+		SUM(visitCnt) visit_num,
+		SUM(lesser_card) little_num,
+		ROUND(SUM(lesser_card)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) little_per,
+		SUM(big_card) big_num,
+		ROUND(SUM(big_card)/CASE WHEN SUM(lesser_card)=0 THEN NULL ELSE SUM(lesser_card) END*100,0) big_per,
+		SUM(subscribe_num) sub_num,
+		ROUND(SUM(subscribe_num)/CASE WHEN SUM(visitCnt)=0 THEN NULL ELSE SUM(visitCnt) END*100,0) make_per,
+		2 AS level,
+		'实际' AS line_name,
+		8 AS node_level,
+		MAX(fcgs.create_time) create_time, NULL AS little_way, #{flow_id} AS flow_id, NULL AS big_way
+		FROM
+		fp_comm_guest_storage fcgs
+		LEFT JOIN
+		(SELECT
+		open_time
+		open_time,project_id
+		FROM
+		fp_plan fp
+		WHERE id=#{plan_id}
+		) fdn
+		ON 1=1
+		WHERE
+		fcgs.total_time &lt;= fdn.open_time
+		and
+		fcgs.project_id in (SELECT fpr.project_id FROM  fp_project_relationship fpr,
+		(SELECT ID FROM fp_project_relationship where project_id=(select project_id from fp_plan where id=#{plan_id})  ) PID
+		WHERE
+		(fpr.id=PID.ID OR  fpr.pid=PID.ID ))
+		UNION ALL
+		SELECT
+		UUID() AS id,
+		plan_id,
+		#{plan_node_id} AS plan_node_id,
+		nide_name,
+		node_time,
+		report_num,
+		visit_num,
+		little_num,
+		little_per,
+		big_num,
+		big_per,
+		sub_num,
+		make_per,
+		level,
+		line_name,
+
+		node_level,
+		NOW() create_time,
+		little_way,
+		#{flow_id} AS flow_id,
+		big_way
+		FROM
+		fp_guest_storage_node_plan fgsnp
+
+		INNER  JOIN
+		(
+		SELECT id FROM fp_guest_storage_flow where plan_node_id=#{json_id}  AND approval_stuat=4 AND node_level=6
+		) pni
+		ON pni.id=fgsnp.flow_id
+		AND level=1
+		)  a ;
+
+INSERT INTO fp_guest_storage_node_plan (
+  id,
+  plan_id,
+ plan_node_id,
+  nide_name,
+  node_time,
+  report_num,
+  visit_num,
+  little_num,
+
+  big_num,
+
+  sub_num,
+
+  level,
+  line_name,
+  node_level,
+  flow_id
+)
+SELECT
+  UUID() AS id,
+  LEVEL1.plan_id,
+  #{plan_node_id} AS plan_node_id,
+   LEVEL1.nide_name,
+  LEVEL1.node_time,
+  IFNULL(ROUND((LEVEL1.report_num- LEVEL2.report_num)/(CASE WHEN LEVEL1.report_num=0  THEN NULL ELSE LEVEL1.report_num END)*100,0) ,0)   report_num,
+   IFNULL(ROUND((LEVEL1.visit_num- LEVEL2.visit_num)/(CASE WHEN LEVEL1.visit_num=0  THEN NULL ELSE LEVEL1.visit_num END)*100,0),0)   visit_num,
+    IFNULL(ROUND((LEVEL1.little_num- LEVEL2.little_num)/(CASE WHEN LEVEL1.little_num=0  THEN NULL ELSE LEVEL1.little_num END)*100,0),0) little_num,
+
+  IFNULL(ROUND((LEVEL1.big_num- LEVEL2.big_num)/(CASE WHEN LEVEL1.big_num=0 THEN NULL ELSE LEVEL1.big_num END)*100,0) ,0) big_num,
+
+IFNULL(ROUND((LEVEL1.sub_num- LEVEL2.sub_num)/(CASE WHEN LEVEL1.sub_num=0 THEN NULL ELSE LEVEL1.sub_num END)*100,0) ,0)  sub_num,
+
+  3 AS level,
+  '偏差率%' AS line_name,
+   LEVEL1.node_level,
+   #{flow_id} AS flow_id
+FROM
+fp_guest_storage_node_plan LEVEL1
+LEFT JOIN
+(
+SELECT *FROM
+fp_guest_storage_node_plan
+WHERE LEVEL=2) LEVEL2
+ON LEVEL1.plan_node_id=LEVEL2.plan_node_id AND LEVEL1.node_time=LEVEL2.node_time
+AND   LEVEL1.nide_name=LEVEL2.nide_name
+WHERE
+LEVEL1.LEVEL=1
+AND
+LEVEL1.plan_node_id
+=#{json_id};
+
+	</insert>
+</mapper>

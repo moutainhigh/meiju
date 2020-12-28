@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.flow.dao.FlowOtherDao">
+
+    <!--修改发起数据的状态-->
+    <update id="endFlowUpdate" parameterType="java.lang.String">
+        update mm_ap_flow_info
+        set flow_status = 7
+        where flow_id = #{instance_id}
+    </update>
+
+    <!--作废和查看审批需要的查询流程id接口-->
+    <select id="queryFlowId" parameterType="java.lang.String" resultType="java.util.Map">
+       select flow_status,flow_id, DATE_FORMAT(create_time,'%Y-%m-%d') ApplyDate,project_id,flow_version,zj,flow_json,creator from mm_ap_flow_info where json_id = #{BOID}
+    </select>
+
+    <!--作废和查看审批需要的查询流程id接口-->
+    <select id="queryFlowIdByBaseid" parameterType="java.lang.String" resultType="java.util.Map">
+       select flow_status,flow_id,DATE_FORMAT(create_time,'%Y-%m-%d') ApplyDate from mm_ap_flow_info where base_id = #{BOID} order by create_time desc limit 1
+    </select>
+
+
+</mapper>

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.homeapply.dao.HomeApplyDao">
+
+    <select id="selectHomeApply" parameterType="java.util.Map" resultType="java.util.Map">
+        select a.*,f.flow_status from mm_home_apply a
+        left join mm_ap_flow_info f on a.id = f.json_id
+        where a.isdel = 0
+        AND CASE WHEN #{orgId} IS NULL THEN TRUE ELSE a.org_id IN
+        (SELECT DISTINCT orgId FROM `s_jobsorgrel` WHERE
+        CASE WHEN #{orgLevel} = 1 THEN groupOrgId = #{orgId}
+        WHEN #{orgLevel} = 2 THEN areaOrgId = #{orgId}
+        WHEN #{orgLevel} = 3 THEN cityOrgId = #{orgId}
+        WHEN #{orgLevel} = 4 THEN projectOrgId = #{orgId} ELSE FALSE END
+        ) END
+        <if test="flow_code != null  and flow_code!=''">
+            and a.flow_code=#{flow_code}
+        </if>
+        <if test="apply_system != null  and apply_system!=''">
+            and a.apply_system=#{apply_system}
+        </if>
+        <if test="apply_theme != null  and apply_theme!=''">
+            and a.apply_theme like '%${apply_theme}%'
+        </if>
+        order by a.create_time desc
+    </select>
+
+    <select id="selectHomeApplyById" parameterType="java.lang.String" resultType="java.util.Map">
+        select a.*,f.flow_status from mm_home_apply a
+        left join mm_ap_flow_info f on a.id = f.json_id
+        where a.id = #{id}
+    </select>
+
+    <select id="selectFlowInfoById" parameterType="java.lang.String" resultType="int">
+        select count(1) from mm_ap_flow_info where json_id = #{id}
+    </select>
+
+    <update id="updateFileList">
+        update s_attach set IsDel = 1 where BizID = #{id};
+        update s_attach set BizID = #{id} ,IsDel = 0
+        where id in
+        <foreach collection="fileList" index="index"  open='(' separator=',' close=')'  item="item">
+            #{item}
+        </foreach>
+    </update>
+
+    <select id="getBelongDepartment"  parameterType="java.lang.String" resultType="java.util.Map">
+        select
+			usercn as apply_name,
+            belongdepartment as apply_department,
+            substring_index(substring_index(userorgnamefullpath,'-',3),'-',-1) as apply_region
+        from t_sys_user where alias = #{username} limit 1
+    </select>
+
+
+    <select id="getFileLists" parameterType="java.lang.String" resultType="java.util.Map">
+        select id,ShowName as name,SaveUrl as url,ListIndex as orderIndex from s_attach where BizID=#{id} order by ListIndex
+    </select>
+
+
+
+    <insert id="initHomeApply" parameterType="java.util.Map">
+        insert into
+        mm_home_apply(id,
+            apply_name,apply_time,apply_region,apply_department,apply_type,
+            apply_theme,apply_system,apply_text,
+            flow_code,
+            isdel,create_time,creator,job_org_id,job_id,org_id)
+        values(#{id},
+            #{apply_name},#{apply_time},#{apply_region},#{apply_department},#{apply_type},
+            #{apply_theme},#{apply_system},#{apply_text},
+            #{flow_code},
+            0,now(),#{username},#{job_org_id},#{job_id},#{org_id}
+        )
+    </insert>
+
+    <update id="updateHomeApply" parameterType="java.util.Map">
+        update mm_home_apply set
+            <if test="apply_name != null" >apply_name = #{apply_name},</if>
+            <if test="apply_time != null" >apply_time = #{apply_time},</if>
+            <if test="apply_region != null" >apply_region = #{apply_region},</if>
+            <if test="apply_department != null" >apply_department = #{apply_department},</if>
+            <if test="apply_theme != null" >apply_theme = #{apply_theme},</if>
+            <if test="apply_type != null" >apply_type = #{apply_type},</if>
+            <if test="apply_system != null" >apply_system = #{apply_system},</if>
+            <if test="apply_text != null" >apply_text = #{apply_text},</if>
+            <if test="job_org_id != null" >job_org_id = #{job_org_id},</if>
+            <if test="job_id != null" >job_id = #{job_id},</if>
+            <if test="org_id != null" >org_id = #{org_id},</if>
+            <if test="username != null" >editor = #{username},</if>
+            edit_time = now()
+        where id = #{id}
+    </update>
+
+    <update id="deleteHomeApply" parameterType="java.util.Map">
+        update mm_home_apply set
+        isdel = 1,
+        <if test="username != null" >editor = #{username},</if>
+        edit_time = now()
+        where id = #{id}
+    </update>
+
+
+    <!--更新流程审批-->
+    <update id="updateBrokerPolicyFlow" parameterType="java.util.Map">
+        update mm_ap_flow_info
+        <trim prefix="set" suffixOverrides=",">
+            flow_json=#{flow_json},
+            <if test="project_id!=null">
+                project_id=#{project_id},
+            </if>
+            <if test="stage_id!=null">
+                stage_id=#{stage_id},
+            </if>
+            <if test="TITLE!=null">
+                title=#{TITLE},
+            </if>
+            <if test="comcommon!=null">
+                comcommon=#{comcommon},
+            </if>
+            <if test="orgName!=null">
+                orgName=#{orgName},
+            </if>
+        </trim>
+        where json_id=#{policyId}
+    </update>
+
+
+    <insert id="saveBrokerPolicyFlow" parameterType="java.util.Map">
+        INSERT INTO mm_ap_flow_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="project_id!=null and project_id!=''">
+                project_id,
+            </if>
+            <if test="stage_id!=null and stage_id!=''">
+                stage_id,
+            </if>
+            <if test="flow_type!=null and flow_type!=''">
+                flow_type,
+            </if>
+            <if test="flow_json!=null and flow_json!=''">
+                flow_json,
+            </if>
+            <if test="json_id!=null and json_id!=''">
+                json_id,
+            </if>
+            <if test="flow_code!=null and flow_code!=''">
+                flow_code,
+            </if>
+            <if test="creator!=null and creator!=''">
+                creator,
+            </if>
+            <if test="TITLE!=null and TITLE!=''">
+                title,
+            </if>
+            <if test="comcommon!=null and comcommon!=''">
+                comcommon,
+            </if>
+            <if test="post_name!=null and post_name!=''">
+                post_name,
+            </if>
+            <if test="orgName!=null and orgName!=''">
+                orgName,
+            </if>
+            id,
+            create_time,
+            edit_time,
+            isdel,
+            flow_status
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="project_id!=null and project_id!=''">
+                #{project_id},
+            </if>
+            <if test="stage_id!=null and stage_id!=''">
+                #{stage_id},
+            </if>
+            <if test="flow_type!=null and flow_type!=''">
+                #{flow_type},
+            </if>
+            <if test="flow_json!=null and flow_json!=''">
+                #{flow_json},
+            </if>
+            <if test="json_id!=null and json_id!=''">
+                #{json_id},
+            </if>
+            <if test="flow_code!=null and flow_code!=''">
+                #{flow_code},
+            </if>
+            <if test="creator!=null and creator!=''">
+                #{creator},
+            </if>
+            <if test="TITLE!=null and TITLE!=''">
+                #{TITLE},
+            </if>
+            <if test="comcommon!=null and comcommon!=''">
+                #{comcommon},
+            </if>
+            <if test="post_name!=null and post_name!=''">
+                #{post_name},
+            </if>
+            <if test="orgName!=null and orgName!=''">
+                #{orgName},
+            </if>
+            UUID( ), now( ), now( ), 0 ,2
+        </trim>
+    </insert>
+</mapper>

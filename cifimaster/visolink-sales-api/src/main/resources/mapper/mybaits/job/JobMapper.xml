@@ -1,0 +1,1041 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.system.job.authorization.mapper.JobMapper">
+
+    <!--获取指定岗位-->
+    <select id="getJobByAuthId" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+DISTINCT
+        job.* ,
+		jr.groupOrgName,
+		jr.areaOrgName,
+		sc.JobName as CommonJobName,
+		jr.cityOrgName,
+		jr.projectOrgName,
+		org.FullPath
+      FROM S_Jobs  job left join s_commonjobs sc  on sc.ID =job.CommonJobID
+            left join s_jobsorgrel jr on jr.jobId=job.id
+            left join s_organization org on job.JobOrgID=org.id
+      WHERE
+         org.FullPath like '${fullPath}%'
+        AND job.IsDel = 0
+        AND job.isIdm= #{isIdm}
+      ORDER BY char_length(job.jobfullCode)
+</select>
+
+    <!--查询所有组织架构-->
+    <select id="getAllOrg" parameterType="java.util.Map" resultType="java.util.Map">
+           SELECT * FROM (
+        SELECT  A.ID ,
+                A.OrgCode ,
+                A.OrgName ,
+                A.OrgName as OrgShortName ,
+                A.OrgCategory ,
+                A.ListIndex ,
+                A.FullPath ,
+                A.Levels ,
+                A.PID ,
+                A.Status,
+                (SELECT OrgName FROM S_Organization B WHERE B.ID = A.PID) AS PName,
+                A.IsDel,
+                A.ProjectID,
+                A.OrgCompanyID,
+                A.OrgType
+        FROM    S_Organization A
+        WHERE   A.AuthCompanyID = #{AuthCompanyID}
+                AND A.ProductID = #{ProductID}
+                AND A.FullPath LIKE concat((SELECT FullPath FROM S_Organization WHERE ID = #{OrgID}),'%')
+                AND (#{PID} = '' or A.PID = #{PID})
+                AND ( case when #{OrgID}!='ee3c8a59-3546-11e7-a3f8-5254007b6f02' then    A.IsDel=0 else '1=1' end )
+      ) t
+      ORDER BY Levels ASC,ListIndex ASC
+    </select>
+
+    <!-- 获取通用岗位列表-->
+    <select id="getAllCommonJob" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT  ID ,
+              JobName ,
+              JobDesc ,
+              Status,
+              JobCode
+      FROM    S_CommonJobs
+      WHERE   AuthCompanyID = #{AuthCompanyID}
+              AND ProductID = #{ProductID}
+              AND (#{JobName} = '' OR JobName LIKE '%${JobName}%')
+              AND IsDel = 0
+      ORDER BY JobName
+    </select>
+
+    <!--获取岗位下的人员-->
+    <select id="getSystemJobUserList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        DISTINCT
+        A.ID ,
+              A.UserName ,
+              A.AccountType ,
+              A.UserOrgID,
+              A.EmployeeName ,
+              CASE WHEN(A.Gender=1) THEN '男' WHEN(A.Gender=2) THEN '女' ELSE 'X' END AS Gender,
+              A.OfficeTel ,
+              A.EmployeeCode ,
+              A.OfficeMail ,
+              A.Mobile ,
+              A.PostCode ,
+              A.Address ,
+              CASE WHEN(A.Status=1) THEN '启用' WHEN(A.Status=0) THEN '禁用' ELSE 'X' END AS Status,
+              A.AccountAttr,
+              A.SubordCompanyID,
+              job.JobName,
+			  O.parentLevelName
+      FROM     b_account A
+              INNER JOIN S_JobsUserRel B ON A.ID = B.AccountID
+              INNER JOIN s_jobs job on job.ID=B.JobID
+              INNER JOIN S_Organization O ON job.JobOrgID= O.ID
+              left join s_jobsorgrel jr on job.id=jr.jobId
+      WHERE   job.ID = #{JobID}
+              AND A.AuthCompanyID = #{AuthCompanyID}
+              AND A.IsDel = 0
+              AND O.IsDel = 0
+              AND O.Status = 1
+							AND (
+									#{UserName} = '' || A.EmployeeName LIKE '%${UserName}%' OR A.UserName LIKE '%${UserName}%'
+							)
+      ORDER BY
+              job.CreateTime DESC
+              LIMIT #{pageIndex},#{pageSize};
+                  </select>
+    <!--获取岗位下的人员-->
+    <select id="getSystemJobUserListCount" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT
+        COUNT(1) as total
+      FROM     b_account A
+              INNER JOIN S_JobsUserRel B ON A.ID = B.AccountID
+              INNER JOIN s_jobs job on job.ID=B.JobID
+              INNER JOIN S_Organization O ON job.JobOrgID= O.ID
+      WHERE   job.ID = #{JobID}
+              AND A.AuthCompanyID = #{AuthCompanyID}
+              AND A.IsDel = 0
+              AND O.IsDel = 0
+              AND O.Status = 1
+							AND (
+									#{UserName} = '' || A.EmployeeName LIKE '%${UserName}%' OR A.UserName LIKE '%${UserName}%'
+							)
+      ORDER BY
+              A.Status desc
+                  </select>
+
+
+    <!--获取当前和下属所有组织岗位-->
+    <select id="getSystemJobAllList" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+			  *
+			FROM S_Jobs j
+			WHERE AuthCompanyID = #{AuthCompanyID}
+			  AND ProductID = #{ProductID}
+			  AND IsDel = 0
+			AND EXISTS(
+				SELECT
+					1
+				FROM
+					(
+						SELECT
+							ID
+						FROM S_Organization
+						WHERE FullPath LIKE
+							(
+								SELECT
+									concat(FullPath,'%')
+								FROM S_Organization
+								WHERE ID = #{OrgID}
+							)
+					) t WHERE j.JobOrgID = t.ID
+			)
+			ORDER BY char_length(JobName),JobName
+    </select>
+
+    <!--新增岗位-插入Jobs信息-->
+    <insert id="saveSystemJobForManagement" parameterType="java.util.Map">
+        INSERT  INTO S_Jobs
+              ( ID ,
+				  JobCode ,
+				  JobName ,
+				  JobDesc ,
+				  JobPID ,
+				  CommonJobID ,
+				  JobOrgID ,
+				  AuthCompanyID ,
+				  ProductID ,
+				  Creator ,
+				  CreateTime ,
+				  Editor ,
+				  EditTime ,
+				  Status ,
+				  IsDel,
+				  isIdm,
+				  jobfullCode
+              )
+      VALUES  ( #{ID},
+                  #{JobCode},
+			          #{JobName},
+			          #{JobDesc},
+			          #{JobPID},
+			          #{CommonJobID},
+			          #{JobOrgID},
+			          #{AuthCompanyID},
+			          #{ProductID},
+			          #{Creator},
+			          now() ,
+			          NULL ,
+			          NULL ,
+			          #{Status},
+			          0,
+			          0,
+			          #{jobfullCode}
+              )
+    </insert>
+
+    <insert id="saveSystemJobForManagement2" parameterType="java.util.Map">
+      INSERT INTO s_jobsmenurel(ID,JobID,MenuID) Select UUID(),#{ID},MenuID from s_commonjobsmenurel where JobID=#{CommonJobID}
+    </insert>
+
+	<select id="getFourOrgLevelByJobId" resultType="java.util.Map">
+        select job.ID,org.parentLevelID as orgId,org.orgLevel,org.parentLevelName from s_jobs job left join s_organization org on job.JobOrgID=org.ID where org.orgLevel is not null and job.ID=#{jobId} group by jobCode
+    </select>
+
+	<select id="getParentOrg" parameterType="java.lang.String" resultType="java.util.Map">
+        select ID,PID,parentLevelID,parentLevelName,orgLevel from s_organization where ID=#{orgId} and ID &lt;&gt;'00000000'
+    </select>
+	<insert id="insertJobOrgRel" parameterType="java.util.Map">
+        delete from s_jobsorgrel where jobId=#{ID};
+		INSERT INTO `saleman`.`s_jobsorgrel`(`jobId`, `orgId`, `orgLevel`, `groupOrgId`, `groupOrgName`, `areaOrgId`, `areaOrgName`, `cityOrgId`, `cityOrgName`, `projectOrgId`, `projectOrgName`,isIdm) values
+			(#{ID},#{orgId},#{orgLevel},#{groupOrgId},#{groupOrgName},#{areaOrgId},
+			#{areaOrgName},#{cityOrgId},#{cityOrgName},#{projectOrgId},#{projectOrgName},0 )
+	</insert>
+
+	<select id="getJobCodeMax" resultType="java.lang.String">
+		select JobCode  from s_jobs where isIdm=0 order by JobCode desc limit 1
+	</select>
+    <!--登录人有权限的菜单-->
+    <select id="userMenusByUserId" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT DISTINCT
+        		m.ID,
+        		m.PID,
+        		m.MenuName,
+        		m.MenuSysName,
+            m.IsLast,
+        		m.Levels,
+        		m.ListIndex,
+        		concat('/',m.FullPath)
+        	FROM (SELECT DISTINCT
+        		jur.JobID,
+        		j.JobName,
+        		j.CommonJobID
+        	FROM b_account a
+        		INNER JOIN S_JobsUserRel jur ON a.ID = jur.AccountID
+        		INNER JOIN S_Jobs j ON jur.JobID = j.ID
+        	WHERE a.ID = #{UserID}
+        		AND j.IsDel = 0 AND j.Status = 1
+        		AND j.AuthCompanyID = #{AuthCompanyID} AND j.ProductID = #{ProductID}) ujd
+
+        		INNER JOIN S_CommonJobs cj ON ujd.CommonJobID = cj.ID
+        		INNER JOIN S_CommonJobsMenuRel cjmr ON cj.ID = cjmr.JobID
+        		INNER JOIN S_Menus m ON cjmr.MenuID = m.ID
+        		INNER JOIN S_ProductMenuRel pmr ON m.ID = pmr.MenuID
+        	WHERE cj.IsDel = 0 AND cj.Status = 1
+        		AND m.IsDel = 0 AND m.Status = 1
+        		AND pmr.ProductID = #{ProductID}
+                AND m.menusType=#{menusType}
+ union
+
+ SELECT DISTINCT
+        		 m.ID,
+        		 m.PID,
+        		 m.MenuName,
+        		 m.MenuSysName,
+             m.IsLast,
+        		 m.Levels,
+        		 m.ListIndex,
+        		 concat('/',m.FullPath)
+        	FROM (SELECT DISTINCT
+        		jur.JobID,
+        		j.JobName,
+        		j.CommonJobID
+        	FROM b_account a
+        		INNER JOIN S_JobsUserRel jur ON a.ID = jur.AccountID
+        		INNER JOIN S_Jobs j ON jur.JobID = j.ID
+        	WHERE a.ID = #{UserID}
+        		AND j.IsDel = 0 AND j.Status = 1
+        		AND j.AuthCompanyID = #{AuthCompanyID} AND j.ProductID = #{ProductID}) ujs
+
+        		INNER JOIN S_JobsMenuRel jmr ON ujs.JobID = jmr.JobID
+        		INNER JOIN S_Menus m ON jmr.MenuID = m.ID
+        		INNER JOIN S_ProductMenuRel pmr ON m.ID = pmr.MenuID
+        	WHERE m.IsDel = 0 AND m.Status = 1
+        		AND pmr.ProductID = #{ProductID}
+        		AND m.menusType=#{menusType}
+    </select>
+
+    <!--登录人有权限的功能-->
+    <select id="userFunctionsByUserId" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT DISTINCT
+        	f.*
+        FROM S_JobsUserRel jur
+        	INNER JOIN S_Jobs j ON jur.JobID = j.ID
+        	INNER JOIN S_Organization o ON j.JobOrgID = o.ID
+        	INNER JOIN (
+        		SELECT
+        			JobID,
+        			FuncID
+        		FROM S_JobsFunctionsRel
+        		UNION
+        		SELECT
+        			j.ID,
+        			cjfr.FuncID
+        		FROM S_CommonJobsFunctionsRel cjfr
+        			INNER JOIN S_Jobs j ON cjfr.JobID = j.CommonJobID
+        	) temp ON j.ID = temp.JobID
+        	INNER JOIN S_Functions f ON temp.FuncID = f.ID
+        WHERE j.IsDel = 0 AND j.Status = 1
+        	AND o.IsDel = 0 AND o.Status = 1
+        	AND f.IsDel = 0 AND f.Status = 1
+        	AND jur.AccountID = #{UserID}
+        	AND j.AuthCompanyID = #{AuthCompanyID} AND j.ProductID = #{ProductID}
+    </select>
+
+    <!--该岗位已有的菜单和功能-->
+    <select id="jobFunctionsByUserId" parameterType="java.util.Map" resultType="java.util.Map">
+         -- 通用岗位菜单
+          SELECT DISTINCT
+	      	m.ID,
+	      	1
+	      FROM
+	       s_commonjobsmenurel  jmr
+	      	INNER JOIN S_Menus m ON jmr.MenuID = m.ID
+	      WHERE jmr.JobID = #{CommomJobID}
+	      	AND m.IsDel = 0 AND m.Status = 1 AND m.MenusType=#{menusType}
+	      	union
+          -- 组织岗位菜单
+          SELECT DISTINCT
+	      	m.ID,
+	      	0
+	      FROM S_Jobs j
+	      	INNER JOIN S_JobsMenuRel jmr ON j.ID = jmr.JobID
+	      	INNER JOIN S_Menus m ON jmr.MenuID = m.ID
+	      WHERE j.ID = #{JobID}
+	      	AND m.IsDel = 0 AND m.Status = 1 AND m.MenusType=#{menusType}
+
+          union
+          -- 通用岗位功能
+          SELECT DISTINCT
+	      	f.ID,
+	      	1
+	      FROM S_Jobs j
+	      	INNER JOIN S_CommonJobs cj ON j.CommonJobID = cj.ID
+	      	INNER JOIN S_CommonJobsFunctionsRel cjfr ON cj.ID = cjfr.JobID
+	      	INNER JOIN S_Functions f ON cjfr.FuncID = f.ID
+	      WHERE j.ID = #{JobID}
+	      	AND cj.IsDel = 0 AND cj.Status = 1
+	      	AND f.IsDel = 0 AND f.Status = 1
+
+		   union
+           -- 组织岗位功能
+           SELECT DISTINCT
+	      	f.ID,
+	      	0
+	      FROM S_Jobs j
+	      	INNER JOIN S_JobsFunctionsRel jfr ON j.ID = jfr.JobID
+	      	INNER JOIN S_Functions f ON jfr.FuncID = f.ID
+	      WHERE j.ID = #{JobID}
+	      	AND f.IsDel = 0 AND f.Status = 1
+    </select>
+
+    <!--查询组织岗位功能授权-->
+    <select id="getSystemJobMenusID" resultType="java.util.Map" parameterType="java.util.Map">
+        select sc.ID
+        from  s_jobsmenurel   sc
+        left join s_menus sm on sm.ID=sc.MenuID
+        where sc.JobID=#{JobID}
+        and sc.MenuID  in (${OldeMenuID}) AND sm.MenusType=#{MenusType}  ;
+    </select>
+
+    <!--删除组织岗位功能授权-->
+    <delete id="removeSystemJobAuth" parameterType="java.util.Map">
+        delete  from  s_jobsmenurel   where ID=#{ID};
+    </delete>
+
+    <!--保存组织岗位功能授权-->
+    <insert id="saveSystemJobAuthManagement" parameterType="java.util.Map">
+        INSERT INTO  s_jobsmenurel (ID,JobID,MenuID) VALUES(UUID(),#{JobID},#{MenuID});
+    </insert>
+
+    <!--更新Jobs信息-->
+    <update id="modifySystemJobByUserId" parameterType="java.util.Map">
+        UPDATE S_Jobs
+		<trim prefix="set" suffixOverrides=",">
+			<if test="JobName!=null ">
+				JobName = #{JobName},
+			</if>
+
+			<if test="JobDesc!=null ">
+				JobDesc = #{JobDesc},
+			</if>
+
+			<if test="JobPID!=null">
+				JobPID = #{JobPID},
+			</if>
+
+			<if test="CommonJobID!=null">
+				CommonJobID = #{CommonJobID},
+			</if>
+			<if test="JobOrgID!=null">
+				JobOrgID = #{JobOrgID},
+			</if>
+        Editor = #{Editor},
+        EditTime = now() ,
+			<if test="Status!=null">
+				Status = #{Status}
+			</if>
+		</trim>
+        WHERE ID = #{ID} AND isIdm = 0;
+		<if test="CommonJobID!=null and CommonJobID!=''">
+              DELETE FROM s_jobsmenurel where JobID=#{ID};
+              INSERT INTO s_jobsmenurel(ID,JobID,MenuID) Select UUID(),#{ID},MenuID from s_commonjobsmenurel where JobID=#{CommonJobID};
+		</if>
+    </update>
+
+    <!--管理端删除岗位-->
+    <delete id="removeSystemJobByUserId" parameterType="java.util.Map">
+		UPDATE S_Jobs SET IsDel = 1 WHERE ID = #{ID} AND isIdm = 0
+	</delete>
+
+    <!--查询用户名是否存在-->
+    <select id="getSystemUserNameExists" parameterType="java.util.Map" resultType="java.util.Map">
+			SELECT * FROM b_account WHERE UserName = #{alias} AND IsDel = 0  and `AccountType` !=4 limit 0,1
+	</select>
+
+    <!--新增人员 -->
+    <insert id="saveSystemUser" parameterType="java.util.Map">
+        INSERT INTO b_account
+		  ( ID ,
+		    UserName ,
+		    Password ,
+		    AccountType ,
+		    EmployeeCode ,
+		    EmployeeName ,
+		    Gender ,
+		    OfficeTel ,
+		    OfficeMail ,
+		    Mobile ,
+		    PostCode ,
+		    Address ,
+		    UserOrgID ,
+		    AuthCompanyID ,
+		    ProductID ,
+		    Creator ,
+		    CreateTime ,
+		    Editor ,
+		    EditTime ,
+		    Status ,
+		    IsDel,
+		    AccountAttr,
+		    SubordCompanyID
+		  )
+      VALUES
+      ( #{ID},
+		    #{UserName},
+		    #{Password} ,
+		    #{AccountType},
+		    #{EmployeeCode},
+		    #{EmployeeName},
+		    #{Gender},
+		    #{OfficeTel},
+		    #{OfficeMail},
+		    #{Mobile},
+		    #{PostCode},
+		    #{Address},
+		    #{UserOrgID},
+		    #{AuthCompanyID},
+		    #{ProductID},
+		    #{Creator},
+		    now() ,
+		    NULL ,
+		    NULL ,
+		    #{Status},
+		    0,
+		    #{AccountAttr},
+		    #{SubordCompanyID}
+      )
+    </insert>
+
+    <!--查询岗位与平台账号关系表中该用户有多少个岗位-->
+    <select id="getJobSuserrel" parameterType="java.util.Map" resultType="java.util.Map">
+		select count (1) as count from s_jobsuserrel where AccountID=#{ID}
+	</select>
+
+    <!--删除人员账号-->
+    <delete id="removeSystemJobUserRel" parameterType="java.util.Map">
+        DELETE FROM s_jobsuserrel WHERE JobID = #{JobID} AND AccountID = #{UserID}
+    </delete>
+
+    <!--从C_User表查询用户数据-->
+    <select id="getUserFromCuser" resultType="java.util.Map" parameterType="java.util.Map">
+		select COUNT(1) AS A from C_User c where c.code = #{UserName}
+	</select>
+
+    <!--根据岗位ID查询组织信息-->
+    <select id="getOrgInfoByJobID" parameterType="java.util.Map" resultType="java.util.Map">
+		SELECT
+	org.*,
+	sj.CommonJobID,
+	sc.JobCode,
+	(select OrgName from s_organization where ID=org.PID)  as PName
+FROM
+	s_jobs sj
+	LEFT JOIN s_organization org ON org.ID = sj.JobOrgID
+	LEFT JOIN s_commonjobs sc ON sc.ID = sj.CommonJobID
+WHERE
+	sj.ID = #{JobID};
+	</select>
+
+    <!--引入普通用户插入关联关系数据-->
+    <insert id="saveAccountToJobUserURl" parameterType="java.util.Map">
+		INSERT INTO s_jobsuserrel(ID,AccountID,JobID,CurrentJob)
+		VALUES(UUID(),#{ID},#{JobID},#{CurrentJob});
+	</insert>
+
+    <!--查询引入OA账户时是否有重复-->
+    <select id="getCuserToAccount" parameterType="java.util.Map" resultType="java.util.Map">
+		select id from b_account where username = #{userid} and (accounttype = 1 or accounttype = 2)
+	</select>
+
+    <!--组织岗位引入人员查询-->
+    <select id="saveCuserToAccount" parameterType="java.util.Map" resultType="java.util.Map">
+		select 1 as accountType,u.code,IFNULL(u.password,UPPER(md5('123321'))) as Password,u.name,IFNULL(u.sex,1) as sex,u.telephone,u.email ,u.mobile,
+       (SELECT JobOrgID FROM S_Jobs WHERE ID = '1FF8AE03-6A39-0A5B-2C4B-AFECD86165EB') as UserOrgID,
+        (SELECT AuthCompanyID FROM S_Jobs WHERE ID = '1FF8AE03-6A39-0A5B-2C4B-AFECD86165EB') as AuthCompanyID,
+        (SELECT ProductID FROM S_Jobs WHERE ID = '1FF8AE03-6A39-0A5B-2C4B-AFECD86165EB') as ProductID
+      FROM    C_User u
+      where u.id = #{userid}
+	</select>
+
+    <!--组织岗位引入人员插入人员表-->
+    <insert id="insertCuserToAccount" parameterType="java.util.Map">
+		INSERT  INTO b_account
+    ( ID ,UserName , Password , AccountType ,
+      EmployeeCode , EmployeeName , Gender , OfficeTel , OfficeMail , Mobile , PostCode , Address ,
+      UserOrgID , AuthCompanyID ,ProductID , Creator , CreateTime , Editor , EditTime , Status , IsDel
+    )
+    values(
+    #{uuid},#{code},#{Password},#{accountType},#{code},#{name},#{sex},#{telephone},
+    #{email},#{mobile},'','',#{UserOrgID},#{AuthCompanyID},#{ProductID},
+    'JobUse',now(),NULL,NULL,1,0)
+	</insert>
+
+    <!--更新线索中的拓客信息-->
+    <update id="modifyProjectClueTokerAttribution" parameterType="java.util.Map">
+		update b_project_clues
+		set TokerAttributionGroupId=#{TokerAttributionGroupId},
+		TokerAttributionGroupName=#{TokerAttributionGroupName},
+		TokerAttributionTeamId=#{TokerAttributionTeamId},
+		TokerAttributionTeamName=#{TokerAttributionTeamName}
+    where projectId=#{ProjectID} and TokerAttributionId=#{UserID};
+	</update>
+
+    <!--更新机会中的拓客信息-->
+    <update id="modifyProjectOppoTokerAttribution" parameterType="java.util.Map">
+		update b_project_opportunity
+		set TokerAttributionGroupId=#{TokerAttributionGroupId},
+		TokerAttributionGroupName=#{TokerAttributionGroupName},
+		TokerAttributionTeamId=#{TokerAttributionTeamId},
+		TokerAttributionTeamName=#{TokerAttributionTeamName}
+    where projectId=#{ProjectID} and TokerAttributionId=#{UserID};
+	</update>
+
+    <!--更新线索中的案场信息-->
+    <update id="modifyProjectClueSalesAttribution" parameterType="java.util.Map">
+		update b_project_clues
+		set SalesAttributionGroupId=#{SalesAttributionGroupId},
+		SalesAttributionGroupName=#{SalesAttributionGroupName},
+		SalesAttributionTeamId=#{SalesAttributionTeamId},
+		SalesAttributionTeamName=#{SalesAttributionTeamName}
+    where projectId=#{ProjectID} and SalesAttributionId=#{UserID};
+	</update>
+
+    <!--更新机会中的案场信息-->
+    <update id="modifyProjectOppoSalesAttribution" parameterType="java.util.Map">
+		update b_project_opportunity
+		set SalesAttributionGroupId=#{SalesAttributionGroupId},
+		SalesAttributionGroupName=#{SalesAttributionGroupName},
+		SalesAttributionTeamId=#{SalesAttributionTeamId},
+		SalesAttributionTeamName=#{SalesAttributionTeamName}
+    where projectId=#{ProjectID} and SalesAttributionId=#{UserID};
+	</update>
+
+    <select id="getUserProxyregisterByUserID" parameterType="java.util.Map" resultType="java.util.Map">
+		select * from b_proxyregister where UserID=#{ID};
+	</select>
+
+    <insert id="saveUserProxyregisterInvitationCode" parameterType="java.util.Map">
+		INSERT INTO b_proxyregister(ID,UserID,InvitationCode,IsEffect,IsAudit)
+    VALUES(UUID(),#{ID},#{InvitationCode},1,1);
+	</insert>
+
+    <!--	获取引入用户-->
+    <!--EmployeeCode: "zhujianya"
+EmployeeName: "朱建亚"
+Gender: 1
+ID: "03e19352-0ed9-11e8-ac4c-005056bda220"
+IsDel: 0
+Mobile: "13008889068"
+OfficeMail: ""
+OfficeTel: ""
+Status: 0
+UserName: "zhujianya"
+type: "普通账号"-->
+    <select id="getIntroducingUsers" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        usercn,
+        mobile,
+        genderId,
+        mail,
+        positionname,
+        alias
+        FROM
+        (
+        SELECT
+        DISTINCT alias,
+        usercn,
+        mobile,
+        genderId,
+        mail,
+        positionname
+        FROM
+        t_sys_user where not exists( select id from b_account where username = alias)
+        UNION ALL
+        SELECT
+        DISTINCT UserName,
+        EmployeeName,
+        mobile,
+        gender,
+        OfficeMail,
+        ''
+        FROM
+        b_account
+        ) t
+        where
+        1=1
+        <if test="userCode!=null and userCode!=''">
+            and alias like '${userCode}%'
+        </if>
+        <if test="userName!=null and userName!=''">
+            and usercn like '${userName}%'
+        </if>
+        LIMIT #{pageIndex},#{pageSize}
+    </select>
+
+    <select id="getIntroducingUsersCount" resultType="java.lang.Integer">
+        <!--select count(1) as count
+        from t_sys_user
+        <if test="(alias!=null and alias!='') or (usercn!=null and usercn!='')">
+            where
+        </if>
+        <if test="alias!=null and alias!=''">
+            alias=#{alias} or
+        </if>
+        <if test="usercn!=null and usercn!=''">
+            usercn=#{usercn}
+        </if>-->
+        SELECT
+        count(1) as total
+        FROM
+        (
+        SELECT
+        DISTINCT alias,
+        usercn,
+        mobile,
+        genderId,
+        mail,
+        positionname
+        FROM
+        t_sys_user where not exists( select id from b_account where username = alias)
+        UNION ALL
+        SELECT
+        DISTINCT UserName,
+        EmployeeName,
+        mobile,
+        gender,
+        OfficeMail,
+        ''
+        FROM
+        b_account
+        ) t
+        where
+        1=1
+        <if test="userCode!=null and userCode!=''">
+            and alias like '${userCode}%'
+        </if>
+        <if test="userName!=null and userName!=''">
+            and usercn like '${userName}%'
+        </if>
+    </select>
+
+    <insert id="saveIntroducingUsers" parameterType="java.util.Map">
+		INSERT  INTO b_account
+		(ID,UserName,AccountType,Password,EmployeeCode,EmployeeName,Gender,Mobile,UserOrgID,AuthCompanyID,
+		ProductID,Creator,CreateTime,Status,IsDel,isIdm)
+		values
+			(#{ID},#{alias},2,'C4CA4238A0B923820DCC509A6F75849B',#{usercn},#{usercn},1,#{mobile},#{orgId},
+			#{authCompanyId},#{productId},#{creator},now(),1,0,0)
+	</insert>
+
+    <!--保存岗位与平台账号关系表-->
+    <insert id="saveJobSuserrel" parameterType="java.util.Map">
+		insert into s_jobsuserrel(ID,AccountID,JobID,CurrentJob)
+		values (uuid(),#{ID},#{jobId},#{CurrentJob})
+	</insert>
+
+
+    <!--判断岗位是否重复-->
+    <select id="isRepeat" parameterType="String" resultType="java.util.Map">
+        select * from s_jobsuserrel where AccountID=#{accountId} and JobID=#{jobId}
+	</select>
+    <!--判断是否存在默认岗位-->
+    <select id="isCurrentJob" parameterType="String" resultType="java.util.Map">
+		select * from s_jobsuserrel where AccountID=#{accountId} and CurrentJob=1;
+	</select>
+    <!--修改用户信息-->
+    <update id="modifySystemJobUserRel" parameterType="java.util.Map">
+        UPDATE b_account
+        SET
+        UserName = #{UserName},
+        AccountType = #{AccountType},
+        EmployeeCode = #{EmployeeCode},
+        EmployeeName = #{EmployeeName},
+        Gender = #{Gender},
+        OfficeTel = #{OfficeTel},
+        OfficeMail = #{OfficeMail},
+        Mobile = #{Mobile},
+        PostCode = #{PostCode},
+        Address = #{Address},
+        UserOrgID = #{UserOrgID},
+        Editor = #{Editor},
+        EditTime = NOW(),
+        Status = #{Status},
+        <if test="Password!=null and Password!=''">
+            Password = UPPER(MD5(#{Password})),
+        </if>
+        AccountAttr=#{AccountAttr},
+        SubordCompanyID=#{SubordCompanyID}
+        WHERE ID = #{ID};
+    </update>
+
+
+    <!--获取所有功能模块-->
+    <select id="getAllMenu" resultType="java.util.Map">
+	select *from (select 	menu.`ID`,
+	menu.`PID`,
+	menu.`MenuName` NAME,
+	menu.`Url` path,
+	menu.`ImageUrl`,
+	menu.`IsShow` hidden,
+	menu.`redirect`,
+	menu.`component`,
+	menu.`alwaysShow`,
+	menu.IsLast,
+
+	menu.`meta`,
+	menu.ListIndex
+	FROM
+	s_menus menu where PID='-1'
+union
+SELECT
+	menu.`ID`,
+	menu.`PID`,
+	menu.`MenuName` NAME,
+	menu.`Url` path,
+	menu.`ImageUrl`,
+	menu.`IsShow` hidden,
+	menu.`redirect`,
+	menu.`component`,
+	menu.`alwaysShow`,
+	menu.IsLast,
+	menu.`meta`,
+	menu.ListIndex
+FROM
+	s_menus menu where (menu.isLast=1 or menu.menusType=1) AND menu.IsDel=0 AND menu.Status=1)
+	t
+	order by t.ListIndex
+
+	</select>
+
+
+	<!--获取所有功能模块-->
+	<select id="getAllReportMenu" resultType="java.util.Map">
+	select
+	menu.`ID`,
+	menu.`PID`,
+	menu.`title` NAME,
+	menu.levels
+FROM
+	mm_report_menu menu where PID='-1'
+union
+SELECT
+	menu.`ID`,
+	menu.`PID`,
+	menu.`title` NAME,
+	menu.levels
+FROM
+	mm_report_menu menu where  menu.IsDel=0
+
+	</select>
+
+    <select id="getJobMenu" parameterType="String" resultType="java.util.Map">
+select *from (SELECT
+	DISTINCT menu.`ID`,
+	menu.`PID`,
+	menu.`MenuName` NAME,
+	menu.`Url` path,
+	menu.`ImageUrl`,
+	menu.`IsShow` hidden,
+	menu.`redirect`,
+	menu.`component`,
+	menu.`alwaysShow`,
+	menu.`meta`,
+	menu.IsLast,
+	menu.levels,
+	1 as type
+FROM
+	s_jobs sj
+	left JOIN s_jobsmenurel sjm ON sj.ID = sjm.JobID
+  left join s_menus menu on sjm.MenuID=menu.ID  where sjm.JobID=#{jobId}
+union
+	SELECT
+	DISTINCT menu.`ID`,
+	menu.`PID`,
+	menu.`MenuName` NAME,
+	menu.`Url` path,
+	menu.`ImageUrl`,
+	menu.`IsShow` hidden,
+	menu.`redirect`,
+	menu.`component`,
+	menu.`alwaysShow`,
+	menu.`meta`,
+	menu.IsLast,
+	menu.levels,
+	2 as type
+FROM
+	s_jobs sj
+	join s_commonjobs scj on sj.CommonJobID=scj.ID
+	join s_commonjobsmenurel scjm on scjm.JobID=scj.ID
+  left join s_menus menu on scjm.MenuID=menu.ID  where sj.ID=#{jobId})
+	t
+	GROUP BY(t.ID)
+	</select>
+    <delete id="delJobMRelMenu" parameterType="String">
+		delete from s_jobsmenurel where JobID=#{jobId}
+	</delete>
+    <insert id="saveJobMenu" parameterType="String">
+		insert into s_jobsmenurel(ID,JobId,MenuID) values (uuid(),#{jobId},#{menuId})
+	</insert>
+
+
+    <!--通用岗位-->
+    <select id="getCommonMenu" parameterType="String" resultType="java.util.Map">
+			SELECT
+	menu.`ID`,
+	menu.`PID`,
+	menu.`MenuName` NAME,
+	menu.`Url` path,
+	menu.`ImageUrl`,
+	menu.`IsShow` hidden,
+	menu.`redirect`,
+	menu.`component`,
+	menu.`alwaysShow`,
+	menu.IsLast,
+	menu.`meta`,
+	menu.`levels`
+FROM
+	 s_commonjobs scj
+	join s_commonjobsmenurel scjm on scjm.JobID=scj.ID
+  left join s_menus menu on scjm.MenuID=menu.ID  where scj.ID=#{jobId} AND menu.isDel=0
+  GROUP BY menu.ID
+	</select>
+	<!--通用岗位-->
+	<select id="getCommonAllReportMenu" parameterType="String" resultType="java.util.Map">
+SELECT
+	menu.`ID`,
+	menu.`PID`,
+	menu.`title` NAME,
+	menu.levels
+FROM
+	 s_commonjobs scj
+	join s_commonjobsreportmenurel scjm on scjm.JobID=scj.ID
+  left join mm_report_menu menu on scjm.MenuID=menu.ID  where scj.ID=#{jobId} AND menu.isDel=0
+	</select>
+
+
+    <delete id="delCommonJobMRelMenu" parameterType="String">
+		delete from s_commonjobsmenurel where JobID=#{jobId}
+	</delete>
+	<delete id="delCommonReportMRelMenu" parameterType="String">
+		delete from s_commonjobsreportmenurel where JobID=#{jobId}
+	</delete>
+
+
+	<insert id="saveCommonJobMenu" parameterType="String">
+		insert into s_commonjobsmenurel(ID,JobId,MenuID) values (uuid(),#{jobId},#{menuId})
+	</insert>
+	<insert id="saveCommonReportMenu" parameterType="java.util.Map">
+		insert into s_commonjobsreportmenurel(ID,JobId,MenuID) values (uuid(),#{jobId},#{menuId})
+	</insert>
+
+
+    <select id="getAllCompanyInfo" resultType="java.util.Map">
+		select ID,companyName from s_company_info  where IsDel=0
+	</select>
+
+    <select id="getAllOrgProject" resultType="java.util.Map">
+		select id ID,pid PID,OrgName,OrgCategory from s_organization where OrgCategory in (1,2,3,4) and status = 1 and IsDel = 0
+	</select>
+    <select id="getAllOrgProject2" resultType="java.util.Map">
+		select id ID,pid PID,OrgName,OrgCategory from s_organization where OrgCategory in (1,2) and status = 1 and IsDel = 0
+	</select>
+
+
+    <update id="updateProjectId" parameterType="java.util.Map">
+    update b_project set ProjectName=#{projectName},OrgID=#{orgId},
+    ProjectNum=#{projectNum},ProjectStatus=#{projectStatus},
+    Status=#{status},TokerResetType=#{tokerResetType},
+    AnChangResetType=#{anChangResetType},AreaID=#{AreaID},AreaName=#{AreaName}
+where ID=#{projectId}
+</update>
+
+    <select id="getFullPath" parameterType="java.lang.String" resultType="java.lang.String">
+        select FullPath from s_organization where ID=#{orgId}
+    </select>
+
+
+    <update id="updateOrg" parameterType="java.lang.String">
+        update s_organization set ProjectID =#{projectId} where FullPath like '${fullPath}%'
+    </update>
+
+
+    <!--根据当前所选岗位，获取已授权的报表功能-->
+    <select id="getAccreditFunctions" parameterType="java.util.Map" resultType="java.util.Map">
+select *from (
+
+SELECT
+	me.ID,
+	me.title,
+	me.PID,
+	me.levels
+	FROM
+	s_jobs sj
+	LEFT JOIN s_jobsreportrel sjr ON sj.id = sjr.JobID
+	LEFT JOIN mm_report_menu me ON me.id = sjr.ReportID
+WHERE
+	me.isDel = 0
+AND   sj.id =#{jobId}
+UNION
+SELECT
+	menu.`ID`,
+	menu.`PID`,
+	menu.`title`,
+	menu.levels
+FROM
+	 s_commonjobs scj
+
+	join s_commonjobsreportmenurel scjm on scjm.JobID=scj.ID
+	INNER JOIN s_jobs sj on sj.CommonJobID=scj.ID
+  INNER join mm_report_menu menu on scjm.MenuID=menu.ID  where sj.ID=#{jobId} AND menu.isDel=0
+	)
+	t
+	GROUP BY t.ID
+
+   </select>
+
+    <!--删除当前岗位已关联-->
+    <delete id="deletBeAuthorized" parameterType="java.util.Map">
+delete from s_jobsreportrel where JobID=#{jobId}
+   </delete>
+    <!--保存岗位授权报表功能-->
+    <insert id="saveAuthorizeds" parameterType="java.util.Map">
+insert into s_jobsreportrel VALUES(UUID(),#{jobId},#{ReportId})
+   </insert>
+
+    <!--获取所有报表功能列表-->
+    <select id="getAllFunctions" parameterType="java.util.Map" resultType="java.util.Map">
+      SELECT PID,ID,title,url,type FROM mm_report_menu where isDel=0
+   </select>
+    <!--查询所授权功能是否为顶级-->
+    <select id="getAuthorizedsParent" parameterType="java.lang.String" resultType="java.lang.String">
+		select pid from mm_report_menu where id=#{id}
+	</select>
+
+	<select id="getParentMenu" parameterType="java.util.Map" resultType="java.util.Map">
+		select
+	menu.`PID`,
+	menu.`MenuName` NAME,
+	menu.`Url` path,
+	menu.`ImageUrl`,
+	menu.`IsShow` hidden,
+	menu.`redirect`,
+	menu.`component`,
+	menu.`alwaysShow`,
+	menu.`meta`,
+	menu.IsLast,
+	menu.levels
+	FROM s_menus menu where id=(select pid from s_menus where id=#{id})
+	</select>
+
+
+
+
+	<select id="getOrgData" resultType="cn.visolink.system.org.model.vo.OrganizationVO" parameterType="java.util.Map">
+SELECT
+	A.id,
+	A.OrgCode,
+	A.OrgName,
+	A.OrgName AS OrgShortName,
+	A.OrgCategory,
+	A.ListIndex,
+	A.FullPath,
+	A.Levels,
+	- 1 AS pid,
+	A.IsDel,
+	A.ProjectID,
+	A.OrgCompanyID,
+	A.OrgType
+FROM
+	S_Organization A
+WHERE
+	id = #{id}
+	AND AuthCompanyID = 'ede1b679-3546-11e7-a3f8-5254007b6f02'
+	AND ProductID = 'ee3b2466-3546-11e7-a3f8-5254007b6f02'
+
+	UNION ALL
+SELECT
+	A.id,
+	A.OrgCode,
+	A.OrgName,
+	A.OrgName AS OrgShortName,
+	A.OrgCategory,
+	A.ListIndex,
+	A.FullPath,
+	A.Levels,
+	pid,
+	A.IsDel,
+	A.ProjectID,
+	A.OrgCompanyID,
+	A.OrgType
+FROM
+	S_Organization A
+WHERE
+    A.FullPath LIKE concat((SELECT FullPath FROM S_Organization WHERE ID =  #{id}),'%')
+	AND AuthCompanyID = 'ede1b679-3546-11e7-a3f8-5254007b6f02'
+	AND ProductID = 'ee3b2466-3546-11e7-a3f8-5254007b6f02'
+ORDER BY
+	Levels,
+	ListIndex
+	</select>
+</mapper>

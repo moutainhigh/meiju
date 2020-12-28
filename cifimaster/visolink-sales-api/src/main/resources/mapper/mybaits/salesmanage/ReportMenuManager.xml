@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    <mapper namespace="cn.visolink.salesmanage.reportmenumanager.dao.ReportMenuDao">
+    <!--插入一张报表-->
+    <insert id="insertReportMenu" parameterType="java.util.Map">
+        INSERT INTO `mm_report_menu` (
+  `id`,
+  `title`,
+  `url`,
+  `type`,
+  `create_time`,
+  `update_time`,
+  `creator`,
+  `editor`,
+  `isdel`,
+  PID,
+  levels,
+  orderIndex
+)
+VALUES
+  (
+    UUID(),
+    #{title},
+    #{url},
+    #{type},
+    now(),
+   now(),
+    #{creator},
+    #{editor},
+    0,
+    #{parentId},
+    #{levels},
+    #{orderIndex}
+  ) 
+    </insert>
+    <!--更新一张报表-->
+    <update id="updateReportMenu" parameterType="java.util.Map">
+UPDATE
+  `mm_report_menu`
+SET
+
+  `title` = #{title},
+  `url` = #{url},
+  `type` = #{type},
+
+  `update_time` = now(),
+   orderIndex=#{orderIndex},
+        <if test="parentId!=null and parentId!='' ">
+            PID=#{parentId},
+        </if>
+
+  `editor` = #{editor}
+
+WHERE `id` = #{id}
+
+    </update>
+    <!--删除一张报表，逻辑删除-->
+    <update id="deleteReportMenu" parameterType="java.util.Map">
+UPDATE
+  `mm_report_menu`
+SET
+
+  `isdel` = 1
+WHERE `id` = #{id}
+
+    </update>
+    <!--查找-->
+    <select id="selectReportMenu" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+  `id`,
+  `title`,
+  `url`,
+  `type`,
+  (case type when '1' then '明源'
+  when '2' then '帆软'
+  else '未知' end) typename,
+        DATE_FORMAT(create_time,'%Y-%m-%d %H:%i:%S') create_time,
+        DATE_FORMAT(update_time,'%Y-%m-%d %H:%i:%S') update_time,
+  `creator`,
+  `editor`,
+    PID,
+    levels,
+   orderIndex
+FROM
+  `mm_report_menu`
+WHERE  isdel=0
+<if test="PID!=null and PID!='' ">
+    AND PID=#{PID}
+</if>
+        <if test="PID==null ">
+            AND levels=1
+        </if>
+     AND PID!=-1
+order by orderindex
+    </select>
+    <!--查找最终菜单-->
+    <select id="selectBestMenu" resultType="java.util.Map">
+        SELECT
+  `id`
+FROM
+  `mm_report_menu`
+  where
+  levels=0
+    </select>
+    <select id="getParentId" resultType="java.lang.String">
+        select id from mm_report_menu where pid=-1
+    </select>
+</mapper>
+

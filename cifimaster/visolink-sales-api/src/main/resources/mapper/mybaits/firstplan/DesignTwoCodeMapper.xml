@@ -1,0 +1,3052 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.fpdesigntwo.dao.DesignTwoIndexDao">
+
+  <!--搜索来自顶设1的产品类型,投资版货值，战归版货值，全盘量价规划里
+    整盘投资，整盘战规，投资版总货值，战规总货值，在顶设2全盘量价规划里用-->
+  <select id="selectDesignOneType" parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT
+
+    plan_id,
+    operation_type,
+    operation_type_code,
+  product_type,
+  product_type_code,
+
+
+   0 AS all_big_avg_price,
+   0 AS  all_big_value_price,
+   0 AS all_rules_avg_price,
+   0 AS all_rules_value_price,
+   land_back_avg_price all_invest_avg_price,
+  land_back_value  all_invest_value_price
+   FROM  fp_designone_value fdv
+
+    INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=2
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id
+    ORDER BY  operation_type_code,product_type_code
+  </select>
+
+
+    <!--搜索来自顶设1的产品类型,投资版货值，战归版货值，全盘量价规划里
+      整盘投资，整盘战规，投资版总货值，战规总货值，在顶设2大定价版本对标里用-->
+    <select id="selectDesignOneTypeBig" parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT
+
+    plan_id,
+    operation_type,
+    operation_type_code,
+  product_type,
+  product_type_code,
+
+
+   0 AS big_total_value,
+    land_back_value  invest_total_value,
+  designonel_front_value  rules_total,
+   0-land_back_value AS vs_invest,
+    '' AS    invest_cause,
+  0-designonel_front_value  AS vs_rules,
+  '' AS rules_cause
+
+   FROM  fp_designone_value fdv
+
+    INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=2
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id
+    ORDER BY  operation_type_code,product_type_code
+  </select>
+
+<!--查找来自顶设1的年份-->
+    <select id="selectDesignOneYear"  parameterType="java.util.Map" resultType="java.lang.String">
+        select sales_time
+        from
+        fp_land_sales_target
+        INNER JOIN
+          (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=1
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+   ON pni.id=fp_land_sales_target.plan_node_id
+   WHERE  sales_time!='首开'
+    </select>
+
+<!--查找来自顶设1的业态类型-->
+ <select id="selectDesignOperation"   parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT
+
+    plan_id,
+    operation_type,
+    operation_type_code
+
+    FROM  fp_designone_value fdv
+     INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=2
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id
+    GROUP BY operation_type_code
+      ORDER BY operation_type_code,product_type_code
+ </select>
+
+   <select id="selectProjectCode"  parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT
+
+    plan_id,
+       operation_type,
+    operation_type_code,
+    product_type,
+    fdv.fakeId product_type_code
+
+    FROM  fp_designtwo_value fdv
+     INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=3
+    AND plan_id=#{plan_id}
+     order by create_time  desc limit 1
+  ) pni
+  ON pni.id=fdv.plan_node_id
+    GROUP BY fdv.fakeId
+      ORDER BY product_type_code
+   </select>
+
+
+  <!--搜索顶设2核心指标里，
+  核心指标里首开均价，首开均价战归是手填,顶设2物业类型默认是顶设1的，全盘费率手填-->
+ <select id="selectAllCodeIndexType" parameterType="java.util.Map" resultType="java.util.Map">
+  SELECT
+
+    plan_id,
+
+  product_type,
+  product_type_code,
+  landback.land_back_avg_price invest_open_avg_price,
+  operation_type,
+  operation_type_code
+   FROM  fp_designtwo_value fdv
+ INNER JOIN
+  (
+ SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=3
+    AND plan_id=#{plan_id}
+     order by create_time desc limit 1
+  ) pni
+  ON pni.id=fdv.plan_node_id
+  left join
+  (
+  select id,land_back_avg_price
+  from
+  fp_designone_value
+  where plan_node_id=(select id from fp_plan_node where node_level=2 and plan_id=#{plan_id} and is_effective=0 )
+  ) landback ON landback.id=fdv.fakeId
+
+
+ </select>
+
+
+    <!--搜索顶设2核心指标里，
+  核心指标里首开均价，首开均价战归是手填,顶设2物业类型默认是顶设1的，全盘费率手填-->
+    <select id="selectAllCodeTypeForPrice" parameterType="java.util.Map" resultType="java.util.Map">
+  SELECT
+
+    plan_id,
+  product_type,
+  product_type_code as product_type_codes ,
+  fdv.fakeId product_type_code,
+  IFNULL(landback.land_back_avg_price,0) invest_open_avg_price,
+  operation_type,
+  operation_type_code
+   FROM  fp_designtwo_value fdv
+ INNER JOIN
+  (
+ SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=3
+    AND plan_id=#{plan_id}
+     order by create_time desc limit 1
+  ) pni
+  ON pni.id=fdv.plan_node_id
+  left join
+  (
+  select id,land_back_avg_price
+  from
+  fp_designone_value
+  where plan_node_id=(select id from fp_plan_node where node_level=2 and plan_id=#{plan_id} and is_effective=0 )
+  ) landback ON landback.id=fdv.fakeId
+
+
+ </select>
+
+    <select id="getMaxVersion" resultType="java.lang.Integer">
+        select version+1 from fp_designtwo_subject order by version desc limit 1
+    </select>
+
+    <select id="getSubjectName" resultType="java.lang.Integer">
+        select count(*) from fp_designtwo_subject where two_subject_name=#{two_subject_name}
+    </select>
+
+
+    <insert id="insertSubject" parameterType="java.util.Map">
+        INSERT INTO `saleman`.`fp_designtwo_subject`(`id`, `first_subject_name`, `two_subject_name`, `subject_code`, `version`, `creator`, `create_time`)
+        VALUES
+        (uuid(),#{first_subject_name}, #{two_subject_name},#{subject_code},#{version}, #{creator}, now());
+    </insert>
+
+    <insert id="addCommunCost" parameterType="java.util.Map">
+        ALTER TABLE `saleman`.`fp_designtwo_all_cost`
+ADD COLUMN `${subject_code}` varchar(55) COMMENT '${two_subject_name}';
+    </insert>
+
+    <select id="getSubject" resultType="java.util.Map">
+        select * from fp_designtwo_subject
+    </select>
+
+
+    <update id="updateSubject" parameterType="java.util.Map">
+        update fp_designtwo_subject set first_subject_name=#{first_subject_name},two_subject_name=#{two_subject_name} where id =#{id}
+    </update>
+
+
+    <!--仅搜索时间表，在核心指标里当库里没有数据里时使用-->
+    <select id="selectAllCodeIndexTime" parameterType="java.util.Map" resultType="java.util.Map">
+  SELECT
+
+  plan_id,
+ (select DATE_FORMAT(delisting_time,'%Y-%m-%d') from fp_date_node where plan_node_id=(select id from fp_plan_node where node_level=2 and is_effective=0 and plan_id=#{plan_id} ) ) delisting_time,
+   DATE_FORMAT(sales_time,'%Y-%m-%d') sales_time,
+ (select DATE_FORMAT(designone_time,'%Y-%m-%d') from fp_date_node where plan_node_id=(select id from fp_plan_node where node_level=2 and is_effective=0 and plan_id=#{plan_id} ) )  designone_time,
+   DATE_FORMAT(sample_open_time,'%Y-%m-%d') sample_open_time,
+ DATE_FORMAT(designtwo_time,'%Y-%m-%d') designtwo_time,
+   DATE_FORMAT(model_open_time,'%Y-%m-%d') model_open_time,
+   DATE_FORMAT(open_time,'%Y-%m-%d') open_time,
+CONCAT(DATE_FORMAT(designtwo_time,'%Y%m%d'),"-",DATE_FORMAT(open_time,'%Y%m%d')) forweek
+
+
+   FROM
+fp_date_node fdn
+    INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=#{node_level}
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+    ON pni.id=fdn.plan_node_id
+ </select>
+
+
+
+
+    <!--仅搜索时间表，满足顶设2储客计划页面里的天数-->
+   <select id="selectAllnodeplanTime"  parameterType="java.util.Map" resultType="java.util.Map">
+
+     SELECT
+        plan_id,
+
+'首开前3个月' AS  nide_name,
+DATE_FORMAT(DATE_SUB(open_time,INTERVAL 90 DAY),'%Y-%m-%d') node_time,
+DATE_FORMAT(DATE_SUB(open_time,INTERVAL 90 DAY),'%Y.%m.%d') node_time_code,
+ 1 AS level,
+    '计划' AS line_name,
+    4 node_level
+     FROM
+       fp_date_node
+       WHERE
+       1=1
+       <if test="plan_node_id!=null and plan_node_id!=''">
+        AND    plan_node_id=#{plan_node_id}
+       </if>
+       <if test='plan_node_id==null or plan_node_id==""'>
+           AND    plan_node_id= <include refid="realId"/>
+       </if>
+
+        UNION ALL
+       SELECT
+        plan_id,
+
+'首开前2个月' AS  nide_name,
+DATE_FORMAT(DATE_SUB(open_time,INTERVAL 60 DAY),'%Y-%m-%d') node_time,
+  DATE_FORMAT(DATE_SUB(open_time,INTERVAL 60 DAY),'%Y.%m.%d') node_time_code,
+   1 AS level,
+       '计划' AS line_name,
+    5 node_level
+       FROM
+       fp_date_node
+       WHERE
+       1=1
+       <if test="plan_node_id!=null and plan_node_id!=''">
+           AND    plan_node_id=#{plan_node_id}
+       </if>
+       <if test='plan_node_id==null or plan_node_id==""'>
+           AND    plan_node_id= <include refid="realId"/>
+       </if>
+
+        UNION ALL
+        SELECT
+        plan_id,
+
+'首开前21天' AS  nide_name,
+DATE_FORMAT(DATE_SUB(open_time,INTERVAL 21 DAY),'%Y-%m-%d') node_time,
+  DATE_FORMAT(DATE_SUB(open_time,INTERVAL 21 DAY),'%Y.%m.%d') node_time_code,
+   1 AS level,
+          '计划' AS line_name,
+    6 node_level
+       FROM
+       fp_date_node
+       WHERE
+       1=1
+       <if test="plan_node_id!=null and plan_node_id!=''">
+           AND    plan_node_id=#{plan_node_id}
+       </if>
+       <if test='plan_node_id==null or plan_node_id==""'>
+           AND    plan_node_id= <include refid="realId"/>
+       </if>
+        UNION ALL
+       SELECT
+     plan_id,
+
+'首开前7天' AS  nide_name,
+DATE_FORMAT(DATE_SUB(open_time,INTERVAL 7 DAY),'%Y-%m-%d') node_time,
+  DATE_FORMAT(DATE_SUB(open_time,INTERVAL 7 DAY),'%Y.%m.%d') node_time_code,
+   1 AS level,
+        '计划' AS line_name,
+    7 node_level
+      FROM
+       fp_date_node
+       WHERE
+       1=1
+       <if test="plan_node_id!=null and plan_node_id!=''">
+           AND    plan_node_id=#{plan_node_id}
+       </if>
+       <if test='plan_node_id==null or plan_node_id==""'>
+           AND    plan_node_id= <include refid="realId"/>
+       </if>
+       UNION ALL
+           SELECT
+         plan_id,
+
+'首开' AS  nide_name,
+DATE_FORMAT(open_time,'%Y-%m-%d') node_time,
+   DATE_FORMAT( open_time,'%Y.%m.%d') node_time_code,
+     1 AS level,
+          '计划' AS line_name,
+    8 node_level
+    FROM
+       fp_date_node
+       WHERE
+       1=1
+       <if test="plan_node_id!=null and plan_node_id!=''">
+           AND    plan_node_id=#{plan_node_id}
+       </if>
+       <if test='plan_node_id==null or plan_node_id==""'>
+           AND    plan_node_id= <include refid="realId"/>
+       </if>
+   </select>
+
+
+    <!--搜索顶设2核心指标里的信息，顶设2-核心指标-量+利-->
+    <select id="selectAllCodeIndex"  parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+  id,
+  plan_id,
+  plan_node_id,
+  operation_type_code,
+  operation_type,
+  product_type_code,
+  product_type,
+  DATE_FORMAT( invest_take_card_time,'%Y-%m-%d') invest_take_card_time,
+   DATE_FORMAT( invest_time,'%Y-%m-%d') invest_time,
+  invest_real_type,
+  invest_take_card_num,
+  invest_take_card_area,
+  invest_take_card_value,
+  invest_push_num,
+    invest_push_area,
+  invest_push_value,
+  invest_selling_num,
+    invest_selling_area,
+
+  invest_selling_value,
+  ROUND(invest_take_card_per,0) invest_take_card_per,
+  ROUND(invest_selling_per,0) invest_selling_per,
+   DATE_FORMAT( rules_take_card_time,'%Y-%m-%d') rules_take_card_time,
+   DATE_FORMAT( rules_time,'%Y-%m-%d') rules_time,
+  rules_real_type,
+  rules_take_card_num,
+    rules_take_card_area,
+
+  rules_take_card_value,
+  rules_push_num,
+    rules_push_area,
+  rules_push_value,
+  rules_selling_num,
+    rules_selling_area,
+
+  rules_selling_value,
+  ROUND(rules_take_card_per,0) rules_take_card_per,
+  ROUND(rules_selling_per,0) rules_selling_per,
+  DATE_FORMAT( designtwo_take_card_time,'%Y-%m-%d') designtwo_take_card_time,
+    DATE_FORMAT( designtwo_time,'%Y-%m-%d') designtwo_time,
+  designtwo_real_type,
+  designtwo_take_card_num,
+  designtwo_take_card_value,
+designtwo_take_card_area,
+designtwo_push_num,
+designtwo_push_area,
+  designtwo_push_value,
+  designtwo_selling_num,
+  designtwo_selling_value,
+  designtwo_selling_area,
+  ROUND(designtwo_take_card_per,0) designtwo_take_card_per,
+  ROUND(designtwo_selling_per,0) designtwo_selling_per,
+  invest_create_per,
+  invest_all_per,
+  invest_irr,
+invest_payback,
+  rules_create_per,
+  rules_all_per,
+  rules_irr,
+  rules_payback,
+  designtwo_create_per,
+  designtwo_all_per,
+  designtwo_irr,
+  designtwo_payback,
+  cost_open_sales_price,
+  cost_sales_generalize_price,
+  cost_management_price,
+  cost_sales_agency_price,
+  cost_create_price,
+  cost_operation_price,
+  cost_invest_all_sales_per,
+  cost_rules_all_sales_per,
+  cost_invest_open_year_per,
+  cost_rules_open_year_per,
+  cost_sales_per,
+  cost_generalize_per,
+   cost_designtwo_all_sales_per,
+  cost_designtwo_open_year_per,
+  fpn.browse_num
+FROM
+ fp_designtwo_code_index
+LEFT JOIN
+(SELECT browse_num,id planNodeId FROM fp_plan_node) fpn
+
+ON fpn.planNodeId=fp_designtwo_code_index.plan_node_id
+WHERE
+plan_node_id=#{plan_node_id}
+
+    </select>
+
+
+
+  <!--搜索顶设2核心指标里的信息，顶设2-核心指标-价-->
+  <select id="selectAllCodeIndexPrice"  parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+ id,
+  plan_id,
+  plan_node_id,
+  product_type_code,
+  product_type,
+  IFNULL(invest_open_avg_price,0) as invest_open_avg_price,
+  IFNULL(rules_open_avg_price,0) as  rules_open_avg_price,
+  IFNULL(designtwo_open_avg_price,0) as designtwo_open_avg_price
+FROM
+  fp_designtwo_code_index_price
+  WHERE plan_node_id=#{plan_node_id}
+
+    </select>
+
+  <!--更新顶设2核心指标里的信息，顶设2-核心指标-价-->
+ <update id="updateAllCodeIndexPrice" parameterType="java.util.Map">
+UPDATE
+  fp_designtwo_code_index_price
+SET
+  invest_open_avg_price = #{invest_open_avg_price},
+  rules_open_avg_price = #{rules_open_avg_price},
+  designtwo_open_avg_price = #{designtwo_open_avg_price}
+
+WHERE id=#{id}
+ </update>
+
+  <!--更新顶设2核心指标里的信息，顶设2-核心指标-量+利-->
+    <update id="updateAllCodeIndex" parameterType="java.util.Map">
+
+UPDATE
+ fp_designtwo_code_index
+set
+    operation_type_code = #{operation_type_code},
+            operation_type = #{operation_type},
+            product_type_code = #{product_type_code},
+            product_type = #{product_type},
+            invest_take_card_time = #{invest_take_card_time},
+            invest_time = #{invest_time},
+            invest_real_type = #{invest_real_type},
+            invest_take_card_num = #{invest_take_card_num},
+             invest_take_card_area = #{invest_take_card_area},
+            invest_take_card_value = #{invest_take_card_value},
+            invest_push_num = #{invest_push_num},
+            invest_push_area = #{invest_push_area},
+            invest_push_value = #{invest_push_value},
+            invest_selling_num = #{invest_selling_num},
+           invest_selling_area = #{invest_selling_area},
+            invest_selling_value = #{invest_selling_value},
+            invest_take_card_per = #{invest_selling_value}/(CASE WHEN #{invest_take_card_value}=0 THEN NULL ELSE #{invest_take_card_value} END)*100 ,
+            invest_selling_per = #{invest_selling_value}/(CASE WHEN #{invest_push_value}=0 THEN NULL ELSE #{invest_push_value} END)*100 ,
+            rules_take_card_time = #{rules_take_card_time},
+            rules_time = #{rules_time},
+            rules_real_type = #{rules_real_type},
+            rules_take_card_num = #{rules_take_card_num},
+             rules_take_card_area = #{rules_take_card_area},
+            rules_take_card_value = #{rules_take_card_value},
+            rules_push_num = #{rules_push_num},
+           rules_push_area = #{rules_push_area},
+            rules_push_value = #{rules_push_value},
+            rules_selling_num = #{rules_selling_num},
+             rules_selling_area = #{rules_selling_area},
+            rules_selling_value = #{rules_selling_value},
+            rules_take_card_per = #{rules_selling_value}/(CASE WHEN #{rules_take_card_value}=0 THEN NULL ELSE #{rules_take_card_value} END)*100 ,
+            rules_selling_per= #{rules_selling_value}/(CASE WHEN #{rules_push_value}=0 THEN NULL ELSE #{rules_push_value} END)*100 ,
+            designtwo_take_card_time = #{designtwo_take_card_time},
+            designtwo_time = #{designtwo_time},
+            designtwo_real_type = #{designtwo_real_type},
+            designtwo_take_card_num = #{designtwo_take_card_num},
+             designtwo_take_card_area = #{designtwo_take_card_area},
+            designtwo_take_card_value = #{designtwo_take_card_value},
+            designtwo_push_num = #{designtwo_push_num},
+            designtwo_push_area = #{designtwo_push_area},
+            designtwo_push_value = #{designtwo_push_value},
+            designtwo_selling_num = #{designtwo_selling_num},
+            designtwo_selling_area = #{designtwo_selling_area},
+            designtwo_selling_value = #{designtwo_selling_value},
+            designtwo_take_card_per= #{designtwo_selling_value}/(CASE WHEN #{designtwo_take_card_value}=0 THEN NULL ELSE #{designtwo_take_card_value} END)*100 ,
+            designtwo_selling_per = #{designtwo_selling_value}/(CASE WHEN #{designtwo_push_value}=0 THEN NULL ELSE #{designtwo_push_value} END)*100 ,
+            invest_create_per = #{invest_create_per},
+            invest_all_per = #{invest_all_per},
+            invest_irr = #{invest_irr},
+            invest_payback = #{invest_payback},
+            rules_create_per = #{rules_create_per},
+            rules_all_per = #{rules_all_per},
+            rules_irr = #{rules_irr},
+            rules_payback = #{rules_payback},
+            designtwo_create_per = #{designtwo_create_per},
+            designtwo_all_per = #{designtwo_all_per},
+            designtwo_irr = #{designtwo_irr},
+            designtwo_payback = #{designtwo_payback},
+            cost_open_sales_price = #{cost_open_sales_price},
+            cost_sales_generalize_price = #{cost_sales_generalize_price},
+            cost_management_price = #{cost_management_price},
+            cost_sales_agency_price = #{cost_sales_agency_price},
+            cost_create_price = #{cost_create_price},
+            cost_operation_price = #{cost_operation_price},
+            cost_invest_all_sales_per = #{cost_invest_all_sales_per},
+            cost_rules_all_sales_per = #{cost_rules_all_sales_per},
+            cost_invest_open_year_per = #{cost_invest_open_year_per},
+            cost_rules_open_year_per = #{cost_rules_open_year_per},
+            cost_sales_per = #{cost_sales_per},
+            cost_generalize_per = #{cost_generalize_per},
+   cost_designtwo_all_sales_per= #{cost_designtwo_all_sales_per},
+  cost_designtwo_open_year_per= #{cost_designtwo_open_year_per}
+    WHERE plan_node_id = #{plan_node_id};
+
+    UPDATE
+    fp_plan_node
+    SET
+    browse_num=#{browse_num}
+    WHERE
+    id=#{plan_node_id};
+
+    </update>
+<!--更换计划表当前节点-->
+   <update id="updateNodeName" parameterType="java.util.Map">
+
+    UPDATE fp_plan SET this_node=#{node_level} where
+    id=#{plan_id}
+</update>
+
+    <!--先删除当前节点所有的附件，然后再选择哪些附件是留下的-->
+    <update id="DeleteAttach" parameterType="java.lang.String">
+       UPDATE s_attach SET IsDel=1   WHERE  BizID = #{id}
+   </update>
+
+  <!--仅搜索顶设2时间表-->
+  <select id="selectDesignIndexTime" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+  id,
+  plan_id,
+  plan_node_id,
+ (select DATE_FORMAT(delisting_time,'%Y-%m-%d') from fp_date_node where plan_node_id=(select id from fp_plan_node where node_level=2 and is_effective=0 and plan_id=#{plan_id} ) ) delisting_time,
+   DATE_FORMAT(sales_time,'%Y-%m-%d') sales_time,
+ (select DATE_FORMAT(designone_time,'%Y-%m-%d') from fp_date_node where plan_node_id=(select id from fp_plan_node where node_level=2 and is_effective=0 and plan_id=#{plan_id} ) )  designone_time,
+   DATE_FORMAT(sample_open_time,'%Y-%m-%d') sample_open_time,
+      DATE_FORMAT(designtwo_time,'%Y-%m-%d') designtwo_time,
+   DATE_FORMAT(model_open_time,'%Y-%m-%d') model_open_time,
+   DATE_FORMAT(open_time,'%Y-%m-%d') open_time,
+   isInitOpenCost
+      FROM
+  fp_date_node
+  where
+  plan_node_id=#{plan_node_id}  limit 1
+  </select>
+
+    <!--仅更新顶设2核心指标里的时间表-->
+<update id="updateAllCodeIndexTime" parameterType="java.util.Map">
+    UPDATE
+  fp_date_node
+SET
+  delisting_time = #{delisting_time},
+  sales_time = #{sales_time},
+  designone_time = #{designone_time},
+  sample_open_time = #{sample_open_time},
+  designtwo_time = #{designtwo_time},
+  model_open_time = #{model_open_time},
+  open_time = #{open_time}
+WHERE
+ plan_id = #{plan_id}
+ AND
+  plan_node_id = #{plan_node_id};
+
+</update>
+
+    <update id="updateInitOpenCostStatus" parameterType="java.util.Map">
+         UPDATE
+  fp_date_node
+SET
+  isInitOpenCost=#{isInitOpenCost}
+WHERE
+ plan_id = #{plan_id}
+ AND
+  plan_node_id = #{plan_node_id};
+    </update>
+
+    <select id="getDesignTwoAndOpenDate" parameterType="java.util.Map" resultType="java.util.Map">
+            select DATE_FORMAT(designtwo_time,'%Y-%m-%d') as designtwo_time,DATE_FORMAT(open_time,'%Y-%m-%d') as open_time from fp_date_node WHERE
+ plan_id = #{plan_id}
+ AND
+  plan_node_id = #{plan_node_id};
+    </select>
+
+
+    <!--仅初始化顶设2核心指标里的时间表-->
+    <update id="insertAllCodeIndexTime" parameterType="java.util.Map">
+        INSERT INTO fp_date_node(
+          id,
+  plan_id,
+  plan_node_id,
+  delisting_time,
+  sales_time,
+  designone_time,
+  sample_open_time,
+  designtwo_time,
+  model_open_time,
+  open_time
+        )
+VALUES
+  (
+    UUID(),
+   #{plan_id},
+    #{plan_node_id},
+   #{delisting_time},
+   #{sales_time},
+   #{designone_time},
+    #{sample_open_time},
+    #{designtwo_time},
+   #{model_open_time},
+    #{open_time}
+  ) ;
+
+
+</update>
+
+    <!--初始化顶设2核心指标里的信息，顶设2-核心指标-量+利-->
+<update id="insertAllCodeIndex" parameterType="java.util.Map">
+
+INSERT INTO fp_designtwo_code_index (
+  id,
+  plan_id,
+  plan_node_id,
+  operation_type_code,
+  operation_type,
+  product_type_code,
+  product_type,
+  invest_take_card_time,
+  invest_time,
+  invest_real_type,
+  invest_take_card_num,
+  invest_take_card_value,
+  invest_push_num,
+  invest_push_value,
+  invest_selling_num,
+  invest_selling_value,
+  invest_take_card_per,
+  invest_selling_per,
+  rules_take_card_time,
+  rules_time,
+  rules_real_type,
+  rules_take_card_num,
+  rules_take_card_value,
+  rules_push_num,
+  rules_push_value,
+  rules_selling_num,
+  rules_selling_value,
+  rules_take_card_per,
+  rules_selling_per,
+  designtwo_take_card_time,
+  designtwo_time,
+  designtwo_real_type,
+  designtwo_take_card_num,
+  designtwo_take_card_value,
+  designtwo_push_num,
+  designtwo_push_value,
+  designtwo_selling_num,
+  designtwo_selling_value,
+  designtwo_take_card_per,
+  designtwo_selling_per,
+  invest_create_per,
+  invest_all_per,
+  invest_irr,
+  invest_payback,
+  rules_create_per,
+  rules_all_per,
+  rules_irr,
+  rules_payback,
+  designtwo_create_per,
+  designtwo_all_per,
+  designtwo_irr,
+  designtwo_payback,
+  cost_open_sales_price,
+  cost_sales_generalize_price,
+  cost_management_price,
+  cost_sales_agency_price,
+  cost_create_price,
+  cost_operation_price,
+  cost_invest_all_sales_per,
+  cost_rules_all_sales_per,
+  cost_invest_open_year_per,
+  cost_rules_open_year_per,
+  cost_sales_per,
+  cost_generalize_per,
+  cost_designtwo_all_sales_per,
+  cost_designtwo_open_year_per
+)
+VALUES
+  (
+    UUID(),
+    #{plan_id},
+    #{plan_node_id},
+    #{operation_type_code},
+    #{operation_type},
+    #{product_type_code},
+    #{product_type},
+    #{invest_take_card_time},
+    #{invest_time},
+    #{invest_real_type},
+    #{invest_take_card_num},
+    #{invest_take_card_value},
+    #{invest_push_num},
+    #{invest_push_value},
+    #{invest_selling_num},
+    #{invest_selling_value},
+    #{invest_take_card_per},
+    #{invest_selling_per},
+    #{rules_take_card_time},
+    #{rules_time},
+    #{rules_real_type},
+    #{rules_take_card_num},
+    #{rules_take_card_value},
+    #{rules_push_num},
+    #{rules_push_value},
+    #{rules_selling_num},
+    #{rules_selling_value},
+    #{rules_take_card_per},
+    #{rules_selling_per},
+    #{designtwo_take_card_time},
+    #{designtwo_time},
+    #{designtwo_real_type},
+    #{designtwo_take_card_num},
+    #{designtwo_take_card_value},
+    #{designtwo_push_num},
+    #{designtwo_push_value},
+    #{designtwo_selling_num},
+    #{designtwo_selling_value},
+    #{designtwo_take_card_per},
+    #{designtwo_selling_per},
+    #{invest_create_per},
+    #{invest_all_per},
+    #{invest_irr},
+    #{invest_payback},
+    #{rules_create_per},
+    #{rules_all_per},
+    #{rules_irr},
+    #{rules_payback},
+    #{designtwo_create_per},
+    #{designtwo_all_per},
+    #{designtwo_irr},
+    #{designtwo_payback},
+    #{cost_open_sales_price},
+    #{cost_sales_generalize_price},
+    #{cost_management_price},
+    #{cost_sales_agency_price},
+    #{cost_create_price},
+    #{cost_operation_price},
+    #{cost_invest_all_sales_per},
+    #{cost_rules_all_sales_per},
+    #{cost_invest_open_year_per},
+    #{cost_rules_open_year_per},
+    #{cost_sales_per},
+    #{cost_generalize_per},
+      #{cost_designtwo_all_sales_per},
+  #{cost_designtwo_open_year_per}
+  );
+
+  UPDATE
+    fp_plan_node
+    SET
+    browse_num=#{browse_num}
+    WHERE
+    id=#{plan_node_id};
+</update>
+
+  <!--初始化顶设2核心指标里的信息，顶设2-核心指标-价-->
+  <update id="insertAllCodeIndexPrice" parameterType="arraylist">
+
+INSERT INTO fp_designtwo_code_index_price (
+  id,
+  plan_id,
+  plan_node_id,
+  product_type_code,
+  product_type,
+  invest_open_avg_price,
+  rules_open_avg_price,
+  designtwo_open_avg_price
+)
+VALUES
+    <foreach collection="list" index="index" separator="," item="item">
+  (
+    UUID(),
+    #{item.plan_id},
+    #{item.plan_node_id},
+    #{item.product_type_codes},
+    #{item.product_type},
+    #{item.invest_open_avg_price},
+    #{item.rules_open_avg_price},
+    #{item.designtwo_open_avg_price}
+  )
+    </foreach>
+  </update>
+
+
+  <!--顶设2全盘量价规划查找-->
+<select id="selectAllPlan" parameterType="java.util.Map" resultType="java.util.Map">
+ SELECT
+ fdap.fakeId,
+  fdap.id,
+  fdap.plan_id,
+  fdap.plan_node_id,
+  fdap.operation_type_code,
+  fdap.operation_type,
+  fdap.product_type_code,
+  fdap.product_type,
+  ROUND(IFNULL(all_invest_avg_price,0),0) all_invest_avg_price,
+    IFNULL(all_invest_value_price,0) all_invest_value_price,
+ ROUND(IFNULL(one.all_big_avg_price,0),0) all_big_avg_price,
+	    IFNULL(one.all_big_value_price,0) all_big_value_price,
+
+  ROUND(IFNULL(all_rules_avg_price,0),0) all_rules_avg_price,
+  IFNULL(all_rules_value_price,0) all_rules_value_price
+FROM
+ fp_designtwo_all_plan fdap
+ LEFT JOIN
+  ( select fakeId, operation_type_code, product_type_code,
+IFNULL(designone_avg_price,0) all_big_avg_price,
+IFNULL(designonel_front_value,0) all_big_value_price
+   FROM  fp_designtwo_value fdv
+   where fdv.plan_node_id=#{plan_node_id}
+    ORDER BY  operation_type_code,product_type_code  ) one
+    ON one.fakeId=fdap.fakeId
+
+
+
+WHERE
+ plan_node_id=#{plan_node_id}
+  order by fdap.operation_type_code, fdap.product_type_code
+</select>
+
+    <!--顶设2全盘量价规划里的年份信息查找-->
+    <select id="selectAllPlanYear" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+fakeId,
+  id,
+  plan_id,
+  plan_node_id,
+  operation_type_code,
+  operation_type,
+  product_type_code,
+  product_type,
+  oneyear_supply,
+  oneyear_sell,
+  ROUND(oneyear_selling_per,0) oneyear_selling_per,
+  ROUND(oneyear_avg_price,0) oneyear_avg_price,
+    ifnull(CAST(oneyear_sell /(select
+    sum((case when b.product_year = a.product_year then oneyear_supply else 0 end ) +
+    (case when b.product_year &lt; a.product_year then oneyear_supply-oneyear_sell else 0 end ) )
+    from fp_designtwo_all_plan_year b
+    where  b.plan_node_id = a.plan_node_id
+    and b.fakeId = a.fakeId )*100 as decimal),0)  as oneyear_selling_per_com,
+  product_year
+FROM
+fp_designtwo_all_plan_year a
+WHERE
+plan_node_id=#{plan_node_id}
+AND
+fakeId=#{fakeId}
+ORDER BY product_year
+</select>
+<!--删除全盘量价规划的年份信息-->
+<update id="deleteAllYear" parameterType="java.util.Map">
+    DELETE FROM
+   fp_designtwo_all_plan_year
+   WHERE plan_node_id=#{plan_node_id}
+</update>
+    <!--顶设2查找全盘量价规划里大定价版本对标-->
+    <select id="selectAllPlanBig" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+  big.id,
+  big.plan_id,
+  big.plan_node_id,
+  big.operation_type_code,
+  big.operation_type,
+  big.product_type_code,
+  big.product_type,
+  one.big_total_value,
+  IFNULL(invest_total_value,0) as invest_total_value,
+  IFNULL(vs_invest,0) AS vs_invest,
+  invest_cause,
+  big.rules_total,
+  vs_rules,
+  rules_cause,
+  big.fakeId
+FROM
+  fp_designtwo_all_plan_big big
+  left join
+  (   SELECT fakeId,
+
+  designonel_front_value  big_total_value,
+        operation_type_code,product_type_code
+         FROM  fp_designtwo_value fdv
+       where  fdv.plan_node_id=#{plan_node_id}
+    ORDER BY  operation_type_code,product_type_code) one
+     on one.fakeId=big.fakeId
+
+
+where
+  plan_node_id=#{plan_node_id}
+   order by big.operation_type_code, big.product_type_code
+</select>
+
+
+    <!--顶设2全盘量价规划更新-->
+  <update id="updateAllPlan" parameterType="java.util.Map">
+        UPDATE
+        fp_designtwo_all_plan
+        SET
+  all_big_avg_price = #{all_big_avg_price},
+  all_big_value_price = #{all_big_value_price},
+  all_invest_avg_price = #{all_invest_avg_price},
+  all_invest_value_price = #{all_invest_value_price},
+  all_rules_avg_price = #{all_rules_avg_price},
+  all_rules_value_price = #{all_rules_value_price}
+  where
+    id=#{id}
+  </update>
+
+    <!--顶设2全盘量价规划里年份信息更新-->
+<update id="updateAllPlanYear" parameterType="java.util.Map">
+UPDATE
+  fp_designtwo_all_plan_year
+SET
+
+  oneyear_supply = #{oneyear_supply},
+  oneyear_sell = #{oneyear_sell},
+  oneyear_selling_per = #{oneyear_selling_per},
+  oneyear_avg_price = #{oneyear_avg_price},
+  product_year = #{product_year}
+WHERE id = #{id}
+
+</update>
+
+
+    <!--顶设2更新大定价版本对标-->
+    <update id="updateAllPlanBig" parameterType="java.util.Map">
+        UPDATE
+
+        fp_designtwo_all_plan_big
+        SET
+  big_total_value = #{big_total_value},
+  invest_total_value = #{invest_total_value},
+  vs_invest = #{vs_invest},
+  invest_cause = #{invest_cause},
+  rules_total = #{rules_total},
+  vs_rules = #{vs_rules},
+  rules_cause = #{rules_cause}
+  where
+    id=#{id}
+  </update>
+
+
+    <!--初始化全盘量价规划里的大定价全盘量价规划-->
+    <update id="insertAllPlan"  parameterType="arraylist">
+        INSERT INTO fp_designtwo_all_plan (
+        id,
+        plan_id,
+        plan_node_id,
+        operation_type_code,
+        operation_type,
+        product_type_code,
+        product_type,
+        all_big_avg_price,
+        all_big_value_price,
+        all_invest_avg_price,
+        all_invest_value_price,
+        all_rules_avg_price,
+        all_rules_value_price,
+        fakeId
+        )
+        VALUES
+
+        <foreach collection="list" index="index" separator="," item="item">
+            (
+
+
+                UUID(),
+
+            #{item.plan_id},
+            #{item.plan_node_id},
+            #{item.operation_type_code},
+            #{item.operation_type},
+            #{item.product_type_code},
+            #{item.product_type},
+            #{item.all_big_avg_price},
+            #{item.all_big_value_price},
+            #{item.all_invest_avg_price},
+            #{item.all_invest_value_price},
+            #{item.all_rules_avg_price},
+            #{item.all_rules_value_price},
+            #{item.fakeId}
+            )
+        </foreach>
+    </update>
+
+
+
+    <!--初始化全盘量价规划里的大定价全盘量价规划里的年份信息-->
+    <update id="insertAllPlanYear"  parameterType="arraylist">
+
+
+        INSERT INTO fp_designtwo_all_plan_year (
+        id,
+        plan_id,
+        plan_node_id,
+        operation_type_code,
+        operation_type,
+        product_type_code,
+        product_type,
+        oneyear_supply,
+        oneyear_sell,
+        oneyear_selling_per,
+        oneyear_avg_price,
+        product_year,
+        fakeId
+        )
+        VALUES
+
+        <foreach collection="list" index="index" separator="," item="item">
+            (
+
+                UUID(),
+
+            #{item.plan_id},
+            #{item.plan_node_id},
+            #{item.operation_type_code},
+            #{item.operation_type},
+            #{item.product_type_code},
+            #{item.product_type},
+            #{item.oneyear_supply},
+            #{item.oneyear_sell},
+            #{item.oneyear_selling_per},
+            #{item.oneyear_avg_price},
+            #{item.product_year},
+            #{item.fakeId}
+            )
+        </foreach>
+    </update>
+
+    <!--初始化全盘量价规划里的大定价版本对标-->
+    <update id="insertAllPlanBig" parameterType="arraylist">
+        INSERT INTO saleman.fp_designtwo_all_plan_big (
+        id,
+        plan_id,
+        plan_node_id,
+        operation_type_code,
+        operation_type,
+        product_type_code,
+        product_type,
+        big_total_value,
+        invest_total_value,
+        vs_invest,
+        invest_cause,
+        rules_total,
+        vs_rules,
+        rules_cause,
+        fakeId
+        )
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (
+
+                UUID(),
+
+            #{item.plan_id},
+            #{item.plan_node_id},
+            #{item.operation_type_code},
+            #{item.operation_type},
+            #{item.product_type_code},
+            #{item.product_type},
+            #{item.big_total_value},
+            #{item.invest_total_value},
+            #{item.vs_invest},
+            #{item.invest_cause},
+            #{item.rules_total},
+            #{item.vs_rules},
+            #{item.rules_cause},
+            #{item.fakeId}
+            )
+        </foreach>
+    </update>
+
+
+
+    <!--顶设2楼栋大定价，缺张金蝶表-->
+<select id="selectBigPrice" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+ id,
+  plan_id,
+  plan_node_id,
+  operation_type_code,
+  operation_type,
+  product_type_code,
+  product_type,
+  project_id,
+  project_name,
+  public_code,
+  level_coefficient,
+  operation_coefficient,
+  static_coefficient,
+  project_num,
+  static_price,
+  open_time,
+  def_week,
+  this_price,
+  this_building,
+  this_pric_all_building
+FROM
+  fp_designtwo_big_price
+where
+  plan_node_id=#{plan_node_id}
+</select>
+
+
+<!--顶设2查找客储计划周拆分-->
+ <select id="selectStorageweek" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+ fgsnp.id,
+  fgsnp.plan_id,
+ fgsnp.plan_node_id,
+  week,
+ DATE_FORMAT(start_time,'%Y-%m-%d') start_time,
+  DATE_FORMAT(end_time,'%Y-%m-%d') end_time,
+  day_date,
+  plan_add,
+  plan_total,
+  ROUND(plan_task_per,0) plan_task_per,
+  actual_add,
+  actual_total,
+  ROUND(actual_task_per,0) actual_task_per,
+  bias_value,
+  week_bais_value,
+    ROUND(bias_per,0) bias_per,
+  bias_cause,
+  flow_id
+
+FROM
+  fp_guest_storage_week fgsnp
+  <if test="flow_id==null">
+INNER JOIN
+(select id,plan_node_id FROM fp_guest_storage_flow fgsf
+   where
+fgsf.plan_node_id=#{plan_node_id}
+AND fgsf.node_level=#{node_level}
+ORDER BY  create_time desc LIMIT 0,1 ) fgsf
+ON
+fgsf.id=fgsnp.flow_id
+
+  </if>
+     <if test="flow_id!=null and flow_id!='' ">
+         WHERE flow_id=#{flow_id}
+     </if>
+ORDER BY start_time ASC
+ </select>
+
+
+
+    <!--顶设2查找客储计划周拆分(用于创建版本逻辑)-->
+    <select id="selectStorageweekFake" parameterType="java.util.Map" resultType="java.util.Map">
+
+        SELECT
+        fgsnp.id,
+        fgsnp.plan_id,
+        fgsnp.plan_node_id,
+        week,
+        DATE_FORMAT(start_time,'%Y-%m-%d') start_time,
+        DATE_FORMAT(end_time,'%Y-%m-%d') end_time,
+        day_date,
+        plan_add,
+        plan_total,
+        ROUND(plan_task_per,0) plan_task_per,
+        actual_add,
+        actual_total,
+        ROUND(actual_task_per,0) actual_task_per,
+        bias_value,
+        week_bais_value,
+        ROUND(bias_per,0) bias_per,
+        bias_cause,
+        flow_id
+
+        FROM
+        fp_guest_storage_week fgsnp
+        where
+            plan_node_id=#{plan_node_id}
+
+
+        ORDER BY start_time ASC
+    </select>
+
+
+
+    <!--顶设2查找客储计划节点储客计划-->
+   <select id="selectStorageNodePlan" parameterType="java.util.Map" resultType="java.util.Map">
+       SELECT
+       fgsnp.id,
+        fgsnp.plan_id,
+    fgsnp.plan_node_id,
+     nide_name,
+  DATE_FORMAT(node_time,'%Y-%m-%d')  node_time,
+  report_num,
+  visit_num,
+  little_num,
+ little_per,
+  big_num,
+ big_per,
+  sub_num,
+  make_per,
+  level,
+  line_name,
+  little_way,
+  big_way,
+  flow_id,
+ node_level
+FROM
+fp_guest_storage_node_plan fgsnp
+ <if test="flow_id==null">
+INNER JOIN
+
+(select id,plan_node_id FROM fp_guest_storage_flow fgsf
+   where
+fgsf.plan_node_id=#{plan_node_id}
+AND fgsf.node_level=#{node_level}
+ORDER BY  create_time desc LIMIT 0,1  ) fgsf
+ON
+fgsf.id=fgsnp.flow_id
+WHERE 1=1
+</if>
+<if test="flow_id!=null and flow_id!='' ">
+    WHERE flow_id=#{flow_id}
+</if>
+
+AND level=1
+ORDER BY node_time
+   </select>
+
+
+    <!--顶设2查找客储计划节点储客计划(假，用于创建版本逻辑)-->
+    <select id="selectStorageNodePlanFake" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        fgsnp.id,
+        fgsnp.plan_id,
+        fgsnp.plan_node_id,
+        nide_name,
+        DATE_FORMAT(node_time,'%Y-%m-%d')  node_time,
+        report_num,
+        visit_num,
+        little_num,
+        ROUND(little_per,0) little_per,
+        big_num,
+        ROUND(big_per,0) big_per,
+        sub_num,
+        ROUND(make_per,0) make_per,
+        level,
+        line_name,
+        little_way,
+        big_way,
+        flow_id,
+        node_level
+        FROM
+        fp_guest_storage_node_plan fgsnp
+
+            WHERE plan_node_id=#{plan_node_id}
+
+        AND level=1
+        ORDER BY node_time
+    </select>
+
+
+
+    <!--顶设2更新客储计划周拆分-->
+    <update id="updateStorageWeek" parameterType="java.util.Map">
+
+UPDATE
+  fp_guest_storage_week
+SET
+week = #{week},
+  start_time = #{start_time},
+  end_time = #{end_time},
+  day_date = #{day_date},
+  plan_add = #{plan_add},
+  plan_total = #{plan_total},
+  plan_task_per = #{plan_task_per},
+  actual_add = #{actual_add},
+  actual_total = #{actual_total},
+  actual_task_per = #{actual_task_per},
+  bias_value = #{bias_value},
+  bias_per = #{bias_per},
+  bias_cause = #{bias_cause},
+  week_bais_value=#{week_bais_value}
+  where
+   id=#{id}
+
+  </update>
+
+   <!--顶设2更新客储计划节点储客计划-->
+  <update id="updateStorageNodePlan" parameterType="java.util.Map">
+
+UPDATE
+
+  fp_guest_storage_node_plan
+SET
+
+  report_num = #{report_num},
+  visit_num = #{visit_num},
+  little_num = #{little_num},
+  little_per = #{little_per},
+  big_num = #{big_num},
+  big_per = #{big_per},
+  sub_num = #{sub_num},
+  make_per = #{make_per},
+  level = #{level},
+  line_name = #{line_name},
+   little_way= #{little_way},
+  big_way= #{big_way}
+  where
+   id=#{id}
+
+  </update>
+
+    <update id="deleteStorageNodePlan" parameterType="java.util.Map">
+DELETE
+FROM
+ fp_guest_storage_node_plan
+        <if test="flow_id!=null and flow_id!='' ">
+            WHERE  flow_id = #{flow_id}
+        </if>
+        <if test="flow_id==null">
+            WHERE  plan_node_id = #{plan_node_id}
+        </if>
+
+
+    </update>
+
+<update id="deleteStorageweek"  parameterType="java.util.Map">
+    DELETE
+FROM
+ fp_guest_storage_week
+    <if test="flow_id!=null and flow_id!='' ">
+        WHERE  flow_id = #{flow_id}
+    </if>
+    <if test="flow_id==null">
+        WHERE  plan_node_id = #{plan_node_id}
+    </if>
+</update>
+
+    <!--顶设2初始化客储计划节点储客计划-->
+<update id="insertStorageNodePlan" parameterType="arraylist">
+    INSERT INTO fp_guest_storage_node_plan (
+  id,
+  plan_id,
+  plan_node_id,
+  nide_name,
+  node_time,
+  report_num,
+  visit_num,
+  little_num,
+  little_per,
+  big_num,
+  big_per,
+  sub_num,
+  make_per,
+  level,
+  line_name,
+    node_level,
+    little_way,
+    big_way,
+    flow_id
+)
+VALUES
+    <foreach collection="list" index="index" separator="," item="item">
+  (
+    UUID(),
+    #{item.plan_id},
+    #{item.plan_node_id},
+    #{item.nide_name},
+    #{item.node_time},
+    #{item.report_num},
+    #{item.visit_num},
+    #{item.little_num},
+    #{item.little_per},
+    #{item.big_num},
+    #{item.big_per},
+    #{item.sub_num},
+    #{item.make_per},
+        1 ,
+    '计划',
+        #{item.node_level},
+        #{item.little_way},
+        #{item.big_way},
+        #{item.flow_id}
+  )
+    </foreach>
+
+</update>
+
+    <!--顶设2初始化客储计划周拆分-->
+    <update id="insertStorageWeek" parameterType="arraylist">
+
+INSERT INTO fp_guest_storage_week (
+  id,
+  plan_id,
+  plan_node_id,
+  week,
+  start_time,
+  end_time,
+  day_date,
+  plan_add,
+  plan_total,
+  plan_task_per,
+  actual_add,
+  actual_total,
+  actual_task_per,
+  bias_value,
+  week_bais_value,
+  bias_per,
+  bias_cause,
+        flow_id
+)
+VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+  (
+   UUID(),
+    #{item.plan_id},
+    #{item.plan_node_id},
+    #{item.week},
+    #{item.start_time},
+    #{item.end_time},
+    #{item.day_date},
+    #{item.plan_add},
+    #{item.plan_total},
+    #{item.plan_task_per},
+    #{item.actual_add},
+    #{item.actual_total},
+    #{item.actual_task_per},
+    #{item.bias_value},
+   #{item.week_bais_value},
+    #{item.bias_per},
+    #{item.bias_cause},
+            #{item.flow_id}
+  )
+        </foreach>
+</update>
+
+
+
+
+    <!--查找顶设2左上角的版本选择-->
+<select id="selectPlanNode" parameterType="java.util.Map"  resultType="java.util.Map">
+    <if test="plan_node_id!=null and plan_node_id!=''">
+
+        SELECT
+        tmp.projectName,
+        ba.EmployeeName,
+        DATE_FORMAT(IFNULL(mafi.zddate,NOW()),'%Y-%m-%d') zddate,
+        mafi.post_name,
+        fpn.id plan_node_id,
+        fpn.plan_id,
+        fpn.plan_approval,
+        CONCAT(fpn.version
+        , (CASE WHEN (fpn.plan_approval IN(2,10)  OR fpn.plan_approval IS NULL)
+        THEN
+          '-草稿版'
+        WHEN fpn.plan_approval IN(3)
+        THEN
+         '-审批中'
+        WHEN fpn.plan_approval IN(5)
+        THEN
+        '-审批驳回'
+
+        ELSE ''
+        END
+        )
+        )  node_name,
+        node_level
+        FROM
+        fp_plan_node fpn
+        LEFT JOIN
+        mm_ap_flow_info mafi
+        ON mafi.json_id=fpn.id
+        LEFT JOIN
+        b_account ba
+        ON ba.UserName=mafi.creator
+        LEFT JOIN
+        fp_plan fp
+        ON fp.id=fpn.plan_id
+        LEFT JOIN
+        t_mm_project tmp
+        ON tmp.projectID=fp.project_id
+
+        WHERE 1=1
+        AND fpn.is_del =0
+        AND  fpn.id =#{plan_node_id}
+        UNION ALL
+    </if>
+
+(
+
+    SELECT
+    tmp.projectName,
+    ba.EmployeeName,
+    DATE_FORMAT(IFNULL(mafi.zddate,NOW()),'%Y-%m-%d') zddate,
+    mafi.post_name,
+    fpn.id plan_node_id,
+    fpn.plan_id,
+    fpn.plan_approval,
+    CONCAT(fpn.version
+    , (CASE WHEN (fpn.plan_approval IN(2,10)  OR fpn.plan_approval IS NULL)
+    THEN
+          '-草稿版'
+        WHEN fpn.plan_approval IN(3)
+        THEN
+         '-审批中'
+        WHEN fpn.plan_approval IN(5)
+        THEN
+        '-审批驳回'
+    ELSE ''
+    END
+    )
+    )  node_name,
+    node_level
+    FROM
+    fp_plan_node fpn
+    LEFT JOIN
+    mm_ap_flow_info mafi
+    ON mafi.json_id=fpn.id
+    LEFT JOIN
+    b_account ba
+    ON ba.UserName=mafi.creator
+    LEFT JOIN
+    fp_plan fp
+    ON fp.id=fpn.plan_id
+    LEFT JOIN
+    t_mm_project tmp
+    ON tmp.projectID=fp.project_id
+    WHERE 1=1
+    <if test="plan_id!=null and plan_id!=''">
+        AND  fpn.plan_id =#{plan_id}
+    </if>
+
+    <if test="node_level!=null and node_level!=''">
+        AND      fpn.node_level =#{node_level}
+    </if>
+    <if test="plan_node_id!=null and plan_node_id!=''">
+        AND  fpn.id !=#{plan_node_id}
+    </if>
+    AND fpn.is_del =0
+    ORDER BY fpn.create_time DESC
+    )
+</select>
+
+
+
+
+
+<!--创建版本,需要创建人，plan_id,VERSION,days=首开前结束时间-->
+<update id="insertPlanNode"  parameterType="java.util.Map" >
+  insert into fp_plan_node(send_post_code,send_post_name, warning_day,id,node_order,template_node_id,plan_id,node_name,
+        plan_start_time,plan_end_time,offset,node_level,
+        creator,create_time,is_del,is_effective,version,plan_approval
+        )
+        SELECT send_post_code,send_post_name, warning_day,#{uuid} AS id,node.node_order,node.id as nodeid,plan.id as planid,node.node_name,
+        DATE_ADD(plan.open_time,interval -node.warning_day day) as plan_start_time,#{designtwo_time} AS plan_end_time,
+        node.offset,node.node_level,
+        #{creator} AS creator,NOW(),0,1,CONCAT(node.node_name,'v',DATE_FORMAT(NOW(),'%Y%m%d'),'-',(SELECT count(1)+1 from fp_plan_node
+        where plan_id=#{plan_id}
+        and node_level=#{node_level})) name,
+        2
+         from fp_plan plan
+        INNER JOIN fp_template_node node on
+        plan.template_id=node.template_id and node.node_level=#{node_level}
+        where plan.id=#{plan_id};
+
+</update>
+
+<!--判断是否可以发起一条新的版本-->
+<select id="judgeVersion" parameterType="java.util.Map" resultType="java.util.Map">
+
+	select
+	fpn.id
+	from
+	fp_plan_node fpn
+	inner join
+	(SELECT id, version FROM fp_plan_node WHERE node_level=#{node_level}
+    AND plan_id=#{plan_id}
+	 ORDER BY create_time DESC LIMIT 0,1) ct
+	on 	fpn.id=ct.id
+	where fpn.plan_id=#{plan_id}
+		and
+		is_effective=0
+		and
+    fpn.is_del=0
+		<if test='isRight=="0"'>
+		and
+		plan_approval in (#{judgeOne},#{judgeTwo})
+        </if>
+    <if test='isRight=="1"'>
+        and
+        plan_approval not in  (#{judgeOne},#{judgeTwo})
+    </if>
+
+</select>
+
+    <!--查找来自于计划表里的数据,看开盘时间和顶设2时间是否相同-->
+    <select id="selectPlanTime"  parameterType="java.util.Map" resultType="java.util.Map">
+       SELECT
+    fgsnp.plan_id,
+    fgsnp.plan_node_id,
+      (CASE WHEN   DATEDIFF(designtwo_time,open_time)&lt;-120
+        THEN
+       DATE_FORMAT( DATE_SUB(open_time,INTERVAL 120 DAY),'%Y-%m-%d')
+        ELSE
+ DATE_FORMAT(designtwo_time,'%Y-%m-%d')
+        END
+        )   designtwo_time,
+
+  DATE_FORMAT(open_time,'%Y-%m-%d') open_time,
+  MAX(end_time),
+
+   MIN(start_time),
+
+        ( CASE WHEN (CASE WHEN   DATEDIFF(designtwo_time,open_time)&lt;-120
+        THEN
+        DATE_SUB(open_time,INTERVAL 120 DAY)
+        ELSE
+        designtwo_time
+        END
+        ) =MIN(start_time) AND open_time=MAX(end_time)
+	THEN 'YES'
+	ELSE 'NO' END) equal,
+
+	  (CASE WHEN   DATEDIFF(designtwo_time,open_time)&lt;-120
+        THEN
+        CONCAT(DATE_FORMAT( DATE_SUB(open_time,INTERVAL 120 DAY),'%Y%m%d'),"-",DATE_FORMAT(open_time,'%Y%m%d'))
+        ELSE
+        CONCAT(DATE_FORMAT(designtwo_time,'%Y%m%d'),"-",DATE_FORMAT(open_time,'%Y%m%d'))
+        END
+        ) forweek
+FROM
+ fp_date_node fp
+ LEFT JOIN
+ fp_guest_storage_week fgsnp
+ ON fp.plan_node_id=fgsnp.plan_node_id
+
+ WHERE fgsnp.plan_node_id=#{plan_node_id}
+    </select>
+
+
+    <!--暂存过后将状态设置为草稿-->
+  <update id="updateLightStuat" parameterType="java.util.Map" >
+
+               update
+               fp_plan_node
+                set
+                plan_approval=#{plan_approval}
+
+                where id=#{plan_node_id}
+        AND (plan_approval NOT IN (3,4) OR plan_approval  IS NULL)AND
+ (light_stuat NOT IN (2,3,4) OR light_stuat  IS NULL);
+
+  </update>
+
+    <!--判断顶设2是否可以发起一个新的流程,若有返回值说明不合格-->
+    <select id="designTwoCan" parameterType="java.util.Map"  resultType="java.util.Map">
+        SELECT id
+FROM
+fp_plan_node
+WHERE
+node_level>3
+AND
+plan_approval IN(3)
+AND plan_id=#{plan_id}
+ AND is_del=0
+UNION
+ALL
+      SELECT id
+FROM
+fp_plan_node
+WHERE
+node_level=3
+AND
+(plan_approval IN(2,3,10) OR plan_approval  IS NULL )
+AND plan_id=#{plan_id}
+ AND is_del=0
+
+
+    </select>
+    <!--判断顶设2是否可以发起一个新的流程,若mei有返回值说明不合格-->
+  <select id="designTwoCanElse" parameterType="java.util.Map"  resultType="java.util.Map" >
+SELECT id
+FROM
+fp_plan_node
+WHERE
+node_level=2
+AND
+is_effective=0
+ AND plan_id=#{plan_id}
+  </select>
+
+
+
+<!--删除核心指标里面的价-->
+   <update id="deleteIndexPrice"  parameterType="java.util.Map">
+
+DELETE
+FROM
+  fp_designtwo_code_index_price
+WHERE plan_node_id=#{plan_node_id};
+
+   </update>
+
+    <!--符合初始化储客数据的plan_node_id -->
+    <sql id="realId">
+
+
+
+  ( SELECT id FROM (
+
+	SELECT plan_node_id id FROM (
+
+       SELECT 1 a, plan_node_id FROM  fp_date_node WHERE plan_node_id IN (SELECT id FROM(
+
+       SELECT  id FROM fp_plan_node
+        WHERE
+        fp_plan_node.node_level=3
+        AND plan_id=#{plan_id}
+        GROUP BY create_time DESC LIMIT 1 ) a)
+
+
+	UNION
+	ALL
+
+        SELECT 2 a, plan_node_id FROM  fp_date_node WHERE plan_node_id IN (SELECT id FROM(
+
+       SELECT  id FROM fp_plan_node
+        WHERE
+        fp_plan_node.node_level=2
+        AND plan_id=#{plan_id}
+        AND is_effective=0) a)
+
+
+        ) b
+        ORDER BY a LIMIT 1) C)
+
+    </sql>
+
+    <!--查找来自于计划表里的数据,看开盘时间和顶设2时间是否相同-->
+    <select id="selectPlanReal"  parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT * FROM (  SELECT
+    1 AS a, fp_date_node.plan_id,plan_node_id fakeid,
+
+    (CASE WHEN   DATEDIFF(designtwo_time,open_time)&lt;-120
+        THEN
+       DATE_FORMAT( DATE_SUB(open_time,INTERVAL 120 DAY),'%Y-%m-%d')
+        ELSE
+ DATE_FORMAT(designtwo_time,'%Y-%m-%d')
+        END
+        )   designtwo_time,
+
+
+  DATE_FORMAT(open_time,'%Y-%m-%d') open_time,
+
+        (CASE WHEN   DATEDIFF(designtwo_time,open_time)&lt;-120
+        THEN
+        CONCAT(DATE_FORMAT( DATE_SUB(open_time,INTERVAL 120 DAY),'%Y%m%d'),"-",DATE_FORMAT(open_time,'%Y%m%d'))
+        ELSE
+        CONCAT(DATE_FORMAT(designtwo_time,'%Y%m%d'),"-",DATE_FORMAT(open_time,'%Y%m%d'))
+        END
+        ) forweek
+
+FROM
+ fp_date_node
+
+        INNER JOIN
+        (
+        SELECT id, VERSION FROM fp_plan_node
+        WHERE
+        fp_plan_node.node_level=3
+        AND plan_id=#{plan_id}
+        GROUP BY create_time DESC LIMIT 1
+        ) pni
+        ON pni.id=fp_date_node.plan_node_id
+
+    UNION
+    ALL
+
+    SELECT
+   2 AS a, fp_date_node.plan_id,plan_node_id fakeid,
+
+    (CASE WHEN   DATEDIFF(designtwo_time,open_time)&lt;-120
+        THEN
+       DATE_FORMAT( DATE_SUB(open_time,INTERVAL 120 DAY),'%Y-%m-%d')
+        ELSE
+ DATE_FORMAT(designtwo_time,'%Y-%m-%d')
+        END
+        )   designtwo_time,
+
+
+  DATE_FORMAT(open_time,'%Y-%m-%d') open_time,
+
+        (CASE WHEN   DATEDIFF(designtwo_time,open_time)&lt;-120
+        THEN
+        CONCAT(DATE_FORMAT( DATE_SUB(open_time,INTERVAL 120 DAY),'%Y%m%d'),"-",DATE_FORMAT(open_time,'%Y%m%d'))
+        ELSE
+        CONCAT(DATE_FORMAT(designtwo_time,'%Y%m%d'),"-",DATE_FORMAT(open_time,'%Y%m%d'))
+        END
+        ) forweek
+
+FROM
+ fp_date_node
+        INNER JOIN
+        (
+        SELECT id, VERSION FROM fp_plan_node
+        WHERE
+        fp_plan_node.node_level=2
+        AND plan_id=#{plan_id}
+        AND is_effective=0
+        ) pni
+        ON pni.id=fp_date_node.plan_node_id
+        ) b
+        ORDER BY a LIMIT 1
+    </select>
+
+    <!--初始化储客计划FLOW表-->
+    <update id="insertNodeFlow" parameterType="java.util.Map">
+
+INSERT INTO fp_guest_storage_flow (
+  id,
+  plan_id,
+  plan_node_id,
+
+  node_level,
+  create_time,
+  version
+)
+SELECT
+    #{uuid} id,
+    #{plan_id}  plan_id,
+    #{plan_node_id}  plan_node_id,
+
+    #{node_level}  node_level,
+    NOW() create_time,
+  IFNULL( (SELECT version FROM  fp_guest_storage_flow WHERE plan_id=#{plan_id}
+        AND node_level=#{node_level} ORDER BY version DESC LIMIT 0,1
+    )+1,1) version
+
+  </update>
+
+<select id="selectStorageFlow" parameterType="java.util.Map"  resultType="java.util.Map" >
+    <if test="flow_id!=null and flow_id!='' ">
+        select
+        tmp.projectName,
+        ba.EmployeeName,
+        DATE_FORMAT(IFNULL(mafi.zddate,NOW()),'%Y-%m-%d') zddate,
+        mafi.post_name,
+
+        fgsf.id flow_id,fgsf.approval_stuat, CONCAT(
+        (case
+        when #{node_level}='3'
+        THEN '顶设2'
+        when #{node_level}='4'
+        THEN '首开前3个月'
+        when #{node_level}='5'
+        THEN '首开前2个月'
+        when #{node_level}='6'
+        THEN '首开前21天'
+        when #{node_level}='7'
+        THEN '首开前7天'
+        END),'v',DATE_FORMAT(fgsf.create_time,'%Y%m%d'),'-',fgsf.version
+        , (CASE WHEN (fgsf.approval_stuat IN(2,10)  OR fgsf.approval_stuat IS NULL)
+        THEN
+          '-草稿版'
+        WHEN fgsf.approval_stuat IN(3)
+        THEN
+         '-审批中'
+        WHEN fgsf.approval_stuat IN(5)
+        THEN
+        '-审批驳回'
+        ELSE ''
+        END
+        )
+        ) name
+        from fp_guest_storage_flow fgsf
+        LEFT JOIN
+        mm_ap_flow_info mafi
+        ON mafi.json_id=fgsf.id
+        LEFT JOIN
+        fp_plan_node fpn
+        ON fpn.id=fgsf.plan_node_id
+        LEFT JOIN
+        b_account ba
+        ON ba.UserName=fpn.creator
+        LEFT JOIN
+        fp_plan fp
+        ON fp.id=fgsf.plan_id
+        LEFT JOIN
+        t_mm_project tmp
+        ON tmp.projectID=fp.project_id
+        WHERE fgsf.id=#{flow_id}
+        and fpn.is_del = 0
+        UNION ALL
+    </if>
+
+      (   select
+    tmp.projectName,
+    ba.EmployeeName,
+    DATE_FORMAT(IFNULL(mafi.zddate,NOW()),'%Y-%m-%d') zddate,
+    mafi.post_name,
+
+    fgsf.id flow_id,fgsf.approval_stuat, CONCAT(
+    (case
+    when #{node_level}='3'
+    THEN '顶设2'
+    when #{node_level}='4'
+    THEN '首开前3个月'
+    when #{node_level}='5'
+    THEN '首开前2个月'
+    when #{node_level}='6'
+    THEN '首开前21天'
+    when #{node_level}='7'
+    THEN '首开前7天'
+    END),'v',DATE_FORMAT(fgsf.create_time,'%Y%m%d'),'-',fgsf.version
+    , (CASE WHEN (fgsf.approval_stuat IN(2,10)  OR fgsf.approval_stuat IS NULL)
+    THEN
+          '-草稿版'
+        WHEN fgsf.approval_stuat IN(3)
+        THEN
+         '-审批中'
+        WHEN fgsf.approval_stuat IN(5)
+        THEN
+        '-审批驳回'
+    ELSE ''
+    END
+    )
+    ) name
+    from fp_guest_storage_flow fgsf
+    LEFT JOIN
+    mm_ap_flow_info mafi
+    ON mafi.json_id=fgsf.id
+    LEFT JOIN
+    fp_plan_node fpn
+    ON fpn.id=fgsf.plan_node_id
+    LEFT JOIN
+    b_account ba
+    ON ba.UserName=fpn.creator
+    LEFT JOIN
+    fp_plan fp
+    ON fp.id=fgsf.plan_id
+    LEFT JOIN
+    t_mm_project tmp
+    ON tmp.projectID=fp.project_id
+            WHERE fgsf.plan_id=#{plan_id}
+            and fgsf.node_level=#{node_level}
+            and fpn.is_del = 0
+    <if test="flow_id!=null and flow_id!='' ">
+          AND  fgsf.id!=#{flow_id}
+    </if>
+            ORDER BY fgsf.version DESC)
+</select>
+
+
+    <select id="selectStorageFlowTwo" parameterType="java.util.Map"  resultType="java.util.Map" >
+
+
+        select id flow_id,approval_stuat, CONCAT(
+        (case
+        when #{node_level}='3'
+        THEN '顶设2'
+        when #{node_level}='4'
+        THEN '首开前3个月'
+        when #{node_level}='5'
+        THEN '首开前2个月'
+        when #{node_level}='6'
+        THEN '首开前21天'
+        when #{node_level}='7'
+        THEN '首开前7天'
+        END),'v',DATE_FORMAT(create_time,'%Y%m%d'),'-',version
+        , (CASE WHEN (approval_stuat IN(2,10)  OR approval_stuat IS NULL)
+        THEN
+          '-草稿版'
+        WHEN approval_stuat IN(3)
+        THEN
+         '-审批中'
+        WHEN approval_stuat IN(5)
+        THEN
+        '-审批驳回'
+        ELSE ''
+        END
+        )
+        ) name
+        from fp_guest_storage_flow
+        WHERE plan_node_id=#{plan_node_id}
+        ORDER BY create_time DESC
+    </select>
+
+    <!--更新该流程表状态-->
+  <update id="upateFlow"  parameterType="java.util.Map" >
+
+
+UPDATE
+	fp_guest_storage_flow
+SET
+
+  approval_stuat = #{approval_stuat}
+      <if test="flow_id!=null and flow_id!='' ">
+WHERE id =#{flow_id}
+      </if>
+      <if test="flow_id==null">
+          WHERE plan_node_id =#{plan_node_id}
+
+      </if>
+      AND( approval_stuat NOT IN (3,4) OR #{approval_stuat}=4  OR approval_stuat  IS NULL )
+  </update>
+
+<!--更新审批完成后的 状态-->
+   <update id="updateRealLight" parameterType="java.util.Map">
+
+
+         UPDATE fp_plan_node fpn
+         SET
+         fpn.plan_approval=#{plan_approval}
+
+       WHERE
+       fpn.id=#{plan_node_id};
+
+       UPDATE fp_guest_storage_flow fgsf
+       SET
+         fgsf.approval_stuat=#{plan_approval},
+         fgsf.approval_time=NOW()
+         WHERE
+       fgsf.plan_node_id=#{plan_node_id}
+
+
+   </update>
+
+    <update id="updateThreeMonthsType" parameterType="java.util.Map">
+            UPDATE fp_plan_node fpn
+         SET
+         fpn.plan_approval=#{plan_approval}
+
+       WHERE
+       fpn.id=#{plan_node_id}
+           AND (fpn.plan_approval NOT IN (4) OR fpn.plan_approval  IS NULL)AND
+           (fpn.light_stuat NOT IN (3,4) OR fpn.light_stuat  IS NULL);
+
+
+             UPDATE
+         fp_guest_storage_flow fgsf
+         SET
+           fgsf.approval_stuat=#{plan_approval},
+           fgsf.approval_time=NOW()
+            WHERE
+           fgsf.id=#{flow_id}
+
+    </update>
+
+
+<!--审批后将储客表的数据更新到对应的节点表-->
+    <update id="updateForTest" parameterType="java.lang.String">
+         update fp_plan_node plnode,(select node.* from fp_guest_storage_flow tb
+        LEFT JOIN fp_guest_storage_node_plan node on tb.id=node.flow_id where tb.id=#{id}
+        ORDER BY node_time desc LIMIT 1) snode
+        set plnode.visit_total=snode.visit_num,
+        plnode.card_total=snode.big_num,
+        plnode.card_big_per=snode.big_per,
+        plnode.make_per=snode.make_per
+        where plnode.plan_id=snode.plan_id and plnode.node_level=snode.node_level
+    </update>
+
+    <!--审批完成后算灯的状态-->
+<update id="updateRealDate"  parameterType="java.util.Map">
+  update fp_plan_node unode,
+        (select * from fp_plan_node where id=#{plan_node_id}) node
+        set unode.is_effective=1 where
+        node.node_level=unode.node_level and node.plan_id=unode.plan_id;
+        update fp_plan_node set plan_approval=4,is_effective=0,
+        update_time=now(),
+        actual_finish_time=NOW(),
+        light_stuat=case when plan_end_time &gt;=CURDATE() then 3
+        when plan_end_time &lt; CURDATE() then 4 end,
+        overday_num=case when plan_end_time &lt; CURDATE() then
+        DATEDIFF(CURDATE(),plan_end_time) end
+        where id=#{plan_node_id}
+</update>
+
+    <!--更新开盘时间-->
+   <update id="updatePlanTime"  parameterType="java.util.Map">
+       UPDATE
+        fp_plan,
+       (SELECT * FROM fp_date_node WHERE plan_node_id=#{plan_node_id}) fpn
+        SET
+        fp_plan.delisting_time = fpn.delisting_time,
+        fp_plan.designtwo_time = fpn.designtwo_time,
+        fp_plan.open_time = fpn.open_time
+         WHERE
+         fp_plan.id=fpn.plan_id;
+   </update>
+
+    <!--查找项目名-->
+    <select id="selectProjectName"  parameterType="java.lang.String" resultType="java.util.Map">
+        select
+  id,
+  project_id,
+  project_name
+from
+ fp_plan
+WHERE id=#{id}
+    </select>
+
+    <!--查找该Flow表的节点ID-->
+<select id="selectPlanNodeId"  parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+    fpn.id plan_node_id,
+    fpn.plan_approval,
+    fpn.node_level,
+    fpn.plan_id
+    FROM
+    fp_plan_node fpn
+    INNER JOIN
+    fp_guest_storage_flow fgsf
+    ON fgsf.plan_node_id=fpn.id
+    WHERE fgsf.id=#{flow_id}
+</select>
+
+    <!--如果接收不到plan_id就用PLAN_NODE_ID查-->
+    <select id="selectPlanId"  parameterType="java.util.Map" resultType="java.util.Map">
+
+select
+
+	 plan_id ,
+	 plan_approval ,
+	 node_level
+	from
+	 fp_plan_node
+	WHERE id=#{plan_node_id}
+    </select>
+
+    <insert id="insertOpenCost" parameterType="java.util.Map" >
+        insert into fp_designtwo_all_cost(id,plan_id,plan_node_id,${commun},months,allsum,version)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{item.plan_id},#{item.plan_node_id},${rescommun},#{item.months},#{item.allsum},#{version})
+        </foreach>
+    </insert>
+    <delete id="delOpenCostByPlanNodeId" parameterType="string">
+        delete from fp_designtwo_all_cost where plan_node_id=#{plan_node_id};
+    </delete>
+
+    <update id="updateOpenCost">
+        update fp_designtwo_all_cost set
+        plan_id=#{plan_id},public_price=#{public_price},channel_price=#{channel_price},
+        activity_price=#{activity_price},make_price=#{make_price},datum_price=#{datum_price},sales_agency_price=#{sales_agency_price},
+        sales_place_price=#{sales_place_price},sales_offices_price=#{sales_offices_price},pack_price=#{pack_price},property_price=#{property_price},
+        property_qt_price=#{property_qt_price},maintenance_price=#{maintenance_price},payroll_price=#{payroll_price},work_price=#{work_price},
+        travel_price=#{travel_price},serve_price=#{serve_price},traffic_price=#{traffic_price},customer_price=#{customer_price},
+        remould_price=#{remould_price},government_price=#{government_price},sales_qt=#{sales_qt},months=#{months}
+        where plan_node_id=#{plan_node_id}
+    </update>
+    <select id="selectOpenCostByPlanNodeId"  parameterType="String" resultType="java.util.Map">
+        select * from fp_designtwo_all_cost where plan_node_id=#{plan_node_id}  ORDER BY months desc
+    </select>
+    <select id="selectNewOpenCost"  parameterType="String" resultType="java.util.Map">
+        select ${version},id,plan_id,plan_node_id,months,allsum,version from fp_designtwo_all_cost where plan_node_id=#{plan_node_id}  ORDER BY months desc
+    </select>
+
+    <!--获取最新版本科目-->
+    <select id="getNewSubject" resultType="java.util.Map">
+        select * from fp_designtwo_subject where 1=1
+        <if test="version!=''">
+          and   version &lt;=#{version}
+        </if>
+    </select>
+
+    <!--获取最新版本科目-->
+    <select id="getSubjectByVersion" resultType="java.lang.String">
+        select GROUP_CONCAT(subject_code)  from fp_designtwo_subject where version &lt;=#{version}
+    </select>
+    <select id="getOpenCostByMonth"  parameterType="String" resultType="java.util.Map">
+        select * from fp_designtwo_all_cost where months in (${months}) and plan_node_id=#{plan_node_id}  ORDER BY months desc;
+    </select>
+    <select id="getNewOpenCostByMonth"  parameterType="String" resultType="java.util.Map">
+        select ${version},id,plan_id,plan_node_id,months,allsum,version from fp_designtwo_all_cost where months in (${months}) and plan_node_id=#{plan_node_id}  ORDER BY months desc;
+    </select>
+    <delete id="delOpenCostByMonth">
+        delete from fp_designtwo_all_cost where months not in (${months}) and plan_node_id=#{plan_node_id}
+    </delete>
+
+    <!--取拿地后的营销费率-->
+  <select id="selectLandPer"  parameterType="java.util.Map" resultType="java.lang.String" >
+
+       SELECT  land_per FROM  fp_land_cost fdv
+         INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+        node_level=1
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id
+
+  </select>
+
+<!--查找顶设2处于暂存的版本-->
+    <select id="selectApprovalTen" parameterType="java.util.Map" resultType="java.lang.String" >
+
+SELECT id plan_node_id FROM fp_plan_node WHERE plan_id=#{plan_id}
+AND node_level=3  AND is_del=0 AND plan_approval in (2,10)
+    </select>
+
+    <!--查找来自顶设1的产品系和建筑面积-->
+  <select id="selectAllArea" parameterType="java.util.Map"  resultType="java.util.Map">
+      SELECT
+ fpn.id plan_node_id,
+  fpn.product_set,
+SUM(fdv.designone_area) designone_area
+ FROM
+ fp_plan_node fpn
+
+ LEFT JOIN
+ fp_designone_value fdv
+ ON   fpn.id=fdv.plan_node_id
+  WHERE
+        fpn.node_level=2
+    AND fpn.plan_id=#{plan_id}
+      AND fpn.is_effective=0
+
+
+  </select>
+
+<!--查找偏差率-->
+   <select id="selectDeviationRate" parameterType="java.util.Map"  resultType="java.util.Map">
+
+  SELECT * FROM  (
+
+
+  SELECT
+       IFNULL(sub_num,0)rate,
+      'sub_num' AS NAME
+      FROM
+      fp_guest_storage_node_plan
+      WHERE
+     flow_id=#{flow_id}
+      AND
+      nide_name='首开前21天'
+        AND
+      LEVEL=3
+    UNION ALL
+    SELECT
+     IFNULL(big_num,0) rate,
+      'big_num' AS NAME
+      FROM
+      fp_guest_storage_node_plan
+      WHERE
+     flow_id=#{flow_id}
+      AND
+      nide_name='首开前21天'
+        AND
+      LEVEL=3
+       UNION ALL
+    SELECT
+      IFNULL(little_num,0)  rate,
+      'little_num' AS NAME
+      FROM
+      fp_guest_storage_node_plan
+      WHERE
+     flow_id=#{flow_id}
+      AND
+      nide_name='首开前21天'
+        AND
+      LEVEL=3
+       UNION ALL
+    SELECT
+    IFNULL(visit_num,0) rate,
+      'visit_num' AS NAME
+      FROM
+      fp_guest_storage_node_plan
+      WHERE
+     flow_id=#{flow_id}
+      AND
+      nide_name='首开前21天'
+        AND
+      LEVEL=3
+       UNION ALL
+    SELECT
+       IFNULL(report_num,0) rate,
+      'report_num' AS NAME
+      FROM
+      fp_guest_storage_node_plan
+      WHERE
+     flow_id=#{flow_id}
+      AND
+      nide_name='首开前21天'
+        AND
+      LEVEL=3
+      ) forPer
+     WHERE rate>0
+      LIMIT 1
+
+
+   </select>
+
+    <!--若顶设2重新铺排时间，那么往后的节点已经提报的都要变-->
+    <update id="UpdateAllNodeTime" parameterType="java.util.Map">
+
+
+
+       UPDATE fp_plan_node
+          set
+        is_effective=1,
+
+	light_stuat=null,
+
+	plan_approval=null,
+    actual_finish_time=null,
+plan_end_time=DATE_SUB(#{open_time},INTERVAL 90 DAY)
+	WHERE plan_approval=4 AND is_effective=0 AND node_level=4
+
+	   AND DATE_SUB(#{open_time},INTERVAL 90 DAY)>NOW()
+
+	    AND plan_id=#{plan_id};
+
+      UPDATE fp_plan_node
+          set
+        is_effective=1,
+
+	light_stuat=null,
+ actual_finish_time=null,
+	plan_approval=null,
+	plan_end_time=DATE_SUB(#{open_time},INTERVAL 60 DAY)
+	WHERE plan_approval=4 AND is_effective=0 AND node_level=5
+	    AND DATE_SUB(#{open_time},INTERVAL 60 DAY)>NOW()
+
+	    AND plan_id=#{plan_id};
+
+        update fp_plan_node
+         set
+        is_effective=1,
+
+	light_stuat=null,
+ actual_finish_time=null,
+	plan_approval=null,
+	plan_end_time=DATE_SUB(#{open_time},INTERVAL 21 DAY)
+	    where plan_approval=4 and is_effective=0 and node_level=6
+	     AND DATE_SUB(#{open_time},INTERVAL 21 DAY)>NOW()
+
+	    AND plan_id=#{plan_id};
+
+        update fp_plan_node
+         set
+        is_effective=1,
+
+	light_stuat=null,
+ actual_finish_time=null,
+	plan_approval=null,
+	plan_end_time=DATE_SUB(#{open_time},INTERVAL 7 DAY)
+	    where plan_approval=4 and is_effective=0 and node_level=7
+	     AND DATE_SUB(#{open_time},INTERVAL 7 DAY)>NOW()
+
+	    AND plan_id=#{plan_id};
+
+    update fp_plan_node
+         set
+         actual_finish_time=null,
+        is_effective=1,
+        light_stuat=null
+	    where plan_approval=4 and is_effective=0 and node_level=8
+	        AND #{open_time}>NOW()
+
+	    AND plan_id=#{plan_id};
+
+     update fp_plan_node
+         set
+        is_effective=1,
+
+	light_stuat=null,
+actual_finish_time=null,
+	plan_approval=null,
+	plan_end_time=DATE_SUB(#{open_time},INTERVAL -30 DAY)
+	    where plan_approval=4 and is_effective=0 and node_level=9
+	    AND  DATE_SUB(#{open_time},INTERVAL -30 DAY)>NOW()
+
+	    AND plan_id=#{plan_id};
+
+
+    </update>
+
+            <!--查找已经提交的且要重新初始化的节点-->
+    <select id="selectEffectiveNode" parameterType="java.util.Map" resultType="java.util.Map">
+
+	    select id plan_node_id,node_level,plan_id from fp_plan_node
+
+    WHERE plan_approval=4 AND is_effective=0 AND node_level=4
+
+        AND DATE_SUB(#{open_time},INTERVAL 90 DAY)>NOW()
+      AND plan_id=#{plan_id}
+        UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+           WHERE plan_approval=4 AND is_effective=0 AND node_level=5
+
+         AND NOW() &lt;DATE_SUB(#{open_time},INTERVAL 60 DAY)
+      AND plan_id=#{plan_id}
+          UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+           where plan_approval=4 and is_effective=0 and node_level=6
+
+         AND NOW() &lt;DATE_SUB(#{open_time},INTERVAL 21 DAY)
+      AND plan_id=#{plan_id}
+        UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+            where plan_approval=4 and is_effective=0 and node_level=7
+
+        AND NOW() &lt;DATE_SUB(#{open_time},INTERVAL 7 DAY)
+      AND plan_id=#{plan_id}
+        UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+            where plan_approval=4 and is_effective=0 and node_level=8
+
+         AND NOW() &lt;#{open_time}
+      AND plan_id=#{plan_id}
+       UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+             where plan_approval=4 and is_effective=0 and node_level=9
+
+          AND NOW() &lt; DATE_SUB(#{open_time},INTERVAL -30 DAY)
+      AND plan_id=#{plan_id}
+</select>
+
+    <!--插入首开前后一个月的版本-->
+<insert id="insertBroadcast" parameterType="java.util.Map">
+    insert into fp_open_morrow_broadcast (
+  id,
+  plan_node_id,
+  plan_id,
+
+  version,
+  plan_approval,
+  create_time
+
+)
+VALUES (
+UUID(),
+#{plan_node_id},
+#{plan_id},
+  #{version},
+  10,
+  NOW()
+)
+</insert>
+
+
+    <!--判断上一个节点是否有被略过-->
+   <select id="judgeEtc" parameterType="java.util.Map" resultType="java.lang.String">
+
+ select COUNT(fgsw.id) flowNum
+  from fp_plan_node fpn
+  LEFT JOIN fp_guest_storage_flow fgsf  ON fgsf.plan_node_id=fpn.id
+  LEFT JOIN fp_guest_storage_node_plan fgsw
+  ON fgsw.flow_id=fgsf.id
+		WHERE
+		fpn.node_level=#{node_level}-1
+        AND fpn.plan_id= #{plan_id}
+        and fpn.light_stuat in(3,4)
+      ORDER BY fpn.create_time DESC LIMIT 1
+   </select>
+
+    <!--查找最近的完成时间给新节点赋上-->
+<select id="selectDesignTwoTime" parameterType="java.util.Map" resultType="java.util.Map">
+
+    select
+   DATE_FORMAT(plan_end_time,'%Y-%m-%d') plan_end_time,
+   creator
+     from fp_plan_node where plan_id=#{plan_id}
+    and node_level=3 and is_del=0
+     AND plan_end_time  IS NOT NULL
+    order by create_time DESC LIMIT 1
+</select>
+
+
+
+
+    <!--查找已经提交的且没有版本需要新创建版本的节点-->
+    <select id="selectNeedNewNode" parameterType="java.util.Map" resultType="java.util.Map">
+
+	    select id plan_node_id,node_level,plan_id from fp_plan_node
+
+    WHERE light_stuat in(3,4) AND (plan_approval IN(2,10) OR plan_approval IS NULL)   AND node_level=4
+
+        AND DATE_SUB(#{open_time},INTERVAL 90 DAY)&lt;NOW()
+      AND plan_id=#{plan_id}
+        UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+         WHERE light_stuat in(3,4) AND (plan_approval IN(2,10) OR plan_approval IS NULL)  AND node_level=5
+         AND NOW() >DATE_SUB(#{open_time},INTERVAL 60 DAY)
+      AND plan_id=#{plan_id}
+          UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+           WHERE light_stuat in(3,4) AND (plan_approval IN(2,10) OR plan_approval IS NULL) and node_level=6
+
+         AND NOW()>DATE_SUB(#{open_time},INTERVAL 21 DAY)
+      AND plan_id=#{plan_id}
+        UNION ALL
+         select id plan_node_id,node_level,plan_id from fp_plan_node
+             WHERE light_stuat in(3,4) AND (plan_approval IN(2,10) OR plan_approval IS NULL)  and node_level=7
+
+        AND NOW()>DATE_SUB(#{open_time},INTERVAL 7 DAY)
+      AND plan_id=#{plan_id}
+
+</select>
+
+    <!--判断当前节点是否是被略过节点，若是，即便下面的节点已经提报，改节点也可以编辑-->
+<select id="judgeCanWrite"  parameterType="java.util.Map" resultType="java.util.Map">
+
+
+    SELECT COUNT(fgsnp.id) storageCount,
+     (SELECT COUNT(id) FROM fp_guest_storage_flow WHERE  plan_node_id=#{plan_node_id}
+	   AND
+	 (approval_stuat IN(2,10) OR
+       approval_stuat IS NULL )   )flowCount,
+	(SELECT id FROM fp_plan_node WHERE id=#{plan_node_id}
+         AND
+         plan_approval=4 ) idState  FROM
+       fp_guest_storage_node_plan fgsnp
+       LEFT JOIN
+       fp_plan_node fpn
+       ON fgsnp.plan_node_id=fpn.id
+
+       WHERE
+        fpn.node_level>#{node_level}
+        AND
+        fpn.plan_approval IN(4,3)
+        AND
+        fpn.plan_id=#{plan_id}
+</select>
+
+    <!--要提报的时候修改顶设2的计划完成时间-->
+    <update id="updateRealTwoTime"  parameterType="java.util.Map" >
+
+         UPDATE
+fp_plan_node
+SET
+plan_end_time=(SELECT designtwo_time FROM fp_date_node WHERE plan_node_id=#{plan_node_id} )
+WHERE
+id = #{plan_node_id};
+    </update>
+
+<select id="selectPlanIDElse"  parameterType="java.util.Map" resultType="java.util.Map">
+    SELECT plan_id FROM `fp_guest_storage_flow` WHERE (id=#{businesskey} OR plan_node_id=#{businesskey}) LIMIT 1
+</select>
+
+    <!--顶设2重新铺排时间后将延期开盘申请表里的流程不作数-->
+   <update id="updateDelaySeven" parameterType="java.util.Map">
+       update
+       fp_delay_apply
+       set
+       approval_stuat=7
+       where
+       plan_id=#{plan_id}
+   </update>
+
+<!--废弃已经掠过的节点的历史版本-->
+    <update id="deleteForNo" parameterType="java.util.Map">
+ UPDATE
+  `fp_guest_storage_flow`
+  SET
+  approval_stuat=7
+  WHERE
+  plan_id=#{plan_id}
+
+    AND
+    node_level IN (4,5,6,7)
+    AND
+    approval_stuat=4
+
+    </update>
+
+    <!--专用于创版逻辑-->
+   <update id="forNewNodePlanOne" parameterType="java.util.Map">
+        delete
+        from
+fp_guest_storage_node_plan
+where
+ plan_node_id=#{plan_node_id};
+
+
+   </update>
+
+    <update id="forNewNodePlanTwo" parameterType="java.util.Map">
+
+   delete
+        from
+fp_guest_storage_week
+where
+ plan_node_id=#{plan_node_id};
+
+
+   </update>
+    <update id="forNewNodePlanThree" parameterType="java.util.Map">
+
+
+       update
+       `fp_guest_storage_node_plan`
+         set plan_node_id=#{plan_node_id}
+        where
+        plan_node_id=#{fakeId};
+
+   </update>
+    <update id="forNewNodePlanFour" parameterType="java.util.Map">
+
+          update
+       `fp_guest_storage_week`
+         set plan_node_id=#{plan_node_id}
+        where
+        plan_node_id=#{fakeId};
+
+   </update>
+
+    <update id="updatePlanForBack" parameterType="java.util.Map">
+
+UPDATE
+ fp_plan_node
+SET
+
+  `plan_approval` = 10,
+    is_effective=1
+WHERE `id` = #{plan_node_id} ;
+    </update>
+
+    <update id="updateFlowForBack" parameterType="java.util.Map">
+
+UPDATE
+ fp_guest_storage_flow
+SET
+
+  `approval_stuat` = 10
+
+WHERE (`id` = #{flow_id} OR plan_node_id=#{plan_node_id}  ) ;
+    </update>
+
+    <select id="selectFlowCode" parameterType="java.lang.String" resultType="java.lang.String">
+        SELECT flow_code FROM mm_ap_flow_info WHERE json_id=#{json_id}
+    </select>
+
+    <!--从顶社1已经审批完成的数据里取数-->
+   <select id="getTopOneValue" parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT
+    fdv.id fakeId,
+  fdv.operation_type_code,
+        fdv.operation_type,
+        fdv.product_type_code,
+        fdv.product_type,
+        fdv.designone_area  land_back_area,
+        fdv.designone_avg_price  land_back_avg_price,
+        fdv.designonel_front_value  land_back_value,
+        fdv.designone_front_open_price  land_back_open_price,
+        fdv.designonel_front_cost_standard  land_back_cost_standard,
+        fdv.designone_front_avg_flow  land_back_avg_flow,
+
+          fdv.designone_area,
+        fdv.designone_avg_price,
+        fdv.designonel_front_value,
+        fdv.designone_front_open_price,
+        fdv.designonel_front_cost_standard,
+        fdv.designone_front_avg_flow,
+
+        fdv.vs_all_avg_price,
+        fdv.vs_value_price,
+        fdv.vs_open_price,
+        fdv.vs_hardcover_price,
+        fdv.vs_case_info,
+        (select fdv.takeLandId FROM  fp_designone_value fdv
+          INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=2
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id WHERE fdv.takeLandId IS NOT NULL LIMIT 1
+        ) takeLandId,
+
+        #{plan_id} plan_id
+
+    FROM  fp_designone_value fdv
+     INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=2
+    AND plan_id=#{plan_id}
+    AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id
+   </select>
+
+    <select id="getTopOneRoom"  parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT
+
+  #{plan_id} plan_id,
+        fdv.operation_type_code,
+        fdv.operation_type,
+        fdv.product_type_code,
+        fdv.product_type,
+        fdv.designone_room_area  land_back_room_area,
+        fdv.designone_room_num  land_back_room_num,
+        fdv.designone_room_per  land_back_room_per,
+        fdv.designone_room_area,
+        fdv.designone_room_num,
+        fdv.designone_room_per,
+        fdv.designone_room_fun,
+        fdv.designone_south_num,
+        fdv.vs_designone_door_num,
+        fdv.vs_designone_room_area,
+        fdv.vs_designone_room_num,
+        fdv.vs_designone_room_per,
+        fdv.vs_case_info,
+           (select fdv.takeLandId FROM  fp_designone_room fdv
+          INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=2
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id WHERE fdv.takeLandId IS NOT NULL LIMIT 1
+        ) takeLandId
+
+    FROM  fp_designone_room fdv
+     INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=2
+    AND plan_id=#{plan_id}
+      AND is_effective=0
+  ) pni
+  ON pni.id=fdv.plan_node_id
+    </select>
+
+
+  <select id="getDesignTwoRoom" parameterType="java.util.Map" resultType="java.util.Map">
+       select * from fp_designtwo_room where plan_node_id = #{plan_node_id}
+  </select>
+    <select id="getDesignTwoValue" parameterType="java.util.Map" resultType="java.util.Map">
+       select * from fp_designtwo_value where plan_node_id = #{plan_node_id}
+  </select>
+
+<update id="insertDesignTwoRoom"  parameterType="arraylist">
+    INSERT INTO fp_designtwo_room(id, plan_id, plan_node_id, operation_type_code, operation_type, product_type_code,
+    product_type, land_back_room_area, land_back_room_num, land_back_room_per, designone_room_area,
+    designone_room_num, designone_room_per, designone_room_fun, designone_south_num, vs_designone_door_num,
+    vs_designone_room_area, vs_designone_room_num, vs_designone_room_per,takeLandId,vs_case_info)
+    VALUES
+    <foreach collection="list" index="index" separator="," item="item">
+        (UUID(),#{item.plan_id},#{item.plan_node_id},#{item.operation_type_code},#{item.operation_type},#{item.product_type_code},#{item.product_type},
+        #{item.land_back_room_area},#{item.land_back_room_num},#{item.land_back_room_per},#{item.designone_room_area},
+        #{item.designone_room_num},#{item.designone_room_per},#{item.designone_room_fun},#{item.designone_south_num},
+        #{item.vs_designone_door_num},#{item.vs_designone_room_area},#{item.vs_designone_room_num},#{item.vs_designone_room_per},#{item.takeLandId},#{item.vs_case_info})
+    </foreach>
+
+</update>
+
+ <update id="insertDesignTwoValue"  parameterType="arraylist">
+INSERT INTO saleman.fp_designtwo_value (
+        id,
+        plan_id,
+        plan_node_id,
+        operation_type_code,
+        operation_type,
+        product_type_code,
+        product_type,
+        land_back_area,
+        land_back_avg_price,
+        land_back_value,
+        land_back_open_price,
+        land_back_cost_standard,
+        land_back_avg_flow,
+        designone_area,
+        designone_avg_price,
+        designonel_front_value,
+        designone_front_open_price,
+        designonel_front_cost_standard,
+        designone_front_avg_flow,
+        vs_all_avg_price,
+        vs_value_price,
+        vs_open_price,
+        vs_hardcover_price,
+        takeLandId,
+        fakeId,
+     vs_case_info
+        )
+        VALUES
+     <foreach collection="list" index="index" separator="," item="item">
+        (
+
+            UUID(),
+          #{item.plan_id},
+
+         #{item.plan_node_id},
+         #{item.operation_type_code},
+         #{item.operation_type},
+         #{item.product_type_code} ,
+
+         #{item.product_type},
+         #{item.land_back_area},
+         #{item.land_back_avg_price},
+         #{item.land_back_value},
+         #{item.land_back_open_price},
+         #{item.land_back_cost_standard},
+         #{item.land_back_avg_flow},
+         #{item.designone_area},
+         #{item.designone_avg_price},
+         #{item.designonel_front_value},
+         #{item.designone_front_open_price},
+         #{item.designonel_front_cost_standard},
+         #{item.designone_front_avg_flow},
+         #{item.vs_all_avg_price},
+         #{item.vs_value_price},
+         #{item.vs_open_price},
+         #{item.vs_hardcover_price},
+         #{item.takeLandId},
+         #{item.fakeId},
+         #{item.vs_case_info}
+        )
+     </foreach>
+        </update>
+
+<update id="deleteDesignTwoValue"  parameterType="java.util.Map">
+    DELETE FROM  fp_designtwo_value WHERE  plan_node_id = #{plan_node_id}
+</update>
+
+<update id="deleteDesignTwoRoom" parameterType="java.util.Map">
+DELETE FROM  fp_designtwo_room WHERE  plan_node_id = #{plan_node_id}
+</update>
+
+    <!--现在有一种机制，是顶设1审批完成后要推翻顶设2的最新版本-->
+<update id="backDesignTwo" parameterType="java.util.Map">
+
+	    update
+    fp_plan_node
+    set
+    is_del=1
+    where
+    id=(select * from(select id from fp_plan_node where plan_approval in (2,10) and plan_id=#{plan_id} and  node_level=3 order by create_time DESC  limit 1) a)
+</update>
+
+
+   <select id="selectTwoOperation" parameterType="java.util.Map" resultType="java.util.Map">
+
+  SELECT
+
+    plan_id,
+    operation_type,
+    operation_type_code
+
+    FROM  fp_designtwo_value fdv
+   INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=3
+    AND plan_id=#{plan_id}
+     order by create_time desc  limit 1
+  ) pni
+  ON pni.id=fdv.plan_node_id
+    GROUP BY operation_type_code
+      ORDER BY operation_type_code,product_type_code
+   </select>
+
+<select id="selectTwoProductType" parameterType="java.util.Map"  resultType="java.util.Map">
+
+  SELECT
+   fdv.fakeId,
+    fdv.id,
+    plan_id,
+    operation_type,
+    operation_type_code,
+  product_type,
+  product_type_code,
+
+
+   designone_avg_price all_big_avg_price,
+    designonel_front_value all_big_value_price,
+   0 AS all_rules_avg_price,
+   0 AS all_rules_value_price,
+   landback.land_back_avg_price all_invest_avg_price,
+  landback.land_back_value  all_invest_value_price
+  FROM  fp_designtwo_value fdv
+    INNER JOIN
+  (
+    SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=3
+    AND plan_id=#{plan_id}
+     order by create_time  desc limit 1
+  ) pni
+  ON pni.id=fdv.plan_node_id
+  left join
+  (
+  select id,land_back_avg_price,land_back_value
+  from
+  fp_designone_value
+  where plan_node_id=(select id from fp_plan_node where node_level=2 and plan_id=#{plan_id} and is_effective=0 )
+  ) landback ON landback.id=fdv.fakeId
+
+   ORDER BY  fdv.operation_type_code,fdv.product_type_code
+</select>
+
+
+
+    <!--搜索来自顶设2的产品类型,投资版货值，战归版货值，全盘量价规划里
+      整盘投资，整盘战规，投资版总货值，战规总货值，在顶设2大定价版本对标里用-->
+    <select id="selectDesignTwoTypeBig" parameterType="java.util.Map" resultType="java.util.Map">
+
+
+  SELECT
+    fdv.id,
+    plan_id,
+    operation_type,
+    operation_type_code,
+  product_type,
+  product_type_code,
+fdv.fakeId,
+
+   designonel_front_value AS big_total_value,
+    IFNULL(landback.land_back_value,0)  invest_total_value,
+  fdv.land_back_value  rules_total,
+  IFNULL(designonel_front_value,0)-IFNULL(landback.land_back_value,0) AS vs_invest,
+    '' AS    invest_cause,
+  designonel_front_value-fdv.land_back_value  AS vs_rules,
+  '' AS rules_cause
+
+   FROM  fp_designtwo_value fdv
+
+    INNER JOIN
+  (
+     SELECT id, VERSION FROM fp_plan_node
+  WHERE
+   fp_plan_node.node_level=3
+    AND plan_id=#{plan_id}
+     order by create_time desc limit 1
+  ) pni
+  ON pni.id=fdv.plan_node_id
+left join
+  (
+  select id,land_back_avg_price,land_back_value
+  from
+  fp_designone_value
+  where plan_node_id=(select id from fp_plan_node where node_level=2 and plan_id=#{plan_id} and is_effective=0 )
+  ) landback ON landback.id=fdv.fakeId
+
+
+
+
+
+    ORDER BY  operation_type_code,product_type_code
+  </select>
+
+    <update id="deleteAllPlan" parameterType="java.util.Map">
+      DELETE FROM
+   fp_designtwo_all_plan
+   WHERE plan_node_id=#{plan_node_id}
+    </update>
+
+
+    <update id="deleteAllPlanBig" parameterType="java.util.Map" >
+      DELETE FROM
+   fp_designtwo_all_plan_big
+   WHERE plan_node_id=#{plan_node_id}
+    </update>
+
+
+</mapper>

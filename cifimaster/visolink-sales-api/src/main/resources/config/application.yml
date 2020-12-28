@@ -1,0 +1,74 @@
+server:
+  port: 8002
+  #tomcat
+  tomcat:
+    uri-encoding: UTF-8
+
+spring:
+  profiles:
+    active: uat
+  jackson:
+    time-zone: GMT+8
+  data:
+    redis:
+      repositories:
+        enabled: false
+  http:
+    encoding:
+      force: true
+      charset: utf-8
+      enabled: true
+  #配置 Jpa
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5InnoDBDialect
+    open-in-view: true
+
+  activemq:
+    broker-url:
+  validationQuery: SELECT 1
+  mvc:
+    view:
+      prefix: /WEB-INF/view/
+# Mybatis配置
+mybatis-plus:
+  mapperLocations: classpath:mapper/mybaits/**.xml,classpath:mapper/mybaits/**/*.xml,classpath:mapper/publicpool/**.xml
+  # 实体扫描，多个package用逗号或者分号分隔
+  type-aliases-package: cn.visolink.salesmanage.*.entity
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    # 是否开启自动驼峰命名规则
+    map-underscore-to-camel-case: false
+    # 当结果集中值为 null 的时候是否调用映射对象的 Setter
+    call-setters-on-nulls: true
+  # MyBatis-Plus 全局策略配置
+  global-config:
+    db-config:
+      # id主键生成规则，可选
+      id-type: UUID
+      # 逻辑删除配置（下面2个配置）
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      # 表名、是否使用下划线命名，默认数据库表使用下划线命名
+      table-underline: true
+
+
+#七牛云
+qiniu:
+  # 文件大小 /M
+  max-size: 15
+
+#邮箱验证码有效时间/分钟
+code:
+  expiration: 5
+
+#登录图形验证码有效时间/分钟
+loginCode:
+  expiration: 2
+# 极光推送
+jpush:
+  masterSecret: e5a2c5787aedd7abec2ea063
+  appkey: 972fa14adf6cf5d753d4df1c
+  # true为生产环境，false为开发环境
+  apnsProduction: false

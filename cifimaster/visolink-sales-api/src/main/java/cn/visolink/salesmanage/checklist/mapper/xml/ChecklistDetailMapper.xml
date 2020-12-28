@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.checklist.mapper.ChecklistDetailDao">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.visolink.salesmanage.checklist.entity.ChecklistDetail">
+        <id column="id" property="id" />
+        <result column="fid" property="fid" />
+        <result column="checklist_id" property="checklistId" />
+        <result column="commission_id" property="commissionId" />
+        <result column="room_id" property="roomId" />
+        <result column="room_name" property="roomName" />
+        <result column="business_attribution_code" property="businessAttributionCode" />
+        <result column="transaction_id" property="transactionId" />
+        <result column="opportunity_id" property="opportunityId" />
+        <result column="project_code" property="projectCode" />
+        <result column="project_time" property="projectTime" />
+        <result column="project_amount" property="projectAmount" />
+        <result column="commission_point" property="commissionPoint" />
+        <result column="channel_name" property="channelName" />
+        <result column="amount_closed" property="amountClosed" />
+        <result column="outstanding_amount" property="outstandingAmount" />
+        <result column="application_amount" property="applicationAmount" />
+        <result column="applicant" property="applicant" />
+        <result column="amount_paid" property="amountPaid" />
+        <result column="unpaid_amount" property="unpaidAmount" />
+        <result column="com_payment_ratio" property="comPaymentRatio" />
+        <result column="is_deadlock" property="isDeadlock" />
+        <result column="is_hide" property="isHide" />
+        <result column="checklist_detail_type" property="checklistDetailType" />
+        <result column="is_settle" property="isSettle" />
+        <result column="status" property="status" />
+        <result column="isdel" property="isdel" />
+        <result column="create_time" property="createTime" />
+        <result column="creator" property="creator" />
+        <result column="edit_time" property="editTime" />
+        <result column="editor" property="editor" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, fid, checklist_id, commission_id, room_id, room_name, business_attribution_code, transaction_id, opportunity_id, project_code, project_time, project_amount, commission_point, channel_name, amount_closed, outstanding_amount, application_amount, applicant, amount_paid, unpaid_amount, com_payment_ratio, is_deadlock, is_hide, checklist_detail_type, is_settle, status, isdel, create_time, creator, edit_time, editor
+    </sql>
+
+</mapper>

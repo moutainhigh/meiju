@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.gxcinterface.dao.GXCInterfaceDao">
+
+    <!--供货视图获取的数据批量插入销管数据库-->
+    <insert id="insertvaluegh">
+        INSERT INTO  v_sman_supply_plan (project_id,project_code,project_name,stage_id,stage_name,group_id,group_name,
+        pro_product_code,pro_product_type,product_code,product_name,design_build_id,bld_prd_id,house_package_name,supply_date,supply_date_actual,
+        room_num,parking_num,room_num_actual,parking_num_actual,sale_area,area_actual,house_commodity_value,commodity_value,not_commodity_value
+        ,house_commodity_value_actual,commodity_value_actual,not_commodity_value_actual,version_id,create_time,is_parking,version_num,version_name,version_type,type,confirm_status,is_finalize,affiliation_month)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.project_id},#{item.project_code},#{item.project_name},#{item.stage_id},#{item.stage_name},#{item.group_id},#{item.group_name},
+             #{item.pro_product_code},#{item.pro_product_type},#{item.product_code},#{item.product_name},#{item.design_build_id},#{item.bld_prd_id},#{item.house_package_name},#{item.supply_date},#{item.supply_date_actual},
+             #{item.room_num},#{item.parking_num},#{item.room_num_actual},#{item.parking_num_actual},#{item.sale_area},#{item.area_actual},#{item.house_commodity_value},#{item.commodity_value},#{item.not_commodity_value},
+             #{item.house_commodity_value_actual},#{item.commodity_value_actual},#{item.not_commodity_value_actual},#{item.version_id},#{item.create_time},#{item.is_parking},#{item.version_num},#{item.version_name}
+             ,#{item.version_type} ,#{item.type},#{item.confirm_status},#{item.is_finalize},#{item.affiliation_month}
+            )
+        </foreach>;
+        update  v_sman_supply_plan tmg,t_mm_designbuild tmd
+        set
+        tmg.product_name_info=CONCAT(tmg.product_name,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME),
+        tmg.product_id=CONCAT(tmg.group_id,tmg.product_code,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_code_sale =CONCAT(tmg.product_code,'.',tmd.FREETYPE,'.',tmd.BUSINESSTYPE,'.',tmd.PROTYPE)
+        where tmd.bldPrdID=tmg.bld_prd_id
+        and tmd.productCode=tmg.product_code
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_supply_plan set house_package_id=CONCAT(product_id,house_package_name)
+        where pro_product_code not in('139');
+        update v_sman_supply_plan set house_package_name='1'
+        where house_package_name='其它';
+        update v_sman_supply_plan set house_package_name='2'
+        where pro_product_code=139 or house_package_name=''
+    </insert>
+
+    <!--获取分期集合-->
+    <select id="getStageList" resultType="java.util.Map" parameterType="java.lang.String">
+         select stage_id from v_sman_supply_plan
+          <where>
+              <if test="project_id !=null and project_id!=''">
+                  project_id=#{project_id}
+              </if>
+          </where>
+          GROUP BY stage_id
+    </select>
+
+    <!--获取确认版时间-->
+    <select id="getQrDate" parameterType="java.lang.String" resultType="java.lang.String">
+        select create_time from v_sman_supply_plan where stage_id=#{stageId} and confirm_status=1 ORDER BY create_time desc limit 1
+    </select>
+
+    <!--获取定稿版时间-->
+    <select id="getDgDate" parameterType="java.lang.String" resultType="java.lang.String">
+        select create_time from v_sman_supply_plan where stage_id=#{stageId} and is_finalize=1 ORDER BY create_time desc limit 1
+    </select>
+
+    <!--删除最新版以外其他版本-->
+    <delete id="delNewOtjerVersion" parameterType="java.lang.String" >
+        delete from v_sman_supply_plan
+        where stage_id=#{stageId}
+        and create_time &lt;&gt;
+       (select * from (select create_time  from v_sman_supply_plan where stage_id=#{stageId} order by create_time desc limit 1) a)
+    </delete>
+    <!--删除确认外其他版本-->
+    <delete id="delQrOtherVersion" parameterType="java.lang.String" >
+       delete from v_sman_supply_plan where stage_id=#{stageId} and confirm_status &lt;&gt;1;
+       delete from v_sman_supply_plan where stage_id=#{stageId} and create_time &lt;&gt; #{qrDate};
+    </delete>
+    <!--删除定稿其他版本-->
+    <delete id="delDgOtherVersion" parameterType="java.lang.String" >
+       delete from v_sman_supply_plan where stage_id=#{stageId} and is_finalize &lt;&gt;1;
+       delete from v_sman_supply_plan where stage_id=#{stageId} and  create_time &lt;&gt; #{qrDate};
+    </delete>
+
+
+    <!--每次拉取供货视图数据前清空一下供货视图数据-->
+    <delete id="deletegh" >
+      DELETE  FROM v_sman_supply_plan
+    </delete>
+
+    <delete id="deleteDynamicValue">
+        DELETE FROM v_sman_dynamic_value where  versionTime>=#{startTime}
+    </delete>
+
+    <delete id="deleteSignPlan" >
+        DELETE  FROM v_sman_sign_plan
+        where create_time>=#{startTime}
+    </delete>
+
+    <delete id="deletePlanValueByVersionId">
+        DELETE FROM v_sman_plan_value
+        where versionTime>=#{startTime}
+    </delete>
+
+
+    <delete id="deleteReportValue" >
+        DELETE  FROM v_sman_value_report
+        where end_date=#{startTime}
+    </delete>
+
+    <delete id="delSupply">
+       TRUNCATE TABLE v_sman_supply_plan;
+    </delete>
+
+    <!--供货库存-->
+    <insert id="insertReportValue">
+        INSERT INTO v_sman_value_report (`id`, `region_id`, `region_name`, `project_id`, `project_code`, `project_name`,
+        `stage_id`, `stage_name`, `group_id`, `group_name`, `pro_product_code`, `pro_product_type`, `mini_granularity_name`,
+        `version_id`, `version_name`, `version_type`, `version_num`, `version_date`, `end_date`, `un_sale_stall_num`, `un_sale_room_num`,
+        `un_sale_stall_price`, `un_sale_room_price`,bld_prd_id,is_parking)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.id},#{item.region_id},#{item.region_name},#{item.project_id},#{item.project_code},#{item.project_name},#{item.projectf_id},#{item.projectf_name},#{item.group_id},#{item.group_name},
+            #{item.product_code},#{item.product_name},#{item.mini_granularity_name},
+            #{item.version_id},#{item.version_name},#{item.version_type},#{item.version_num},#{item.version_date}
+            ,#{item.end_date},#{item.un_sale_stall_num},#{item.un_sale_room_num},#{item.un_sale_stall_price},#{item.un_sale_room_price},#{item.building_id},
+            #{item.is_parking}
+            )
+        </foreach>;
+        update  v_sman_value_report tmg,t_mm_designbuild tmd
+        set
+        tmg.product_id=CONCAT(tmg.group_id,tmg.pro_product_code,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_code_sale =CONCAT(tmg.pro_product_code,'.',tmd.FREETYPE,'.',tmd.BUSINESSTYPE,'.',tmd.PROTYPE)
+        where tmd.bldPrdID=tmg.bld_prd_id
+        and tmd.productCode=tmg.pro_product_code
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_value_report set mini_granularity_id=CONCAT(product_id,mini_granularity_name)
+        where pro_product_code not in('139');
+        update v_sman_value_report set mini_granularity_name='1'
+        where mini_granularity_name='其它';
+        update v_sman_value_report set mini_granularity_name='2'
+        where pro_product_code=139 or mini_granularity_name=''
+    </insert>
+
+
+    <delete id="deleteSupplyPlanVersionId" >
+        DELETE  FROM v_sman_supply_plan
+        <where>
+            <if test="startTime!=null and startTime !=''">
+                create_time>=#{startTime}
+            </if>
+        </where>
+    </delete>
+
+    <!--动态货值视图获取的数据批量插入销管数据库-->
+    <insert id="insertvaluedthz">
+        INSERT INTO  v_sman_dynamic_value (projectId,projectCode,projectName,stageId,stageName,groupId,groupName,
+        productCode,productName,designBuildId,bldPrdId,buildName,org_name,versionNum,versionId,
+        versionType,houseValue,parkingNotValue,parkingValue,versionTime)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectId},#{item.projectCode},#{item.projectName},#{item.stageId},#{item.stageName},#{item.groupId},#{item.groupName},
+            #{item.productCode},#{item.productName},#{item.designBuildId},#{item.bldPrdId},#{item.buildName},#{item.org_name}, #{item.versionNum},#{item.versionId},
+            #{item.versionType},#{item.houseValue},#{item.parkingNotValue},#{item.parkingValue},#{item.versionTime}
+            )
+        </foreach>
+        ;
+        update  v_sman_dynamic_value tmg,t_mm_designbuild tmd
+        set tmg.product_id=CONCAT(tmg.groupid,tmg.productcode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_name_info=CONCAT(tmg.productname,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME),
+        tmg.product_code_sale =CONCAT(tmd.productCode,'.',tmd.FREETYPE,'.',tmd.BUSINESSTYPE,'.',tmd.PROTYPE)
+        where tmd.bldPrdID=tmg.bldPrdId
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_dynamic_value set area_id=CONCAT(product_id,org_name)
+        where productCode not in('139','140','141','142');
+        -- update v_sman_dynamic_value set area_id=CONCAT(bldPrdId,productCode)
+        -- where productCode in('139','140','141','142');
+        UPDATE mm_sell_project set monthly_type=null;
+        update (select projectCode from v_sman_dynamic_value GROUP BY projectcode) a,mm_sell_project b
+        set b.monthly_type=1 where a.projectCode=b.project_code
+    </insert>
+
+    <!--每次拉取动态货值视图数据前清空一下动态货值视图数据-->
+    <delete id="deletedthz">
+      DELETE  FROM v_sman_dynamic_value
+    </delete>
+
+    <!--战规货值视图获取的数据批量插入销管数据库-->
+    <insert id="insertvaluezghz">
+        INSERT INTO  v_sman_plan_value (projectId,projectCode,projectName,stageId,stageName,groupId,groupName,
+        productCode,productName,designBuildId,bldPrdId,buildName,org_name,versionNum,versionId,
+        versionType,houseValue,parkingNotValue,parkingValue,versionTime)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectId},#{item.projectCode},#{item.projectName},#{item.stageId},#{item.stageName},#{item.groupId},#{item.groupName},
+            #{item.productCode},#{item.productName},#{item.designBuildId},#{item.bldPrdId},#{item.buildName},#{item.org_name}, #{item.versionNum},#{item.versionId},
+            #{item.versionType},#{item.houseValue},#{item.parkingNotValue},#{item.parkingValue},#{item.versionTime}
+            )
+        </foreach>
+        ;
+        update  v_sman_plan_value tmg,t_mm_designbuild tmd
+        set tmg.product_id=CONCAT(tmg.groupid,tmg.productcode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE),
+        tmg.product_name_info=CONCAT(tmg.productname,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME)
+        where tmd.bldPrdID=tmg.bldPrdId
+        and tmd.productCode=tmg.productCode
+        and (tmd.isDelete &lt;&gt;1 or tmd.isDelete is null);
+        update v_sman_plan_value set area_id=CONCAT(product_id,org_name)
+        where productCode not in('139','140','141','142');
+        -- update v_sman_plan_value set area_id=CONCAT(bldPrdId,productCode)
+        -- where productCode in('139','140','141','142');
+    </insert>
+
+    <!--每次拉取战规货值视图数据前清空一下战规货值视图数据-->
+    <delete id="deletezghz">
+      DELETE  FROM v_sman_plan_value
+    </delete>
+
+    <!--签约视图获取的数据批量插入销管数据库-->
+    <insert id="insertvalueqy">
+        INSERT INTO  v_sman_sign_plan (project_id,project_code,project_name,stage_id,stage_code,stage_name,group_id,group_code,group_name,
+        product_code,product_name,version_id,version_num,sign_price_plan,create_time,is_parking,sign_plan_time,
+        business_type,business_type_name,free_type,free_type_name,pro_type,pro_type_name
+        )
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.project_id},#{item.project_code},#{item.project_name},#{item.stage_id},#{item.stage_code},#{item.stage_name},#{item.group_id},
+            #{item.group_code},#{item.group_name},#{item.product_code},#{item.product_name},#{item.version_id},#{item.version_num}, #{item.sign_price_plan},#{item.create_time},#{item.is_parking},#{item.sign_plan_time},
+            #{item.business_type},#{item.business_type_name},#{item.free_type},#{item.free_type_name},#{item.pro_type},#{item.pro_type_name}
+            )
+        </foreach>
+    </insert>
+
+    <!--每次拉取签约视图数据前清空一下签约视图数据-->
+    <delete id="deleteqy">
+      DELETE  FROM v_sman_sign_plan
+    </delete>
+
+    <!--明源与供销存面积段归集，修改库存可售，正常非车位的-->
+    <update id="updateAvailableStock" parameterType="java.util.Map">
+         UPDATE mm_monthly_plan_basis m ,(
+        SELECT  vs.house_package_id ,(vs.commodity_value_actual - vx.cjRmbTotal) AS availableStock
+        FROM vs_xsgl_contract vx LEFT JOIN v_sman_supply_plan vs
+        ON  vx.group_id = vs.group_id AND vx.x_productCode = vs.product_code
+        WHERE totalArea &gt;= SUBSTRING_INDEX(house_package_name, '-',1)
+        AND vx.totalArea &lt;SUBSTRING_INDEX (vs.house_package_name, '-',-1 ) AND vs.pro_product_code != '139'
+        GROUP BY vs.group_id,vs.product_code
+        ) df SET reserve_can_sell_set = df.availableStock
+        WHERE m.prepared_by_unit_org_id = df.house_package_id
+    </update>
+
+    <!--明源与供销存面积段归集，修改库存可售，车位的-->
+    <update id="updateAvailableStockNotCar" parameterType="java.util.Map">
+        UPDATE mm_monthly_plan_basis m ,(
+        SELECT  vs.house_package_id ,(vs.commodity_value_actual - vx.cjRmbTotal) AS availableStock
+        FROM vs_xsgl_contract vx LEFT JOIN v_sman_supply_plan vs
+        ON vx.group_id = vs.group_id AND vx.x_productCode = vs.product_code
+        WHERE  vs.pro_product_code = '139'
+        GROUP BY vs.group_id,vs.product_code
+        ) df SET reserve_can_sell_set = df.availableStock
+        WHERE m.prepared_by_unit_org_id = df.house_package_id
+    </update>
+
+    <!--发送GXC esb接口数据查询-->
+ <!--   <select id="selectSendGXC"  resultType="java.util.Map"  parameterType="java.util.Map">
+           select vssp.project_id,vssp.project_code,vssp.project_name,vssp.stage_id,vssp.stage_name,vssp.group_id,vssp.group_name,vssp.pro_product_type,CONCAT(group_id,pro_product_code) AS pro_product_id,b.building_id,b.building_name,vssp.house_package_name,
+           new_sign_funds,reserve_sign_funds,vssp.version_id,vssp.supply_date,vssp.supply_date_actual,vssp.room_num,vssp.parking_num,vssp.room_num_actual,vssp.parking_num_actual,vssp.sale_area,
+           vssp.area_actual,vssp.house_commodity_value,vssp.commodity_value,vssp.not_commodity_value,vssp.house_commodity_value_actual,vssp.commodity_value_actual,vssp.not_commodity_value_actual,vssp.create_time
+           from mm_monthly_plan_index a
+           left join mm_idm_main_rel b
+           on  a.monthly_plan_basis_id=b.guid
+           LEFT JOIN mm_idm_main_rel mimr on mimr.house_package_id=a.prepared_by_unit_org_id
+           LEFT JOIN v_sman_supply_plan vssp on vssp.house_package_id = mimr.house_package_id
+           where a.prepared_by_unit_type=1 and a.prepared_by_level=1
+    </select>-->
+</mapper>

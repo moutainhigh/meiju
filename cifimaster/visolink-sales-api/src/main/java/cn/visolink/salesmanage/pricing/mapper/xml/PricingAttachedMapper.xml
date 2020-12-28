@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.pricing.mapper.PricingAttachedDao">
+
+    <!-- 开启二级缓存 -->
+    <!--<cache type="org.mybatis.caches.ehcache.LoggingEhcache"/>-->
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.visolink.salesmanage.pricing.entity.PricingAttached">
+        <id column="id" property="id" />
+        <result column="tzb_hz" property="tzbHz" />
+        <result column="ncb_hz" property="ncbHz" />
+        <result column="dtjq_hz" property="dtjqHz" />
+        <result column="dtjh_hz" property="dtjhHz" />
+        <result column="dtjh_tzb_hz" property="dtjhTzbHz" />
+        <result column="dtjh_ncb_hz" property="dtjhNcbHz" />
+        <result column="dtjh_dtjq_hz" property="dtjhDtjqHz" />
+        <result column="tzb_qyq_lre" property="tzbQyqLre" />
+        <result column="ncb_qyq_lre" property="ncbQyqLre" />
+        <result column="dtjq_qyq_lre" property="dtjqQyqLre" />
+        <result column="dtjh_qyq_lre" property="dtjhQyqLre" />
+        <result column="dtjh_tzb_qyq_lre" property="dtjhTzbQyqLre" />
+        <result column="dtjh_ncb_qyq_lre" property="dtjhNcbQyqLre" />
+        <result column="dtjh_dtjq_qyq_lre" property="dtjhDtjqQyqLre" />
+        <result column="tzb_qyh_lre" property="tzbQyhLre" />
+        <result column="ncb_qyh_lre" property="ncbQyhLre" />
+        <result column="dtjq_qyh_lre" property="dtjqQyhLre" />
+        <result column="dtjh_qyh_lre" property="dtjhQyhLre" />
+        <result column="dtjh_tzb_qyh_lre" property="dtjhTzbQyhLre" />
+        <result column="dtjh_ncb_qyh_lre" property="dtjhNcbQyhLre" />
+        <result column="dtjh_dtjq_qyh_lre" property="dtjhDtjqQyhLre" />
+        <result column="tzb_lrl" property="tzbLrl" />
+        <result column="ncb_lrl" property="ncbLrl" />
+        <result column="dtjq_lrl" property="dtjqLrl" />
+        <result column="dtjh_lrl" property="dtjhLrl" />
+        <result column="dtjh_tzb_lrl" property="dtjhTzbLrl" />
+        <result column="dtjh_ncb_lrl" property="dtjhNcbLrl" />
+        <result column="dtjh_dtjq_lrl" property="dtjhDtjqLrl" />
+        <result column="tzb_irr" property="tzbIrr" />
+        <result column="ncb_irr" property="ncbIrr" />
+        <result column="dtjq_irr" property="dtjqIrr" />
+        <result column="dtjh_irr" property="dtjhIrr" />
+        <result column="dtjh_tzb_irr" property="dtjhTzbIrr" />
+        <result column="dtjh_ncb_irr" property="dtjhNcbIrr" />
+        <result column="dtjh_dtjq_irr" property="dtjhDtjqIrr" />
+        <result column="tzb_hsq" property="tzbHsq" />
+        <result column="ncb_hsq" property="ncbHsq" />
+        <result column="dtjq_hsq" property="dtjqHsq" />
+        <result column="dtjh_hsq" property="dtjhHsq" />
+        <result column="dtjh_tzb_hsq" property="dtjhTzbHsq" />
+        <result column="dtjh_ncb_hsq" property="dtjhNcbHsq" />
+        <result column="dtjh_dtjq_hsq" property="dtjhDtjqHsq" />
+        <result column="ysx_dtjq_lre" property="ysxDtjqLre" />
+        <result column="ysx_dtjq_lrl" property="ysxDtjqLrl" />
+        <result column="ysx_dtjh_lre" property="ysxDtjhLre" />
+        <result column="ysx_dtjh_lrl" property="ysxDtjhLrl" />
+        <result column="ysx_tzb_lre" property="ysxTzbLre" />
+        <result column="ysx_tzb_lrl" property="ysxTzbLrl" />
+        <result column="ysx_jebd" property="ysxJebd" />
+        <result column="ysx_lrlbd" property="ysxLrlbd" />
+        <result column="dnyj_dtjq_lre" property="dnyjDtjqLre" />
+        <result column="dnyj_dtjq_lrl" property="dnyjDtjqLrl" />
+        <result column="dnyj_dtjh_lre" property="dnyjDtjhLre" />
+        <result column="dnyj_dtjh_lrl" property="dnyjDtjhLrl" />
+        <result column="dnyj_tzb_lre" property="dnyjTzbLre" />
+        <result column="dnyj_tzb_lrl" property="dnyjTzbLrl" />
+        <result column="dnyj_jebd" property="dnyjJebd" />
+        <result column="dnyj_lrlbd" property="dnyjLrlbd" />
+        <result column="dsx_dtjq_lre" property="dsxDtjqLre" />
+        <result column="dsx_dtjq_lrl" property="dsxDtjqLrl" />
+        <result column="dsx_dtjh_lre" property="dsxDtjhLre" />
+        <result column="dsx_dtjh_lrl" property="dsxDtjhLrl" />
+        <result column="dsx_tzb_lre" property="dsxTzbLre" />
+        <result column="dsx_tzb_lrl" property="dsxTzbLrl" />
+        <result column="dsx_jebd" property="dsxJebd" />
+        <result column="dsx_lrlbd" property="dsxLrlbd" />
+        <result column="dpctjq_qyq_lre" property="dpctjqQyqLre" />
+        <result column="dpctjh_qyq_lre" property="dpctjhQyqLre" />
+        <result column="cy_qyq_lre" property="cyQyqLre" />
+        <result column="dpctjq_qyh_lre" property="dpctjqQyhLre" />
+        <result column="dpctjh_qyh_lre" property="dpctjhQyhLre" />
+        <result column="cy_qyh_lre" property="cyQyhLre" />
+        <result column="dpctjq_lrl" property="dpctjqLrl" />
+        <result column="dpctjh_lrl" property="dpctjhLrl" />
+        <result column="cy_lrl" property="cyLrl" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, tzb_hz, ncb_hz, dtjq_hz, dtjh_hz, dtjh_tzb_hz, dtjh_ncb_hz, dtjh_dtjq_hz, tzb_qyq_lre, ncb_qyq_lre, dtjq_qyq_lre, dtjh_qyq_lre, dtjh_tzb_qyq_lre, dtjh_ncb_qyq_lre, dtjh_dtjq_qyq_lre, tzb_qyh_lre, ncb_qyh_lre, dtjq_qyh_lre, dtjh_qyh_lre, dtjh_tzb_qyh_lre, dtjh_ncb_qyh_lre, dtjh_dtjq_qyh_lre, tzb_lrl, ncb_lrl, dtjq_lrl, dtjh_lrl, dtjh_tzb_lrl, dtjh_ncb_lrl, dtjh_dtjq_lrl, tzb_irr, ncb_irr, dtjq_irr, dtjh_irr, dtjh_tzb_irr, dtjh_ncb_irr, dtjh_dtjq_irr, tzb_hsq, ncb_hsq, dtjq_hsq, dtjh_hsq, dtjh_tzb_hsq, dtjh_ncb_hsq, dtjh_dtjq_hsq, ysx_dtjq_lre, ysx_dtjq_lrl, ysx_dtjh_lre, ysx_dtjh_lrl, ysx_tzb_lre, ysx_tzb_lrl, ysx_jebd, ysx_lrlbd, dnyj_dtjq_lre, dnyj_dtjq_lrl, dnyj_dtjh_lre, dnyj_dtjh_lrl, dnyj_tzb_lre, dnyj_tzb_lrl, dnyj_jebd, dnyj_lrlbd, dsx_dtjq_lre, dsx_dtjq_lrl, dsx_dtjh_lre, dsx_dtjh_lrl, dsx_tzb_lre, dsx_tzb_lrl, dsx_jebd, dsx_lrlbd, dpctjq_qyq_lre, dpctjh_qyq_lre, cy_qyq_lre, dpctjq_qyh_lre, dpctjh_qyh_lre, cy_qyh_lre, dpctjq_lrl, dpctjh_lrl, cy_lrl
+    </sql>
+
+</mapper>

@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.system.parameter.dao.ParameterManagementDao">
+
+    <!--查询系统所有的参数-->
+    <select id="getSystemAllParams" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        *
+        FROM S_Dictionary d
+        WHERE IsDel = 0
+        AND AuthCompanyID = #{authCompanyId}
+        AND ProductID = #{productId}
+        AND Levels &lt; 3
+        AND (d.`DictionaryLevel`=1 OR (d.`DictionaryLevel`=2 AND d.`ProjectID`=#{projectId}))
+        ORDER BY Levels,ListIndex,CreateTime
+    </select>
+
+    <!--系统新增参数-->
+    <insert id="insertSystemParam" parameterType="java.util.Map">
+        INSERT INTO S_Dictionary
+      ( ID ,
+        PID ,
+        ListIndex ,
+        DictCode ,
+        DictName ,
+        DictType ,
+        Levels ,
+        Remark ,
+        IsReadOnly ,
+        FullPath ,
+        Ext1 ,
+        Ext2 ,
+        Ext3 ,
+        Ext4 ,
+        AuthCompanyID ,
+        ProductID ,
+        Creator ,
+        CreateTime ,
+        Editor ,
+        EditTime ,
+        Status ,
+        IsDel,
+        DictionaryLevel,
+        ProjectID
+      )
+     SELECT
+        #{ID} ,
+        #{PID},
+        #{ListIndex},
+        #{DictCode},
+        #{DictName},
+        #{DictType},
+        #{Levels},
+        #{Remark},
+        #{IsReadOnly},
+        CONCAT(IFNULL(CONCAT((SELECT FullPath FROM S_Dictionary WHERE ID = #{PID}) , '/'),'') , #{DictName}) ,
+        NULL ,
+        NULL ,
+        NULL ,
+        NULL ,
+        #{AuthCompanyID},
+        #{ProductID},
+        #{Creator},
+        NOW() ,
+        NULL ,
+        NULL ,
+        1 ,
+        0,
+        #{DictionaryLevel},
+        #{ProjectID}
+    </insert>
+
+    <!--修改系统参数-->
+    <update id="modifySystemParam" parameterType="java.util.Map">
+        UPDATE S_Dictionary sd
+      SET
+        sd.ListIndex = #{ListIndex} ,
+        sd.DictCode = #{DictCode} ,
+        sd.DictName = #{DictName} ,
+        sd.DictType = #{DictType} ,
+        sd.Remark = #{Remark} ,
+        sd.Editor = #{Editor} ,
+        sd.EditTime = NOW(),
+        sd.DictionaryLevel= #{DictionaryLevel},
+        sd.ProjectID=#{ProjectID},
+        sd.IsReadOnly=#{IsReadOnly}
+      WHERE sd.ID = #{ID}
+    </update>
+
+    <!--删除系统参数-->
+    <update id="removeSystemParam" parameterType="java.util.Map">
+        UPDATE S_Dictionary sd SET sd.IsDel = 1 WHERE sd.ID = #{ID}
+    </update>
+
+    <!--查询子集参数（树形）-->
+    <select id="getSystemTreeChildParams" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        *
+      FROM S_Dictionary d
+      WHERE IsDel = 0
+        AND FullPath LIKE concat((SELECT FullPath FROM S_Dictionary WHERE ID = #{id}) , '/%')
+       AND (d.`DictionaryLevel`=1 OR (d.`DictionaryLevel`=2 AND d.`ProjectID`=#{projectId}))
+      ORDER BY Levels,ListIndex
+    </select>
+
+    <!--查询系统参数的子数据-->
+    <select id="getSystemChildParams" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        *
+      FROM S_Dictionary d
+      WHERE IsDel = 0
+        AND PID = #{pid}
+         AND (d.`DictionaryLevel`=1 OR (d.`DictionaryLevel`=2 <if test="projectId!=null and projectId!=''">AND d.`ProjectID`=#{projectId}</if>))
+        ORDER BY  CAST(ListIndex AS SIGNED)
+      LIMIT ${pageIndex},${pageSize};</select>
+
+    <!--查询子集参数非树形结构总数 -->
+    <select id="getSystemChildParamsCount" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        count(1) as count
+      FROM S_Dictionary d
+      WHERE IsDel = 0
+        AND PID = #{pid}
+         AND (d.`DictionaryLevel`=1 OR (d.`DictionaryLevel`=2 AND d.`ProjectID`=#{projectId}));
+    </select>
+
+    <!--查询参数Code是否已存在-->
+    <select id="getSystemParamCodeExists" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        (SELECT COUNT(1) FROM S_Dictionary WHERE IsDel = 0 AND DictName = #{name} AND DictCode = #{code}) AS A,
+        (SELECT COUNT(1) FROM S_Dictionary WHERE IsDel = 0 AND DictName = #{name} AND DictCode = #{code} AND PID = #{pid}) AS B
+    </select>
+
+    <!--获取定调价字典数据（下拉列表）-->
+    <select id="getDicByCodeList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+            DictName,
+            DictCode
+        FROM
+            s_dictionary
+        WHERE
+            pid = ( SELECT id FROM s_dictionary WHERE DictCode =#{DictCode} )
+        ORDER BY
+            ListIndex
+    </select>
+
+    <!--获取定调价字典数据（下拉列表）-->
+    <select id="getDicByCodeLevelList" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT Remark as pcode,
+        (SELECT DictName from s_dictionary where DictCode=b.Remark ) pname,DictCode,DictName
+        FROM s_dictionary b WHERE Ext1 =#{DictCode} ORDER BY pcode
+    </select>
+
+    <!--启用/禁用参数-->
+    <update id="modifySystemParamStatus" parameterType="java.util.Map">
+        UPDATE S_Dictionary SET Status = #{status} WHERE ID = #{id}
+    </update>
+</mapper>

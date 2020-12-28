@@ -1,0 +1,1185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.packagedis.dao.PackageDiscountDao">
+    <!-- 查询登录人的项目 -->
+    <select id="getProjects" parameterType="java.util.Map" resultType="java.util.Map">
+select
+	t.projectId,
+	t.ProjectName
+	from
+	b_account b
+INNER  join s_user_project_rel su on su.UserID=b.ID
+INNER JOIN t_mm_project t on t.ProjectID=su.project_Id
+where su.userId=#{userId}
+GROUP BY t.projectid
+union
+SELECT
+b.project_id as projectId,
+b.project_Name as ProjectName
+from s_user_project_rel a INNER JOIN mm_idm_business_unit_project_rel b
+on a.project_id=b.business_unit_id WHERE a.userId=#{userId}
+GROUP BY b.project_id
+    </select>
+    <!-- 查询项目的业态 -->
+    <select id="getFormats" parameterType="java.util.Map" resultType="java.util.Map">
+    SELECT
+    groupId,
+	productCode as building_id,
+	productName as building_name
+FROM
+	t_mm_group
+WHERE
+	projectID = #{projectId}
+GROUP BY
+	productCode
+    </select>
+    <select id="getBuildData" parameterType="java.util.Map" resultType="java.util.Map">
+	select tb.buildingName as building_name,tb.designBuildId as building_id from t_mm_designbuild  tb
+	INNER JOIN t_mm_group tg
+	on tb.designBuildID=tg.designBuildID
+	and tb.productCode=tg.productCode
+	where tb.productCode=#{productCode} and tg.groupID=#{groupId}
+   </select>
+    <select id="getProjectName" parameterType="java.util.Map" resultType="java.util.Map">
+
+ select project_name from
+ mm_idm_main_rel
+where project_id=#{project_id} limit 1
+    </select>
+    <!-- 添加一揽子折扣数据 -->
+    <insert id="insertPackageDis" parameterType="java.util.Map">
+
+        insert into mm_package_dis
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="applicantId != null">
+                applicant_id,
+            </if>
+            <if test="applicantName != null">
+                applicant_name,
+            </if>
+            <if test="departmentId != null">
+                department_id,
+            </if>
+            <if test="departmentName != null">
+                department_name,
+            </if>
+            <if test="applicantTime != null">
+                applicant_time,
+            </if>
+            <if test="projectId != null">
+                project_id,
+            </if>
+            <if test="projectName != null">
+                project_name,
+            </if>
+            <if test="itemName != null">
+                item_name,
+            </if>
+            <if test="basePolicy != null">
+                base_policy,
+            </if>
+            <if test="allLossPrice != null">
+                all_loss_price,
+            </if>
+            <if test="profitNetprofit != null">
+                profit_netprofit,
+            </if>
+            <if test="startTime != null">
+                start_time,
+            </if>
+            <if test="endTime != null">
+                end_time,
+            </if>
+            <if test="numTotal != null">
+                num_total,
+            </if>
+            <if test="sellPromisePrice != null">
+                sell_promise_price,
+            </if>
+            <if test="numPer != null">
+                num_per,
+            </if>
+            <if test="content != null">
+                content,
+            </if>
+            <if test="creator != null">
+                creator,
+            </if>
+            create_time,
+            <if test="editor != null">
+                editor,
+            </if>
+            <if test="updateTime != null">
+                update_time,
+            </if>
+            <if test="flowStatus != null">
+                flow_status,
+            </if>
+            <if test="flowTime != null">
+                flow_time,
+            </if>
+            <if test="flowId != null">
+                flow_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantId != null">
+                #{applicantId,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantName != null">
+                #{applicantName,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentId != null">
+                #{departmentId,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentName != null">
+                #{departmentName,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantTime != null">
+                #{applicantTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="projectId != null">
+                #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectName != null">
+                #{projectName,jdbcType=VARCHAR},
+            </if>
+            <if test="itemName != null">
+                #{itemName,jdbcType=VARCHAR},
+            </if>
+            <if test="basePolicy != null">
+                #{basePolicy,jdbcType=VARCHAR},
+            </if>
+            <if test="allLossPrice != null">
+                #{allLossPrice,jdbcType=DECIMAL},
+            </if>
+            <if test="profitNetprofit != null">
+                #{profitNetprofit,jdbcType=VARCHAR},
+            </if>
+            <if test="startTime != null">
+                #{startTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="endTime != null">
+                #{endTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="numTotal != null">
+                #{numTotal,jdbcType=INTEGER},
+            </if>
+            <if test="sellPromisePrice != null">
+                #{sellPromisePrice,jdbcType=DECIMAL},
+            </if>
+            <if test="numPer != null">
+                #{numPer,jdbcType=DECIMAL},
+            </if>
+            <if test="content != null">
+                #{content,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                #{creator,jdbcType=VARCHAR},
+            </if>
+            now(),
+            <if test="editor != null">
+                #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="updateTime != null">
+                #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowStatus != null">
+                #{flowStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="flowTime != null">
+                #{flowTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowId != null">
+                #{flowId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <!-- 添加一揽子折扣详情数据 -->
+    <insert id="insertPackageDiscountItem" parameterType="java.util.Map">
+        insert into mm_package_dis_item
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="itemBasePolicy != null and itemBasePolicy!='' ">
+                item_base_policy,
+            </if>
+            <if test="itemAllLoss != null and itemAllLoss!=''">
+                item_all_loss,
+            </if>
+            <if test="iitemProfitLoss != null and iitemProfitLoss!=''">
+                iitem_profit_loss,
+            </if>
+            <if test="iitemNetprofitLoss != null and iitemNetprofitLoss!=''">
+                iitem_netprofit_loss,
+            </if>
+            <if test="itemBuildingType != null and itemBuildingType!=''">
+                item_building_type,
+            </if>
+            <if test="packageDisId != null and packageDisId!=''">
+                package_dis_id,
+            </if>
+            <if test="itemNum != null and itemNum!=''">
+                item_num,
+            </if>
+            <if test="itemAllLossNetprofit != null and itemAllLossNetprofit!=''">
+                item_all_loss_netprofit,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="itemBasePolicy != null and itemBasePolicy!=''">
+                #{itemBasePolicy,jdbcType=DECIMAL},
+            </if>
+            <if test="itemAllLoss != null and itemAllLoss!=''">
+                #{itemAllLoss,jdbcType=DECIMAL},
+            </if>
+            <if test="iitemProfitLoss != null and iitemProfitLoss!=''">
+                #{iitemProfitLoss,jdbcType=DECIMAL},
+            </if>
+            <if test="iitemNetprofitLoss != null and iitemNetprofitLoss!=''">
+                #{iitemNetprofitLoss,jdbcType=DECIMAL},
+            </if>
+            <if test="itemBuildingType != null and itemBuildingType!=''">
+                #{itemBuildingType,jdbcType=VARCHAR},
+            </if>
+            <if test="packageDisId != null and packageDisId!=''">
+                #{packageDisId,jdbcType=VARCHAR},
+            </if>
+            <if test="itemNum != null and itemNum!=''">
+                #{itemNum,jdbcType=INTEGER},
+            </if>
+            <if test="itemAllLossNetprofit != null and itemAllLossNetprofit!=''">
+                #{itemAllLossNetprofit,jdbcType=DECIMAL},
+            </if>
+        </trim>
+    </insert>
+    <!-- 添加一揽子分期数据 -->
+    <insert id="insertPackageStages" parameterType="java.util.Map">
+        insert into mm_package_stages
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="applicantId != null">
+                applicant_id,
+            </if>
+            <if test="applicantName != null">
+                applicant_name,
+            </if>
+            <if test="departmentId != null">
+                department_id,
+            </if>
+            <if test="departmentName != null">
+                department_name,
+            </if>
+            <if test="applicantTime != null">
+                applicant_time,
+            </if>
+            <if test="projectId != null">
+                project_id,
+            </if>
+            <if test="projectName != null">
+                project_name,
+            </if>
+            <if test="itemName != null">
+                item_name,
+            </if>
+            <if test="startTime != null">
+                start_time,
+            </if>
+            <if test="endTime != null">
+                end_time,
+            </if>
+            <if test="numTotal != null">
+                num_total,
+            </if>
+            <if test="sellPromisePrice != null">
+                sell_promise_price,
+            </if>
+            <if test="numPer != null">
+                num_per,
+            </if>
+            <if test="content != null">
+                content,
+            </if>
+            <if test="creator != null">
+                creator,
+            </if>
+            create_time,
+            <if test="editor != null">
+                editor,
+            </if>
+            <if test="updateTime != null">
+                update_time,
+            </if>
+            <if test="flowStatus != null">
+                flow_status,
+            </if>
+            <if test="flowTime != null">
+                flow_time,
+            </if>
+            <if test="flowId != null">
+                flow_id,
+            </if>
+            <if test="stageType != null">
+                stage_type,
+            </if>
+            <if test="stageDataType!=null">
+                stage_data_type
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantId != null">
+                #{applicantId,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantName != null">
+                #{applicantName,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentId != null">
+                #{departmentId,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentName != null">
+                #{departmentName,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantTime != null">
+                #{applicantTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="projectId != null">
+                #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectName != null">
+                #{projectName,jdbcType=VARCHAR},
+            </if>
+            <if test="itemName != null">
+                #{itemName,jdbcType=VARCHAR},
+            </if>
+            <if test="startTime != null">
+                #{startTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="endTime != null">
+                #{endTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="numTotal != null">
+                #{numTotal,jdbcType=INTEGER},
+            </if>
+            <if test="sellPromisePrice != null">
+                #{sellPromisePrice,jdbcType=DECIMAL},
+            </if>
+            <if test="numPer != null">
+                #{numPer,jdbcType=DECIMAL},
+            </if>
+            <if test="content != null">
+                #{content,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                #{creator,jdbcType=VARCHAR},
+            </if>
+            now(),
+            <if test="editor != null">
+                #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="updateTime != null">
+                #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowStatus != null">
+                #{flowStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="flowTime != null">
+                #{flowTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowId != null">
+                #{flowId,jdbcType=VARCHAR},
+            </if>
+            <if test="stageType != null">
+                #{stageType,jdbcType=VARCHAR},
+            </if>
+            <if test="stageDataType != null">
+                #{stageDataType,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <!-- 添加一揽子分期政策明细 -->
+    <insert id="insertPackageStagesItem" parameterType="java.util.Map">
+
+        insert into mm_package_stages_item
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="startDay != null">
+                start_day,
+            </if>
+            <if test="endDay != null">
+                end_day,
+            </if>
+            <if test="stagesType != null">
+                stages_type,
+            </if>
+            <if test="buildingType != null">
+                building_type,
+            </if>
+            <if test="num != null">
+                num,
+            </if>
+            <if test="packageStagesId != null">
+                package_stages_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="startDay != null">
+                #{startDay,jdbcType=INTEGER},
+            </if>
+            <if test="endDay != null">
+                #{endDay,jdbcType=INTEGER},
+            </if>
+            <if test="stagesType != null">
+                #{stagesType,jdbcType=VARCHAR},
+            </if>
+            <if test="buildingType != null">
+                #{buildingType,jdbcType=VARCHAR},
+            </if>
+            <if test="num != null">
+                #{num,jdbcType=INTEGER},
+            </if>
+            <if test="packageStagesId != null">
+                #{packageStagesId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <!-- 添加楼栋 -->
+    <insert id="insertPackageBuilding" parameterType="java.util.Map">
+        insert into mm_package_building
+(
+id,
+building_id,
+building_name,
+package_id
+)
+values(
+#{id},
+#{building_id},
+#{building_name},
+#{package_id}
+)
+    </insert>
+    <!-- 修改一揽子折扣数据 -->
+    <update id="updatePackageDis" parameterType="java.util.Map">
+        update mm_package_dis
+        <set>
+            <if test="id != null">
+                id = #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantId != null">
+                applicant_id = #{applicantId,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantName != null">
+                applicant_name = #{applicantName,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentId != null">
+                department_id = #{departmentId,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentName != null">
+                department_name = #{departmentName,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantTime != null">
+                applicant_time = #{applicantTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="projectId != null">
+                project_id = #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectName != null">
+                project_name = #{projectName,jdbcType=VARCHAR},
+            </if>
+            <if test="itemName != null">
+                item_name = #{itemName,jdbcType=VARCHAR},
+            </if>
+            <if test="basePolicy != null">
+                base_policy = #{basePolicy,jdbcType=VARCHAR},
+            </if>
+            <if test="allLossPrice != null">
+                all_loss_price = #{allLossPrice,jdbcType=VARCHAR},
+            </if>
+            <if test="profitNetprofit != null">
+                profit_netprofit = #{profitNetprofit,jdbcType=VARCHAR},
+            </if>
+            <if test="startTime != null">
+                start_time = #{startTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="endTime != null">
+                end_time = #{endTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="numTotal != null">
+                num_total = #{numTotal,jdbcType=INTEGER},
+            </if>
+            <if test="sellPromisePrice != null">
+                sell_promise_price = #{sellPromisePrice,jdbcType=DECIMAL},
+            </if>
+            <if test="numPer != null">
+                num_per = #{numPer,jdbcType=DECIMAL},
+            </if>
+            <if test="content != null">
+                content = #{content,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                creator = #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editor != null">
+                editor = #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowStatus != null">
+                flow_status = #{flowStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="flowTime != null">
+                flow_time = #{flowTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowId != null">
+                flow_id = #{flowId,jdbcType=VARCHAR},
+            </if>
+        </set>
+        where id=#{id}
+    </update>
+    <!-- 修改一揽子折扣详情数据 -->
+    <update id="updatePackageDiscountItem" parameterType="java.util.Map">
+         update mm_package_dis_item set
+            item_all_loss=  #{itemAllLoss},
+
+            item_all_loss_netprofit=#{itemAllLossNetprofit},
+
+            iitem_profit_loss=  #{iitemProfitLoss},
+
+            iitem_netprofit_loss= #{iitemNetprofitLoss},
+
+            item_base_policy= #{basePolicy},
+
+            item_building_type=  #{buildingType},
+
+            item_num=  #{itemNum}
+
+            where id=#{ids}
+    </update>
+    <!-- 修改一揽子分期数据 -->
+    <update id="updatePackageStages" parameterType="java.util.Map">
+        update mm_package_stages
+        <set>
+            <if test="applicantId != null">
+                applicant_id = #{applicantId,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantName != null">
+                applicant_name = #{applicantName,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentId != null">
+                department_id = #{departmentId,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentName != null">
+                department_name = #{departmentName,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantTime != null">
+                applicant_time = #{applicantTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="projectId != null">
+                project_id = #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectName != null">
+                project_name = #{projectName,jdbcType=VARCHAR},
+            </if>
+            <if test="itemName != null">
+                item_name = #{itemName,jdbcType=VARCHAR},
+            </if>
+            <if test="startTime != null">
+                start_time = #{startTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="endTime != null">
+                end_time = #{endTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="numTotal != null">
+                num_total = #{numTotal,jdbcType=INTEGER},
+            </if>
+            <if test="sellPromisePrice != null">
+                sell_promise_price = #{sellPromisePrice,jdbcType=DECIMAL},
+            </if>
+            <if test="numPer != null">
+                num_per = #{numPer,jdbcType=DECIMAL},
+            </if>
+            <if test="content != null">
+                content = #{content,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                creator = #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editor != null">
+                editor = #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="updateTime != null">
+                update_time = #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowStatus != null">
+                flow_status = #{flowStatus,jdbcType=VARCHAR},
+            </if>
+            <if test="flowTime != null">
+                flow_time = #{flowTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="flowId != null">
+                flow_id = #{flowId,jdbcType=VARCHAR},
+            </if>
+            <if test="stageType != null" >
+                stage_type = #{stageType,jdbcType=VARCHAR},
+            </if>
+            <if test="stageDataType != null" >
+                stage_data_type = #{stageDataType,jdbcType=VARCHAR},
+            </if>
+        </set>
+
+        where id=#{id}
+
+    </update>
+    <!-- 修改一揽子分期详情数据 -->
+    <update id="updatePackageStagesItem" parameterType="java.util.Map">
+          update mm_package_stages_item
+            set
+            start_day=#{startDay},
+
+            end_day=#{endDay},
+
+            building_type=#{buildingType},
+
+            num=#{num}
+
+            where id=#{ids}
+
+
+
+    </update>
+    <!-- 修改楼栋 -->
+    <update id="updatePackageBuilding" parameterType="java.util.Map">
+         update mm_package_building
+          set building_id=#{projectfid},
+          building_name=#{formatBuildingName}
+          where id=#{bid}
+</update>
+    <!--一揽子分期渲染页面-->
+    <!--1、获取一揽子分期主数据-->
+    <select id="getPackageStagesApply" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        applicant_id as applicantId,
+        applicant_name as applicantName,
+        department_id as departmentId,
+        department_name as departmentName,
+        applicant_time as applicantTime,
+        project_id as projectId,
+        project_name as projectName,
+        item_name as itemName,
+        start_time as startTime,
+        end_time as endTime,
+        num_total as numTotal,
+        content,
+        stage_type as stageType,
+        stage_data_type as stageDataType
+        FROM mm_package_stages where id=#{id} limit 1
+    </select>
+    <!--2、获取一揽子分期详情数据-->
+    <select id="getPackageStagesItemApply" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        id,
+        start_day as startDay,
+        end_day as endDay,
+        building_type as  buildingType,
+        num
+        FROM mm_package_stages_item where package_stages_id=#{id}
+    </select>
+    <!--3、获取一揽子分期/折扣楼栋信息-->
+    <select id="getPackageStageBuildIng" parameterType="java.util.Map" resultType="java.util.Map">
+
+        SELECT
+building_id,
+building_name
+        FROM mm_package_building where package_id=#{package_id}
+
+    </select>
+    <!--获取一揽子折扣数据-->
+    <select id="getPackageDisApply" parameterType="java.util.Map" resultType="java.util.Map">
+        select
+
+        applicant_id as applicantId,
+        applicant_name as applicantName,
+        department_id as departmentId,
+        department_name as departmentName,
+        applicant_time as applicantTime,
+        project_id as projectId,
+        project_name as projectName,
+        item_name as itemName,
+        base_policy as basePolicy,
+        all_loss_price as allLossPrice,
+        profit_netprofit as profitNetprofit,
+        start_time as startTime,
+        end_time as endTime,
+        num_total as numTotal,
+        content
+
+        from mm_package_dis where id=#{id}
+    </select>
+    <!--获取一揽子折扣详情数据-->
+    <select id="getPackageDisImemApply" parameterType="java.util.Map" resultType="java.util.Map">
+
+        select
+        id,
+        item_base_policy as basePolicy,
+        item_all_loss as itemAllLoss,
+        item_all_loss_netprofit as itemAllLossNetprofit,
+        iitem_profit_loss as iitemProfitLoss,
+        iitem_netprofit_loss as iitemNetprofitLoss,
+        item_building_type as buildingType,
+        item_num as itemNum
+        from
+        mm_package_dis_item where package_dis_id=#{id}
+
+    </select>
+    <!--删除一揽子折扣详情数据-->
+    <delete id="deletePackageDisItem" parameterType="java.util.Map">
+
+    delete from mm_package_dis_item where package_dis_id=#{id}
+
+</delete>
+    <!--删除一揽子分期详情数据-->
+    <delete id="deletePackageItem" parameterType="java.util.Map">
+
+    delete from mm_package_stages_item where package_stages_id=#{id}
+
+</delete>
+    <delete id="deleteBuildingData" parameterType="java.util.Map">
+        delete from mm_package_building where package_id=#{id}
+
+
+    </delete>
+    <!--根据流程id查询主数据-->
+    <select id="getBaseId" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT base_id  as id  from mm_ap_flow_info where json_id=#{baseId} limit 1
+    </select>
+
+    <!--创建流程数据-->
+    <insert id="createFlowData" parameterType="java.util.Map">
+        insert into mm_ap_flow_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="flowStatus != null">
+                flow_status,
+            </if>
+            <if test="projectId != null">
+                project_id,
+            </if>
+            <if test="flowId != null">
+                flow_id,
+            </if>
+            <if test="flowType != null">
+                flow_type,
+            </if>
+            <if test="flowCode != null">
+                flow_code,
+            </if>
+            <if test="creator != null">
+                creator,
+            </if>
+            create_time,
+            <if test="editTime != null">
+                edit_time,
+            </if>
+            <if test="editor != null">
+                editor,
+            </if>
+
+            isdel,
+
+            <if test="baseId != null">
+                base_id,
+            </if>
+            <if test="jsonId != null">
+                json_id,
+            </if>
+
+            zddate,
+
+            <if test="zphzZs != null">
+                zphz_Zs,
+            </if>
+            <if test="dpdjZs != null">
+                dpdj_Zs,
+            </if>
+            <if test="dbzgLr != null">
+                dbzg_Lr,
+            </if>
+            <if test="dbzgLl != null">
+                dbzg_ll,
+            </if>
+            <if test="zj != null">
+                zj,
+            </if>
+            <if test="orgname != null">
+                orgName,
+            </if>
+            <if test="stageId != null">
+                stage_id,
+            </if>
+            <if test="taskid != null">
+                taskId,
+            </if>
+            <if test="title != null">
+                title,
+            </if>
+            <if test="flowJson != null">
+                flow_json,
+            </if>
+            <if test="comcommon!=null">
+                comcommon
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="flowStatus != null">
+                #{flowStatus,jdbcType=INTEGER},
+            </if>
+            <if test="projectId != null">
+                #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowId != null">
+                #{flowId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowType != null">
+                #{flowType,jdbcType=VARCHAR},
+            </if>
+            <if test="flowCode != null">
+                #{flowCode,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                #{creator,jdbcType=VARCHAR},
+            </if>
+            now(),
+            <if test="editTime != null">
+                #{editTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editor != null">
+                #{editor,jdbcType=VARCHAR},
+            </if>
+            0,
+            <if test="baseId != null">
+                #{baseId,jdbcType=VARCHAR},
+            </if>
+            <if test="jsonId != null">
+                #{jsonId,jdbcType=VARCHAR},
+            </if>
+            now(),
+            <if test="zphzZs != null">
+                #{zphzZs,jdbcType=DECIMAL},
+            </if>
+            <if test="dpdjZs != null">
+                #{dpdjZs,jdbcType=DECIMAL},
+            </if>
+            <if test="dbzgLr != null">
+                #{dbzgLr,jdbcType=DECIMAL},
+            </if>
+            <if test="dbzgLl != null">
+                #{dbzgLl,jdbcType=DECIMAL},
+            </if>
+            <if test="zj != null">
+                #{zj,jdbcType=VARCHAR},
+            </if>
+            <if test="orgname != null">
+                #{orgname,jdbcType=VARCHAR},
+            </if>
+            <if test="stageId != null">
+                #{stageId,jdbcType=VARCHAR},
+            </if>
+            <if test="taskid != null">
+                #{taskid,jdbcType=VARCHAR},
+            </if>
+            <if test="title != null">
+                #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="flowJson != null">
+                #{flowJson,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="comcommon!=null">
+                #{comcommon}
+            </if>
+        </trim>
+    </insert>
+    <!--修改流程数据-->
+    <update id="updateFlowData" parameterType="java.util.Map">
+        update mm_ap_flow_info
+        <set>
+            <if test="flowStatus != null">
+                flow_status = #{flowStatus,jdbcType=INTEGER},
+            </if>
+            <if test="projectId != null">
+                project_id = #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowId != null">
+                flow_id = #{flowId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowType != null">
+                flow_type = #{flowType,jdbcType=VARCHAR},
+            </if>
+            <if test="flowCode != null">
+                flow_code = #{flowCode,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                creator = #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editTime != null">
+                edit_time = #{editTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editor != null">
+                editor = #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="isdel != null">
+                isdel = #{isdel,jdbcType=INTEGER},
+            </if>
+            <if test="baseId != null">
+                base_id = #{baseId,jdbcType=VARCHAR},
+            </if>
+            <if test="jsonId != null">
+                json_id = #{jsonId,jdbcType=VARCHAR},
+            </if>
+            <if test="zddate != null">
+                zddate = #{zddate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="zphzZs != null">
+                zphz_Zs = #{zphzZs,jdbcType=DECIMAL},
+            </if>
+            <if test="dpdjZs != null">
+                dpdj_Zs = #{dpdjZs,jdbcType=DECIMAL},
+            </if>
+            <if test="dbzgLr != null">
+                dbzg_Lr = #{dbzgLr,jdbcType=DECIMAL},
+            </if>
+            <if test="dbzgLl != null">
+                dbzg_ll = #{dbzgLl,jdbcType=DECIMAL},
+            </if>
+            <if test="zj != null">
+                zj = #{zj,jdbcType=VARCHAR},
+            </if>
+            <if test="orgname != null">
+                orgName = #{orgname,jdbcType=VARCHAR},
+            </if>
+            <if test="stageId != null">
+                stage_id = #{stageId,jdbcType=VARCHAR},
+            </if>
+            <if test="taskid != null">
+                taskId = #{taskid,jdbcType=VARCHAR},
+            </if>
+            <if test="title != null">
+                title = #{title,jdbcType=VARCHAR},
+            </if>
+            <if test="flowJson != null">
+                flow_json = #{flowJson,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="comcommon != null">
+                comcommon = #{comcommon,jdbcType=LONGVARCHAR},
+            </if>
+        </set>
+        where json_id=#{jsonId}
+    </update>
+    <!--清空一揽子分期数据-->
+    <update id="clearPackageStages" parameterType="java.lang.String">
+UPDATE `mm_package_stages`
+SET `applicant_id` =NULL,
+`applicant_name` = NULL,
+`department_id` = NULL,
+`department_name` = NULL,
+`applicant_time` = NULL,
+`project_id` = NULL,
+`project_name` = NULL,
+`item_name` = NULL,
+`start_time` =NULL,
+`end_time` = NULL,
+`num_total` = NULL,
+`sell_promise_price` = NULL,
+`num_per` = NULL,
+`content` = NULL,
+`creator` = NULL,
+`create_time` = NULL,
+`editor` = NULL,
+`update_time` = NULL,
+`flow_status` = NULL,
+`stage_type` =NULL,
+`stage_data_type` = NULL
+WHERE
+	`id` = #{baseID}
+    </update>
+    <update id="clearPackageDis" parameterType="java.lang.String">
+        UPDATE `saleman`.`mm_package_dis`
+SET `applicant_id` = NULL,
+`applicant_name` =  NULL,
+`department_id` = NULL,
+`department_name` =  NULL,
+`applicant_time` =  NULL,
+`project_id` = NULL,
+`project_name` =  NULL,
+`item_name` =  NULL,
+`base_policy` = NULL,
+`all_loss_price` =  NULL,
+`profit_netprofit` = NULL,
+`start_time` = NULL,
+`end_time` = NULL,
+`num_total` =NULL,
+`sell_promise_price` = NULL,
+`num_per` = NULL,
+`content` = NULL,
+`editor` = NULL,
+creator=NULL
+WHERE
+	`id` = #{baseID};
+    </update>
+    <!--删除流程数据-->
+    <update id="clearFlowData" parameterType="java.lang.String">
+       UPDATE `mm_ap_flow_info`
+SET
+`project_id` = NULL,
+`flow_type` = NULL,
+`flow_json` = NULL,
+`flow_code` = NULL,
+`creator` = NULL,
+`edit_time` = now(),
+`editor` = NULL,
+`zphz_Zs` = NULL,
+`dpdj_Zs` = NULL,
+`dbzg_Lr` = NULL,
+`dbzg_ll` = NULL,
+`zj` = NULL,
+title=NULL,
+`orgName` = NULL,
+`comcommon` = NULL
+WHERE
+	 json_id=#{baseID}
+    </update>
+    <!--    查询一揽子分期 或折扣
+    0.实例被删除 1未发起 2流程草稿 3审批中 4审批通过 5.驳回发起 6.撤回发起 7.流程放弃 8.开始专业审核 9.专业审核节点被撤回
+    -->
+    <select id="stagesSelect" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        (CASE flow_status WHEN 0
+        THEN '实例被删除'
+        WHEN 1
+        THEN '未发起'
+        WHEN 2
+        THEN '流程草稿'
+        WHEN 3
+        THEN '审批中'
+        WHEN 4
+        THEN '审批通过'
+        WHEN 5
+        THEN '驳回发起'
+        WHEN 6
+        THEN '撤回发起'
+        WHEN 7
+        THEN '流程放弃'
+        WHEN 8
+        THEN '开始专业审核'
+        WHEN 9
+        THEN '专业审核节点被撤回'
+        END
+        ) flowStatus,
+        json_id AS jsonId ,
+        b_account.EmployeeName,
+        DATE_FORMAT( create_time,'%Y-%m-%d')
+        AS createTime,
+        title,
+        flow_code
+
+        FROM
+        mm_ap_flow_info info
+        LEFT JOIN b_account ON info.creator=b_account.EmployeeCode
+        WHERE
+        (flow_code ='My_Sales_Dis' OR flow_code ='My_Package_Stage')
+        <if test='userId!="000000000"'>
+            AND b_account.ID=#{userId}
+        </if>
+
+        <if test="title!=null and title!=''">
+            AND title LIKE concat('%',#{title},'%')
+        </if>
+        <if test="flowStatus!=null and flowStatus!=''">
+            AND flow_status =#{flowStatus}
+        </if>
+        <if test="startTime!=null and startTime!=''">
+            AND  DATE_FORMAT(create_time,'%Y-%m-%d') >=#{startTime}
+        </if>
+        <if test="endTime!=null and endTime!=''">
+            AND DATE_FORMAT(create_time,'%Y-%m-%d')  <![CDATA[ <=]]> #{endTime}
+        </if>
+    </select>
+    <select id="getFlowCode" parameterType="java.lang.String" resultType="java.lang.String">
+        select  flow_code from  mm_ap_flow_info where json_id=#{jsonid} limit 1
+    </select>
+
+
+    <!--获取流程数据-->
+    <select id="getFlowDataInfo" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	f.create_time createTime,
+	w.start_time startTime,
+	w.end_time endTime,
+	w.project_name prjectName,
+	b.EmployeeName,
+	sj.JobName,
+	sa.SaveUrl,
+	sa.FileNameOld ShowName
+FROM
+	mm_week_marketing_plan w
+	LEFT JOIN mm_ap_flow_info f ON f.base_id = w.id
+	LEFT JOIN b_account b ON b.userName = f.creator
+	LEFT JOIN s_jobsuserrel s ON b.id = s.accountId
+	LEFT JOIN s_jobs sj ON sj.id = s.jobID
+	LEFT JOIN s_attach sa ON sa.BizID = f.base_id
+WHERE
+	f.json_id= #{jsonId}
+
+ORDER BY
+	s.CurrentJob DESC
+	LIMIT 1
+    </select>
+    <select id="getWindowPashDate" resultType="java.util.Map" parameterType="java.util.Map">
+ SELECT
+	CAST(this_time as CHAR) as thisTime,
+	CAST(windows_start as CHAR) as windowsStart,
+	CAST(windows_end as CHAR) as windowsEnd
+
+FROM
+	mm_common_week_plan
+WHERE
+	DATE_FORMAT( this_time, "%Y-%m-%d" )= DATE_FORMAT( #{nowDate}, "%Y-%m-%d" )
+    </select>
+</mapper>
+
+
+

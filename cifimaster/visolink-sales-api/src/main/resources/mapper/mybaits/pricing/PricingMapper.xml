@@ -1,0 +1,1829 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.pricing.dao.PricingMapper">
+
+    <!--初始化审批流数据-->
+    <insert id="saveData" parameterType="java.util.Map">
+
+INSERT INTO `mm_ap_flow_info` ( `id`, `project_id`, `flow_type`, `flow_json`, `flow_code`, `creator`,
+ `create_time`,
+ `edit_time`, `editor`, base_id,`isdel`,`json_id`, `zddate`,stage_id,flow_status,flow_version)
+VALUES
+	(
+	UUID(),#{project_id}, #{flow_type}, #{flow_json},#{flow_code}, #{userName},
+	now(),
+	now(),#{userName},#{base_id},0,#{json_id},#{zddate},#{stage_id},1,#{flow_version});
+</insert>
+
+    <!--修改流程数据-->
+    <update id="updateData" parameterType="java.util.Map">
+
+        update mm_ap_flow_info set
+        project_id=#{project_id},
+        flow_type=#{flow_type},
+        flow_json=#{flow_json},
+        flow_code=#{flow_code},
+        creator=#{creator},
+        edit_time=now(),
+        editor=#{editor},
+        json_id=#{json_id},
+        zddate=#{zddate},
+        stage_id=#{stage_id},
+        flow_version=#{flow_version}
+        where id=#{id}
+    </update>
+
+    <!--查询明源推送的数据是否已存在(查询最新数据)！-->
+    <select id="findJonisExist" parameterType="java.util.Map" resultType="java.util.Map">
+        select *from mm_ap_flow_info where json_id=#{json_id} and isdel=0
+        order by create_time
+        DESC limit 1
+    </select>
+
+    <!--添加审批单主数据-->
+    <insert id="insertDecideMasterData" parameterType="java.util.Map">
+        insert into mm_ap_set_the_pricing
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="thisPricingValue != null">
+                this_pricing_value,
+            </if>
+            <if test="thisPricingProfitPrice != null">
+                this_pricing_profit_price,
+            </if>
+            <if test="thisPricingProfitMargin != null">
+                this_pricing_profit_margin,
+            </if>
+            <if test="thisPricingQuietProfitMargin != null">
+                this_pricing_quiet_profit_margin,
+            </if>
+            <if test="thisPricingActProfitMargin != null">
+                this_pricing_act_profit_margin,
+            </if>
+            <if test="addSignValue != null">
+                add_sign_value,
+            </if>
+            <if test="addSignProfitPrice != null">
+                add_sign_profit_price,
+            </if>
+            <if test="addSignProfitMargin != null">
+                add_sign_profit_margin,
+            </if>
+            <if test="addSignQuietProfitMargin != null">
+                add_sign_quiet_profit_margin,
+            </if>
+            <if test="addSignActProfitMargin != null">
+                add_sign_act_profit_margin,
+            </if>
+            <if test="surplusValue != null">
+                surplus_value,
+            </if>
+            <if test="surplusProfitPrice != null">
+                surplus_profit_price,
+            </if>
+            <if test="surplusProfitMargin != null">
+                surplus_profit_margin,
+            </if>
+            <if test="surplusQuietProfitMargin != null">
+                surplus_quiet_profit_margin,
+            </if>
+            <if test="surplusActProfitMargin != null">
+                surplus_act_profit_margin,
+            </if>
+            <if test="theprojectedValue != null">
+                theprojected_value,
+            </if>
+            <if test="theprojectedProfitPrice != null">
+                theprojected_profit_price,
+            </if>
+            <if test="theprojectedProfitMargin != null">
+                theprojected_profit_margin,
+            </if>
+            <if test="theprojectedQuietProfitMargin != null">
+                theprojected_quiet_profit_margin,
+            </if>
+            <if test="theprojectedActProfitMargin != null">
+                theprojected_act_profit_margin,
+            </if>
+            <if test="actValue != null">
+                act_value,
+            </if>
+            <if test="actProfitPrice != null">
+                act_profit_price,
+            </if>
+            <if test="actProfitMargin != null">
+                act_profit_margin,
+            </if>
+            <if test="quietValue != null">
+                quiet_value,
+            </if>
+            <if test="quietProfitPrice != null">
+                quiet_profit_price,
+            </if>
+            <if test="quietProfitMargin != null">
+                quiet_profit_margin,
+            </if>
+
+            <!-- 整盘（投资版）相关字段 -->
+            <if test="wholePlateInvestmentValue != null">
+                whole_plate_investment_value,
+            </if>
+            <if test="wholePlateInvestmentProfitPrice != null">
+                whole_plate_investment_profit_price,
+            </if>
+            <if test="wholePlateInvestmentProfitMargin != null">
+                whole_plate_investment_profit_margin,
+            </if>
+
+            <if test="conclusion != null">
+                conclusion,
+            </if>
+            <if test="cityLevel != null">
+                city_level,
+            </if>
+            <if test="projectScale != null">
+                project_scale,
+            </if>
+            <if test="cityPeriod != null">
+                city_period,
+            </if>
+            <if test="plateStock != null">
+                plate_stock,
+            </if>
+            <if test="platePeriod != null">
+                plate_period,
+            </if>
+            <if test="soldNum != null">
+                sold_num,
+            </if>
+            <if test="soldPer != null">
+                sold_per,
+            </if>
+            <if test="islimitPrice != null">
+                islimit_price,
+            </if>
+            <if test="islimitExplain != null">
+                islimit_explain,
+            </if>
+            <if test="ismerge != null">
+                ismerge,
+            </if>
+            <if test="marketingExplain != null">
+                marketing_explain,
+            </if>
+            <if test="stockPer != null">
+                stock_per,
+            </if>
+            <if test="stockPartner != null">
+                stock_partner,
+            </if>
+            <if test="stockIdea != null">
+                stock_idea,
+            </if>
+            <if test="thisSalesFacecase != null">
+                this_sales_facecase,
+            </if>
+            <if test="thisSalesEstimate != null">
+                this_sales_estimate,
+            </if>
+            <if test="thisSalesQt != null">
+                this_sales_qt,
+            </if>
+            <if test="priceMixSelling != null">
+                price_mix_selling,
+            </if>
+            <if test="priceMixDis != null">
+                price_mix_dis,
+            </if>
+            <if test="priceMixStrategy != null">
+                price_mix_strategy,
+            </if>
+            <if test="priceMixSafeguard != null">
+                price_mix_safeguard,
+            </if>
+            <if test="priceMixQt != null">
+                price_mix_qt,
+            </if>
+            <if test="overallProfitMargin != null">
+                overall_profit_margin,
+            </if>
+            <if test="overallProfitMargin5 != null">
+                overall_profit_margin5,
+            </if>
+            <if test="departmentName != null">
+                department_name,
+            </if>
+            <if test="departmentId != null">
+                department_id,
+            </if>
+            <if test="projectId != null">
+                project_id,
+            </if>
+            <if test="projectName != null">
+                project_name,
+            </if>
+            create_time,
+            <if test="creator != null">
+                creator,
+            </if>
+            <if test="updateTime != null">
+                update_time,
+            </if>
+            <if test="editor != null">
+                editor,
+            </if>
+            <if test="applicantName != null">
+                applicant_name,
+            </if>
+            <if test="applicantTime != null">
+                applicant_time,
+            </if>
+            <if test="pricingTypeCode != null">
+                pricing_type_code,
+            </if>
+            <if test="anticipatedDate != null">
+                anticipated_date,
+            </if>
+            <if test="tzbProfit != null">
+                tzb_profit,
+            </if>
+            <if test="tzbIrr != null">
+                tzb_irr,
+            </if>
+            <if test="tzbJths != null">
+                tzb_jths,
+            </if>
+            <if test="zgbProfit != null">
+                zgb_profit,
+            </if>
+            <if test="zgbIrr != null">
+                zgb_irr,
+            </if>
+            <if test="zgbJths != null">
+                zgb_jths,
+            </if>
+            <if test="dtbProfit != null">
+                dtb_profit,
+            </if>
+            <if test="dtbIrr != null">
+                dtb_irr,
+            </if>
+            <if test="dtbJths != null">
+                dtb_jths,
+            </if>
+            <if test="tzhProfit != null">
+                tzh_profit,
+            </if>
+            <if test="tzhIrr != null">
+                tzh_irr,
+            </if>
+            <if test="tzhJths != null">
+                tzh_jths,
+            </if>
+            <if test="content!=null">
+                content,
+            </if>
+            <if test="priceconConclusion!=null">
+                pricecon_conclusion,
+            </if>
+            <if test="examineTitle!=null">
+                examine_title,
+            </if>
+            <if test="username!=null and username!=''">
+                username,
+            </if>
+            <if test="dpcZgbValue!=null and dpcZgbValue!=''">
+                dpc_zgb_value
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="thisPricingValue != null">
+                #{thisPricingValue},
+            </if>
+            <if test="thisPricingProfitPrice != null">
+                #{thisPricingProfitPrice},
+            </if>
+            <if test="thisPricingProfitMargin != null">
+                #{thisPricingProfitMargin},
+            </if>
+            <if test="thisPricingQuietProfitMargin != null">
+                #{thisPricingQuietProfitMargin},
+            </if>
+            <if test="thisPricingActProfitMargin != null">
+                #{thisPricingActProfitMargin},
+            </if>
+            <if test="addSignValue != null">
+                #{addSignValue},
+            </if>
+            <if test="addSignProfitPrice != null">
+                #{addSignProfitPrice},
+            </if>
+            <if test="addSignProfitMargin != null">
+                #{addSignProfitMargin},
+            </if>
+            <if test="addSignQuietProfitMargin != null">
+                #{addSignQuietProfitMargin},
+            </if>
+            <if test="addSignActProfitMargin != null">
+                #{addSignActProfitMargin},
+            </if>
+            <if test="surplusValue != null">
+                #{surplusValue},
+            </if>
+            <if test="surplusProfitPrice != null">
+                #{surplusProfitPrice},
+            </if>
+            <if test="surplusProfitMargin != null">
+                #{surplusProfitMargin},
+            </if>
+            <if test="surplusQuietProfitMargin != null">
+                #{surplusQuietProfitMargin},
+            </if>
+            <if test="surplusActProfitMargin != null">
+                #{surplusActProfitMargin},
+            </if>
+            <if test="theprojectedValue != null">
+                #{theprojectedValue},
+            </if>
+            <if test="theprojectedProfitPrice != null">
+                #{theprojectedProfitPrice},
+            </if>
+            <if test="theprojectedProfitMargin != null">
+                #{theprojectedProfitMargin},
+            </if>
+            <if test="theprojectedQuietProfitMargin != null">
+                #{theprojectedQuietProfitMargin},
+            </if>
+            <if test="theprojectedActProfitMargin != null">
+                #{theprojectedActProfitMargin},
+            </if>
+            <if test="actValue != null">
+                #{actValue},
+            </if>
+            <if test="actProfitPrice != null">
+                #{actProfitPrice},
+            </if>
+            <if test="actProfitMargin != null">
+                #{actProfitMargin},
+            </if>
+            <if test="quietValue != null">
+                #{quietValue},
+            </if>
+            <if test="quietProfitPrice != null">
+                #{quietProfitPrice},
+            </if>
+            <if test="quietProfitMargin != null">
+                #{quietProfitMargin},
+            </if>
+
+            <!-- 整盘（投资版）相关字段 -->
+            <if test="wholePlateInvestmentValue != null">
+                #{wholePlateInvestmentValue},
+            </if>
+            <if test="wholePlateInvestmentProfitPrice != null">
+                #{wholePlateInvestmentProfitPrice},
+            </if>
+            <if test="wholePlateInvestmentProfitMargin != null">
+                #{wholePlateInvestmentProfitMargin},
+            </if>
+
+            <if test="conclusion != null">
+                #{conclusion,jdbcType=VARCHAR},
+            </if>
+            <if test="cityLevel != null">
+                #{cityLevel,jdbcType=TINYINT},
+            </if>
+            <if test="projectScale != null">
+                #{projectScale},
+            </if>
+            <if test="cityPeriod != null">
+                #{cityPeriod,jdbcType=TINYINT},
+            </if>
+            <if test="plateStock != null">
+                #{plateStock},
+            </if>
+            <if test="platePeriod != null">
+                #{platePeriod,jdbcType=TINYINT},
+            </if>
+            <if test="soldNum != null">
+                #{soldNum,jdbcType=INTEGER},
+            </if>
+            <if test="soldPer != null">
+                #{soldPer},
+            </if>
+            <if test="islimitPrice != null">
+                #{islimitPrice,jdbcType=TINYINT},
+            </if>
+            <if test="islimitExplain != null">
+                #{islimitExplain,jdbcType=VARCHAR},
+            </if>
+            <if test="ismerge != null">
+                #{ismerge,jdbcType=TINYINT},
+            </if>
+            <if test="marketingExplain != null">
+                #{marketingExplain,jdbcType=VARCHAR},
+            </if>
+            <if test="stockPer != null">
+                #{stockPer},
+            </if>
+            <if test="stockPartner != null">
+                #{stockPartner,jdbcType=VARCHAR},
+            </if>
+            <if test="stockIdea != null">
+                #{stockIdea,jdbcType=TINYINT},
+            </if>
+            <if test="thisSalesFacecase != null">
+                #{thisSalesFacecase,jdbcType=VARCHAR},
+            </if>
+            <if test="thisSalesEstimate != null">
+                #{thisSalesEstimate,jdbcType=VARCHAR},
+            </if>
+            <if test="thisSalesQt != null">
+                #{thisSalesQt,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixSelling != null">
+                #{priceMixSelling,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixDis != null">
+                #{priceMixDis,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixStrategy != null">
+                #{priceMixStrategy,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixSafeguard != null">
+                #{priceMixSafeguard,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixQt != null">
+                #{priceMixQt,jdbcType=VARCHAR},
+            </if>
+            <if test="overallProfitMargin != null">
+                #{overallProfitMargin},
+            </if>
+            <if test="overallProfitMargin5 != null">
+                #{overallProfitMargin5},
+            </if>
+            <if test="departmentName != null">
+                #{departmentName,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentId != null">
+                #{departmentId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectId != null">
+                #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectName != null">
+                #{projectName,jdbcType=VARCHAR},
+            </if>
+            now(),
+            <if test="creator != null">
+                #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="updateTime != null">
+                #{updateTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editor != null">
+                #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantName != null">
+                #{applicantName,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantTime != null">
+                #{applicantTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="pricingTypeCode != null">
+                #{pricingTypeCode,jdbcType=VARCHAR},
+            </if>
+            <if test="anticipatedDate != null">
+                #{anticipatedDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="tzbProfit != null">
+                #{tzbProfit},
+            </if>
+            <if test="tzbIrr != null">
+                #{tzbIrr},
+            </if>
+            <if test="tzbJths != null">
+                #{tzbJths},
+            </if>
+            <if test="zgbProfit != null">
+                #{zgbProfit},
+            </if>
+            <if test="zgbIrr != null">
+                #{zgbIrr},
+            </if>
+            <if test="zgbJths != null">
+                #{zgbJths},
+            </if>
+            <if test="dtbProfit != null">
+                #{dtbProfit},
+            </if>
+            <if test="dtbIrr != null">
+                #{dtbIrr},
+            </if>
+            <if test="dtbJths != null">
+                #{dtbJths},
+            </if>
+            <if test="tzhProfit != null">
+                #{tzhProfit},
+            </if>
+            <if test="tzhIrr != null">
+                #{tzhIrr},
+            </if>
+            <if test="tzhJths != null">
+                #{tzhJths},
+            </if>
+            <if test="content!=null">
+                #{content},
+            </if>
+            <if test="priceconConclusion!=null">
+                #{priceconConclusion},
+            </if>
+            <if test="examineTitle!=null">
+                #{examineTitle},
+            </if>
+            <if test="username!=null and username!=''">
+                #{username},
+            </if>
+            <if test="dpcZgbValue!=null and dpcZgbValue!=''">
+                #{dpcZgbValue}
+            </if>
+        </trim>
+    </insert>
+
+    <!--修改审批单主数据-->
+    <update id="updateDecideMasterData" parameterType="java.util.Map">
+        update mm_ap_set_the_pricing
+        <set>
+            <if test="thisPricingValue != null and thisPricingValue!=''">
+                this_pricing_value = #{thisPricingValue},
+            </if>
+            <if test="thisPricingProfitPrice != null and thisPricingProfitPrice!='' ">
+                this_pricing_profit_price = #{thisPricingProfitPrice},
+            </if>
+            <if test="thisPricingProfitMargin != null  and thisPricingProfitMargin!=''">
+                this_pricing_profit_margin = #{thisPricingProfitMargin},
+            </if>
+            <if test="thisPricingQuietProfitMargin != null and thisPricingQuietProfitMargin!=''">
+                this_pricing_quiet_profit_margin = #{thisPricingQuietProfitMargin},
+            </if>
+            <if test="thisPricingActProfitMargin != null and thisPricingActProfitMargin!=''">
+                this_pricing_act_profit_margin = #{thisPricingActProfitMargin},
+            </if>
+            <if test="addSignValue != null and addSignValue!=''">
+                add_sign_value = #{addSignValue},
+            </if>
+            <if test="addSignProfitPrice != null and addSignProfitPrice!=''">
+                add_sign_profit_price = #{addSignProfitPrice},
+            </if>
+            <if test="addSignProfitMargin != null and addSignProfitMargin!=''">
+                add_sign_profit_margin = #{addSignProfitMargin},
+            </if>
+            <if test="addSignQuietProfitMargin != null and addSignQuietProfitMargin!=''">
+                add_sign_quiet_profit_margin = #{addSignQuietProfitMargin},
+            </if>
+            <if test="addSignActProfitMargin != null and addSignActProfitMargin!=''">
+                add_sign_act_profit_margin = #{addSignActProfitMargin},
+            </if>
+            <if test="surplusValue != null and surplusValue!=''">
+                surplus_value = #{surplusValue},
+            </if>
+            <if test="surplusProfitPrice != null and surplusProfitPrice!=''">
+                surplus_profit_price = #{surplusProfitPrice},
+            </if>
+            <if test="surplusProfitMargin != null and surplusProfitMargin!=''">
+                surplus_profit_margin = #{surplusProfitMargin},
+            </if>
+            <if test="surplusQuietProfitMargin != null and surplusQuietProfitMargin!=''">
+                surplus_quiet_profit_margin = #{surplusQuietProfitMargin},
+            </if>
+            <if test="surplusActProfitMargin != null and surplusActProfitMargin!=''">
+                surplus_act_profit_margin = #{surplusActProfitMargin},
+            </if>
+            <if test="theprojectedValue != null and theprojectedValue!=''">
+                theprojected_value = #{theprojectedValue},
+            </if>
+            <if test="theprojectedProfitPrice != null and theprojectedProfitPrice!=''">
+                theprojected_profit_price = #{theprojectedProfitPrice},
+            </if>
+            <if test="theprojectedProfitMargin != null and theprojectedProfitMargin!=''">
+                theprojected_profit_margin = #{theprojectedProfitMargin},
+            </if>
+            <if test="theprojectedQuietProfitMargin != null and theprojectedQuietProfitMargin!=''">
+                theprojected_quiet_profit_margin = #{theprojectedQuietProfitMargin},
+            </if>
+            <if test="theprojectedActProfitMargin != null and theprojectedActProfitMargin!=''">
+                theprojected_act_profit_margin = #{theprojectedActProfitMargin},
+            </if>
+            <if test="actValue != null and actValue!=''">
+                act_value = #{actValue},
+            </if>
+            <if test="actProfitPrice != null and actProfitPrice!=''">
+                act_profit_price = #{actProfitPrice},
+            </if>
+            <if test="actProfitMargin != null and actProfitMargin!=''">
+                act_profit_margin = #{actProfitMargin},
+            </if>
+            <if test="quietValue != null and quietValue!=''">
+                quiet_value = #{quietValue},
+            </if>
+            <if test="quietProfitPrice != null and quietProfitPrice!=''">
+                quiet_profit_price = #{quietProfitPrice},
+            </if>
+            <if test="quietProfitMargin != null and quietProfitMargin!=''">
+                quiet_profit_margin = #{quietProfitMargin},
+            </if>
+
+            <!-- 整盘（投资版）相关字段 -->
+            <if test="wholePlateInvestmentValue != null and wholePlateInvestmentValue!=''">
+                whole_plate_investment_value = #{wholePlateInvestmentValue},
+            </if>
+            <if test="wholePlateInvestmentProfitPrice != null and wholePlateInvestmentProfitPrice!=''">
+                whole_plate_investment_profit_price = #{wholePlateInvestmentProfitPrice},
+            </if>
+            <if test="wholePlateInvestmentProfitMargin != null and wholePlateInvestmentProfitMargin!=''">
+                whole_plate_investment_profit_margin = #{wholePlateInvestmentProfitMargin},
+            </if>
+
+            <if test="conclusion != null and conclusion!=''">
+                conclusion = #{conclusion,jdbcType=VARCHAR},
+            </if>
+            <if test="cityLevel != null and cityLevel!=''">
+                city_level = #{cityLevel,jdbcType=TINYINT},
+            </if>
+            <if test="projectScale != null and projectScale!=''">
+                project_scale = #{projectScale},
+            </if>
+            <if test="cityPeriod != null and cityPeriod!=''">
+                city_period = #{cityPeriod,jdbcType=TINYINT},
+            </if>
+            <if test="plateStock != null and plateStock!=''">
+                plate_stock = #{plateStock},
+            </if>
+            <if test="platePeriod != null and platePeriod!=''">
+                plate_period = #{platePeriod,jdbcType=TINYINT},
+            </if>
+            <if test="soldNum != null and soldNum!=''">
+                sold_num = #{soldNum,jdbcType=INTEGER},
+            </if>
+            <if test="soldPer != null and soldPer!=''">
+                sold_per = #{soldPer},
+            </if>
+            <if test="islimitPrice != null and islimitPrice!=''">
+                islimit_price = #{islimitPrice},
+            </if>
+            <if test="islimitExplain != null and islimitExplain!=''">
+                islimit_explain = #{islimitExplain,jdbcType=VARCHAR},
+            </if>
+            <if test="ismerge != null and ismerge!=''">
+                ismerge = #{ismerge},
+            </if>
+            <if test="marketingExplain != null and marketingExplain!=''">
+                marketing_explain = #{marketingExplain,jdbcType=VARCHAR},
+            </if>
+            <if test="stockPer != null and stockPer!=''">
+                stock_per = #{stockPer},
+            </if>
+            <if test="stockPartner != null and stockPartner!=''">
+                stock_partner = #{stockPartner,jdbcType=VARCHAR},
+            </if>
+            <if test="stockIdea != null and stockIdea!=''">
+                stock_idea = #{stockIdea},
+            </if>
+            <if test="thisSalesFacecase != null and thisSalesFacecase!=''">
+                this_sales_facecase = #{thisSalesFacecase,jdbcType=VARCHAR},
+            </if>
+            <if test="thisSalesEstimate != null and thisSalesEstimate!=''">
+                this_sales_estimate = #{thisSalesEstimate,jdbcType=VARCHAR},
+            </if>
+            <if test="thisSalesQt != null and thisSalesQt!=''">
+                this_sales_qt = #{thisSalesQt,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixSelling != null and priceMixSelling!=''">
+                price_mix_selling = #{priceMixSelling,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixDis != null and priceMixDis!=''">
+                price_mix_dis = #{priceMixDis,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixStrategy != null and priceMixStrategy!=''">
+                price_mix_strategy = #{priceMixStrategy,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixSafeguard != null and priceMixSafeguard!=''">
+                price_mix_safeguard = #{priceMixSafeguard,jdbcType=VARCHAR},
+            </if>
+            <if test="priceMixQt != null and priceMixQt!=''">
+                price_mix_qt = #{priceMixQt,jdbcType=VARCHAR},
+            </if>
+            <if test="overallProfitMargin != null and overallProfitMargin!=''">
+                overall_profit_margin = #{overallProfitMargin},
+            </if>
+            <if test="overallProfitMargin5 != null and overallProfitMargin5!=''">
+                overall_profit_margin5 = #{overallProfitMargin5},
+            </if>
+            <if test="departmentName != null and departmentName!=''">
+                department_name = #{departmentName,jdbcType=VARCHAR},
+            </if>
+            <if test="departmentId != null and departmentId!=''">
+                department_id = #{departmentId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectId != null and projectId!=''">
+                project_id = #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="projectName != null and projectName!=''">
+                project_name = #{projectName,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null and createTime!=''">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="creator != null and creator!=''">
+                creator = #{creator,jdbcType=VARCHAR},
+            </if>
+            update_time = now(),
+            <if test="editor != null and editor!=''">
+                editor = #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantName != null and applicantName!=''">
+                applicant_name = #{applicantName,jdbcType=VARCHAR},
+            </if>
+            <if test="applicantTime != null and applicantTime!=''">
+                applicant_time = #{applicantTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="pricingTypeCode != null and pricingTypeCode!=''">
+                pricing_type_code = #{pricingTypeCode,jdbcType=VARCHAR},
+            </if>
+            <if test="anticipatedDate != null and anticipatedDate!=''">
+                anticipated_date = #{anticipatedDate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="tzbProfit != null and tzbProfit!=''">
+                tzb_profit= #{tzbProfit},
+            </if>
+            <if test="tzbIrr != null and tzbIrr!=''">
+                tzb_irr = #{tzbIrr},
+            </if>
+            <if test="tzbJths != null and tzbJths!=''">
+                tzb_jths = #{tzbJths},
+            </if>
+            <if test="zgbProfit != null and zgbProfit!=''">
+                zgb_profit = #{zgbProfit},
+            </if>
+            <if test="zgbIrr != null and zgbIrr!=''">
+                zgb_irr = #{zgbIrr},
+            </if>
+            <if test="zgbJths != null and zgbJths!=''">
+                zgb_jths = #{zgbJths},
+            </if>
+            <if test="dtbProfit != null and dtbProfit!=''">
+                dtb_profit = #{dtbProfit},
+            </if>
+            <if test="dtbIrr != null and dtbIrr!=''">
+                dtb_irr = #{dtbIrr},
+            </if>
+            <if test="dtbJths != null and dtbJths!=''">
+                dtb_jths = #{dtbJths},
+            </if>
+            <if test="tzhProfit != null and tzhProfit!=''">
+                tzh_profit = #{tzhProfit},
+            </if>
+            <if test="tzhIrr != null and tzhIrr!=''">
+                tzh_irr = #{tzhIrr},
+            </if>
+            <if test="tzhJths != null and tzhJths!=''">
+                tzh_jths = #{tzhJths},
+            </if>
+            <if test="priceconConclusion!=null and priceconConclusion!=''">
+                pricecon_conclusion=#{priceconConclusion},
+            </if>
+            <if test="content!=null and content!=''">
+                content=#{content},
+            </if>
+            <if test="examineTitle!=null and examineTitle!=''">
+                examine_title=#{examineTitle},
+            </if>
+            <if test="username!=null and username!=''">
+                username=#{username},
+            </if>
+            <if test="dpcZgbValue!=null and dpcZgbValue!=''">
+                dpc_zgb_value=#{dpcZgbValue}
+            </if>
+        </set>
+
+        where id=#{id}
+    </update>
+
+    <!--本系统定调价编制页面数据渲染-->
+    <select id="getApplyData" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+	flow_json jsonData,
+	base_id,
+	project_id,
+	flow_status
+FROM
+	mm_ap_flow_info
+WHERE
+	json_id = #{BOID} order by create_time DESC limit 1
+    </select>
+
+    <!--获取本系统定调价主数据-->
+    <select id="getPricingBaseData" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        `id`,
+        CAST( this_pricing_value AS CHAR ) thisPricingValue,
+        CAST( this_pricing_profit_price AS CHAR ) thisPricingProfitPrice,
+        CAST( this_pricing_profit_margin AS CHAR ) thisPricingProfitMargin,
+        CAST( this_pricing_quiet_profit_margin AS CHAR ) thisPricingQuietProfitMargin,
+        CAST( this_pricing_act_profit_margin AS CHAR ) thisPricingActProfitMargin,
+        CAST( add_sign_value AS CHAR ) addSignValue,
+        CAST( add_sign_profit_price AS CHAR ) addSignProfitPrice,
+        CAST( add_sign_profit_margin AS CHAR ) addSignProfitMargin,
+        CAST( add_sign_quiet_profit_margin AS CHAR ) addSignQuietProfitMargin,
+        CAST( add_sign_act_profit_margin AS CHAR ) addSignActProfitMargin,
+        CAST( surplus_value AS CHAR ) surplusValue,
+        CAST( surplus_profit_price AS CHAR ) surplusProfitPrice,
+        CAST( surplus_profit_margin AS CHAR ) surplusProfitMargin,
+        CAST( surplus_quiet_profit_margin AS CHAR ) surplusQuietProfitMargin,
+        CAST( surplus_act_profit_margin AS CHAR ) surplusActProfitMargin,
+        CAST( theprojected_value AS CHAR ) theprojectedValue,
+        CAST( theprojected_profit_price AS CHAR ) theprojectedProfitPrice,
+        CAST( theprojected_profit_margin AS CHAR ) theprojectedProfitMargin,
+        CAST( theprojected_quiet_profit_margin AS CHAR ) theprojectedQuietProfitMargin,
+        CAST( theprojected_act_profit_margin AS CHAR ) theprojectedActProfitMargin,
+        CAST( act_value AS CHAR ) actValue,
+        CAST( act_profit_price AS CHAR ) actProfitPrice,
+        CAST( act_profit_margin AS CHAR ) actProfitMargin,
+        CAST( quiet_value AS CHAR ) quietValue,
+        CAST( quiet_profit_price AS CHAR ) quietProfitPrice,
+        CAST( quiet_profit_margin AS CHAR ) quietProfitMargin,
+
+        <!-- 整盘（投资版）相关字段 -->
+        CAST( whole_plate_investment_value AS CHAR ) wholePlateInvestmentValue,
+        CAST( whole_plate_investment_profit_price AS CHAR ) wholePlateInvestmentProfitPrice,
+        CAST( whole_plate_investment_profit_margin AS CHAR ) wholePlateInvestmentProfitMargin,
+
+        CAST( dpc_zgb_value AS CHAR ) dpcZgbValue,
+        conclusion,
+        `city_level` cityLevel,
+        `project_scale` projectScale,
+        `city_period` cityPeriod,
+        `plate_stock` plateStock,
+        `plate_period` platePeriod,
+        `sold_num` soldNum,
+        `sold_per` soldPer,
+        `islimit_price` islimitPrice,
+        `islimit_explain` islimitExplain,
+        `ismerge`,
+        `marketing_explain` marketingExplain,
+        `stock_per` stockPer,
+        `stock_partner` stockPartner,
+        `stock_idea` stockIdea,
+        `this_sales_facecase` thisSalesFacecase,
+        `this_sales_estimate` thisSalesEstimate,
+        `this_sales_qt` thisSalesQt,
+        `price_mix_selling` priceMixSelling,
+        `price_mix_dis` priceMixDis,
+        `price_mix_strategy` priceMixStrategy,
+        `price_mix_safeguard` priceMixSafeguard,
+        `price_mix_qt` priceMixQt,
+        `overall_profit_margin` overallProfitMargin,
+        `overall_profit_margin5` overallProfitMargin5,
+        `department_name` departmentName,
+        `department_id` departmentId,
+        `project_id` projectId,
+        `project_name` projectName,
+        `applicant_name` applicantName,
+        DATE_FORMAT( anticipated_date, "%Y-%m-%d" ) anticipatedDate,
+        DATE_FORMAT( applicant_time, "%Y-%m-%d %H:%i:%S" ) applicantTime,
+        CAST( tzb_profit AS CHAR ) tzbProfit,
+        CAST( tzb_irr AS CHAR ) tzbIrr,
+        CAST( tzb_jths AS CHAR ) tzbJths,
+        CAST( zgb_profit AS CHAR ) zgbProfit,
+        CAST( zgb_irr AS CHAR ) zgbIrr,
+        CAST( zgb_jths AS CHAR ) zgbJths,
+        CAST( dtb_profit AS CHAR ) dtbProfit,
+        CAST( dtb_irr AS CHAR ) dtbIrr,
+        pricing_type_code pricingTypeCode,
+        CAST( dtb_jths AS CHAR ) dtbJths,
+        CAST( tzh_profit AS CHAR ) tzhProfit,
+        CAST( tzh_irr AS CHAR ) tzhIrr,
+        CAST( tzh_jths AS CHAR ) tzhJths,
+        pricecon_conclusion priceconConclusion,
+        `content`,
+        examine_title examineTitle,
+        username
+        FROM
+        mm_ap_set_the_pricing where id=#{base_id}
+    </select>
+
+    <!--获取定调价字典数据（下拉列表）-->
+    <select id="getPricingDictoryList" parameterType="java.util.Map" resultType="java.util.Map">
+SELECT
+	DictName,
+	DictCode
+FROM
+	s_dictionary
+WHERE
+	pid = ( SELECT id FROM s_dictionary WHERE DictCode =#{code} )
+ORDER BY
+	ListIndex
+    </select>
+
+    <!--插入定调价结果数据-->
+    <insert id="insertPricingResult" parameterType="java.util.Map">
+        insert into mm_ap_set_price_ad_result
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="priceAdObject != null and  priceAdObject!=''">
+                price_ad_object,
+            </if>
+            <if test="priceAdCargo != null and priceAdCargo!=''">
+                price_ad_cargo,
+            </if>
+            <if test="priceAdAvg != null and priceAdAvg!=''">
+                price_ad_avg,
+            </if>
+            <if test="priceAdsqAvg != null and priceAdsqAvg!=''">
+                price_adsq_avg,
+            </if>
+            <if test="priceAdbeforeCargo != null and priceAdbeforeCargo!=''">
+                price_adbefore_cargo,
+            </if>
+            <if test="priceAdafterCargo != null and priceAdafterCargo!=''">
+                price_adafter_cargo,
+            </if>
+            <if test="priceAdDiff != null and priceAdDiff!=''">
+                price_ad_diff,
+            </if>
+            <if test="priceItemId != null and priceItemId!=''">
+                price_item_id,
+            </if>
+
+            <!-- 非定价，新增字段 -->
+            <if test="CurrentBottomAveragePrice != null and CurrentBottomAveragePrice!=''">
+                current_bottom_average_price,
+            </if>
+            <if test="CurrentTableAveragePrice != null and CurrentTableAveragePrice!=''">
+                current_table_average_price,
+            </if>
+            <if test="ApplyTableAveragePrice != null and ApplyTableAveragePrice!=''">
+                apply_table_average_price,
+            </if>
+            <if test="AdjustBeforeRelation != null and AdjustBeforeRelation!=''">
+                adjust_before_relation,
+            </if>
+            <if test="AdjustAfterRelation != null and AdjustAfterRelation!=''">
+                adjust_after_relation,
+            </if>
+            <if test="TableAveragePriceDifference != null and TableAveragePriceDifference!=''">
+                table_average_price_difference,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="priceAdObject != null and priceAdObject!=''">
+                #{priceAdObject,jdbcType=VARCHAR},
+            </if>
+            <if test="priceAdCargo != null and priceAdCargo!=''">
+                #{priceAdCargo,jdbcType=VARCHAR},
+            </if>
+            <if test="priceAdAvg != null and priceAdAvg!=''">
+                #{priceAdAvg},
+            </if>
+            <if test="priceAdsqAvg != null and priceAdsqAvg!=''">
+                #{priceAdsqAvg,jdbcType=VARCHAR},
+            </if>
+            <if test="priceAdbeforeCargo != null and priceAdbeforeCargo!=''">
+                #{priceAdbeforeCargo,jdbcType=VARCHAR},
+            </if>
+            <if test="priceAdafterCargo != null and priceAdafterCargo!=''">
+                #{priceAdafterCargo,jdbcType=VARCHAR},
+            </if>
+            <if test="priceAdDiff != null and priceAdDiff!=''">
+                #{priceAdDiff,jdbcType=VARCHAR},
+            </if>
+            <if test="priceItemId != null and priceItemId!=''">
+                #{priceItemId,jdbcType=VARCHAR},
+            </if>
+
+            <!-- 非定价，新增字段 -->
+            <if test="CurrentBottomAveragePrice != null and CurrentBottomAveragePrice!=''">
+                #{CurrentBottomAveragePrice,jdbcType=VARCHAR},
+            </if>
+            <if test="CurrentTableAveragePrice != null and CurrentTableAveragePrice!=''">
+                #{CurrentTableAveragePrice,jdbcType=VARCHAR},
+            </if>
+            <if test="ApplyTableAveragePrice != null and ApplyTableAveragePrice!=''">
+                #{ApplyTableAveragePrice,jdbcType=VARCHAR},
+            </if>
+            <if test="AdjustBeforeRelation != null and AdjustBeforeRelation!=''">
+                #{AdjustBeforeRelation,jdbcType=VARCHAR},
+            </if>
+            <if test="AdjustAfterRelation != null and AdjustAfterRelation!=''">
+                #{AdjustAfterRelation,jdbcType=VARCHAR},
+            </if>
+            <if test="TableAveragePriceDifference != null and TableAveragePriceDifference!=''">
+                #{TableAveragePriceDifference,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入 货值压力测算 -->
+    <insert id="insertPressureCompute" parameterType="java.util.Map">
+        insert into mm_ap_set_pressure_compute
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="priceAdObject != null and  priceAdObject!=''">
+                price_ad_object,
+            </if>
+            <if test="adjustmentBeforePlannedValue != null and adjustmentBeforePlannedValue!=''">
+                adjustment_before_planned_value,
+            </if>
+            <if test="budgetValue != null and budgetValue!=''">
+                budget_value,
+            </if>
+            <if test="valueDifference != null and valueDifference!=''">
+                value_difference,
+            </if>
+            <if test="valueDeviationRate != null and valueDeviationRate!=''">
+                value_deviation_rate,
+            </if>
+            <if test="priceItemId != null and priceItemId!=''">
+                price_item_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="priceAdObject != null and priceAdObject!=''">
+                #{priceAdObject,jdbcType=VARCHAR},
+            </if>
+            <if test="adjustmentBeforePlannedValue != null and adjustmentBeforePlannedValue!=''">
+                #{adjustmentBeforePlannedValue,jdbcType=VARCHAR},
+            </if>
+            <if test="budgetValue != null and budgetValue!=''">
+                #{budgetValue},
+            </if>
+            <if test="valueDifference != null and valueDifference!=''">
+                #{valueDifference,jdbcType=VARCHAR},
+            </if>
+            <if test="valueDeviationRate != null and valueDeviationRate!=''">
+                #{valueDeviationRate,jdbcType=VARCHAR},
+            </if>
+            <if test="priceItemId != null and priceItemId!=''">
+                #{priceItemId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入 价格偏离度 -->
+    <insert id="insertPriceDeviation" parameterType="java.util.Map">
+        insert into mm_ap_set_price_deviation
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="commercial != null and  commercial!=''">
+                commercial,
+            </if>
+            <if test="adjustment_after_price != null and adjustment_after_price!=''">
+                adjustment_after_price,
+            </if>
+            <if test="average_price != null and average_price!=''">
+                average_price,
+            </if>
+            <if test="price_deviation != null and price_deviation!=''">
+                price_deviation,
+            </if>
+            <if test="price_item_id != null and price_item_id!=''">
+                price_item_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="commercial != null and commercial!=''">
+                #{commercial,jdbcType=VARCHAR},
+            </if>
+            <if test="adjustment_after_price != null and adjustment_after_price!=''">
+                #{adjustment_after_price,jdbcType=VARCHAR},
+            </if>
+            <if test="average_price != null and average_price!=''">
+                #{average_price},
+            </if>
+            <if test="price_deviation != null and price_deviation!=''">
+                #{price_deviation,jdbcType=VARCHAR},
+            </if>
+            <if test="price_item_id != null and price_item_id!=''">
+                #{price_item_id,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <!-- 插入 货值偏差说明 -->
+    <insert id="insertDeviationExplain" parameterType="java.util.Map">
+        insert into mm_ap_set_deviation_explain
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="deviationReason != null and  deviationReason!=''">
+                deviation_reason,
+            </if>
+            <if test="salesTarget != null and salesTarget!=''">
+                sales_target,
+            </if>
+            <if test="followUpAction != null and followUpAction!=''">
+                follow_up_action,
+            </if>
+            <if test="priceItemId != null and priceItemId!=''">
+                price_item_id,
+            </if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="deviationReason != null and deviationReason!=''">
+                #{deviationReason,jdbcType=VARCHAR},
+            </if>
+            <if test="salesTarget != null and salesTarget!=''">
+                #{salesTarget,jdbcType=VARCHAR},
+            </if>
+            <if test="followUpAction != null and followUpAction!=''">
+                #{followUpAction},
+            </if>
+            <if test="priceItemId != null and priceItemId!=''">
+                #{priceItemId,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+
+    <!--插入定调价价格对比表-->
+    <insert id="insertPricingComparison" parameterType="java.util.Map">
+        insert into mm_ap_set_price_comparison
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                id,
+            </if>
+            <if test="priceVersion != null  and priceVersion!=''">
+                price_version,
+            </if>
+            <if test="commercial != null and commercial!=''">
+                commercial,
+            </if>
+            <if test="Code != null and Code!=''">
+                code,
+            </if>
+            <if test="price != null and price!=''">
+                price,
+            </if>
+            <if test="targetTraffic != null and targetTraffic!=''">
+                target_traffic,
+            </if>
+            <if test="zgzpAvgPrice != null and zgzpAvgPrice!=''">
+                zgzp_avg_price,
+            </if>
+            <if test="zgzpTraffic != null and zgzpTraffic!=''">
+                zgzp_traffic,
+            </if>
+            <if test="zgzpPriceFd != null and zgzpPriceFd!='' ">
+                zgzp_price_fd,
+            </if>
+            <if test="zgzpTrafficDiff != null and zgzpTrafficDiff!='' ">
+                zgzp_traffic_diff,
+            </if>
+            <if test="zgskAvgPrice != null and zgskAvgPrice!='' ">
+                zgsk_avg_price,
+            </if>
+            <if test="zgskTraffic != null and zgskTraffic!='' ">
+                zgsk_traffic,
+            </if>
+            <if test="zgskPriceFd != null and zgskPriceFd!='' ">
+                zgsk_price_fd,
+            </if>
+            <if test="zgskTrafficDiff != null and zgskTrafficDiff!=''">
+                zgsk_traffic_diff,
+            </if>
+            <if test="ghbfAvgPriect != null and ghbfAvgPriect!='' ">
+                ghbf_avg_priect,
+            </if>
+            <if test="ghbfTraffic != null and ghbfTraffic!=''">
+                ghbf_traffic,
+            </if>
+            <if test="ghbfPriceFd != null and ghbfPriceFd!='' ">
+                ghbf_price_fd,
+            </if>
+            <if test="ghbfTrafficDiff != null and ghbfTrafficDiff!=''">
+                ghbf_traffic_diff,
+            </if>
+            <if test="jpjgAvgPrice != null and jpjgAvgPrice!=''">
+                jpjg_avg_price,
+            </if>
+            <if test="jpjgPriceFd != null and jpjgPriceFd!=''">
+                jpjg_price_fd,
+            </if>
+            <if test="jpjgPriceTraffic != null and  jpjgPriceTraffic!=''">
+                jpjg_price_traffic,
+            </if>
+            <if test="jpjgPriceDiff != null and  jpjgPriceDiff!='' ">
+                jpjg_price_diff,
+            </if>
+            <if test="pricingId != null  and pricingId!=''">
+                pricing_id,
+            </if>
+            <if test="tytthreeAvgprice != null and tytthreeAvgprice!='' ">
+                tytthree_avgprice,
+            </if>
+            <if test="fyxtDprice != null and fyxtDprice!=''">
+                fyxt_dprice,
+            </if>
+            <if test="tytTopprice != null and tytTopprice!='' ">
+                tyt_topprice,
+            </if>
+            <if test="tytDskcavgPrice != null and tytDskcavgPrice!='' ">
+                tyt_dskcavg_price,
+            </if>
+            <if test="tytGhbfjPrice != null and tytGhbfjPrice!='' ">
+                tyt_ghbfj_price,
+            </if>
+            <if test="tytthreeTraffic != null and tytthreeTraffic!='' ">
+                tytthree_traffic,
+            </if>
+            <if test="tytthreePriceFd != null and tytthreePriceFd!='' ">
+                tytthree_price_fd,
+            </if>
+            <if test="tytthreeTrafficDiff != null and tytthreeTrafficDiff!='' ">
+                tytthree_traffic_diff,
+            </if>
+            <if test="fyxtTraffic != null and fyxtTraffic!=''">
+                fyxt_traffic,
+            </if>
+            <if test="fyxtPriceFd != null and fyxtPriceFd!=''">
+                fyxt_price_fd,
+            </if>
+            <if test="fyxtTrafficDiff != null and fyxtTrafficDiff!=''">
+                fyxt_traffic_diff,
+            </if>
+            <if test="tytTopDiff != null and tytTopDiff!=''">
+                tyt_top_diff,
+            </if>
+            <if test="tytTopPriceFd != null and tytTopPriceFd!=''">
+                tyt_top_price_fd,
+            </if>
+            <if test="tytTopTrafficDiff != null and tytTopTrafficDiff!=''">
+                tyt_top_traffic_diff,
+            </if>
+            <if test="tytDskcTraffic != null and  tytDskcTraffic!=''">
+                tyt_dskc_traffic,
+            </if>
+            <if test="tytDskcPriceFd != null and tytDskcPriceFd!=''">
+                tyt_dskc_price_fd,
+            </if>
+            <if test="tytDskcTrafficDiff != null and tytDskcTrafficDiff!=''">
+                tyt_dskc_traffic_diff,
+            </if>
+            <if test="tytGhbfjTraffic != null and tytGhbfjTraffic!=''">
+                tyt_ghbfj_traffic,
+            </if>
+            <if test="tytGhbfjPriceFd != null and tytGhbfjPriceFd!=''">
+                tyt_ghbfj_price_fd,
+            </if>
+            <if test="tytGhbfjTrafficDiff != null and tytGhbfjTrafficDiff!='' ">
+                tyt_ghbfj_traffic_diff
+            </if>
+
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="id != null">
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="priceVersion != null and priceVersion!=''">
+                #{priceVersion,jdbcType=VARCHAR},
+            </if>
+            <if test="commercial != null and  commercial!='' ">
+                #{commercial,jdbcType=VARCHAR},
+            </if>
+            <if test="Code != null and Code!=''">
+                #{Code,jdbcType=VARCHAR},
+            </if>
+            <if test="price != null and price!='' ">
+                #{price},
+            </if>
+            <if test="targetTraffic != null and targetTraffic!='' ">
+                #{targetTraffic},
+            </if>
+            <if test="zgzpAvgPrice != null and zgzpAvgPrice!=''">
+                #{zgzpAvgPrice},
+            </if>
+            <if test="zgzpTraffic != null and zgzpTraffic!=''">
+                #{zgzpTraffic},
+            </if>
+            <if test="zgzpPriceFd != null and zgzpPriceFd!=''">
+                #{zgzpPriceFd},
+            </if>
+            <if test="zgzpTrafficDiff != null and zgzpTrafficDiff!=''">
+                #{zgzpTrafficDiff},
+            </if>
+            <if test="zgskAvgPrice != null and zgskAvgPrice!='' ">
+                #{zgskAvgPrice},
+            </if>
+            <if test="zgskTraffic != null and zgskTraffic!=''">
+                #{zgskTraffic},
+            </if>
+            <if test="zgskPriceFd != null and zgskPriceFd!=''">
+                #{zgskPriceFd},
+            </if>
+            <if test="zgskTrafficDiff != null and zgskTrafficDiff!=''">
+                #{zgskTrafficDiff},
+            </if>
+            <if test="ghbfAvgPriect != null and ghbfAvgPriect!=''">
+                #{ghbfAvgPriect},
+            </if>
+            <if test="ghbfTraffic != null and ghbfTraffic!=''">
+                #{ghbfTraffic},
+            </if>
+            <if test="ghbfPriceFd != null and ghbfPriceFd!=''">
+                #{ghbfPriceFd},
+            </if>
+            <if test="ghbfTrafficDiff != null and ghbfTrafficDiff!=''">
+                #{ghbfTrafficDiff},
+            </if>
+            <if test="jpjgAvgPrice != null and jpjgAvgPrice!=''">
+                #{jpjgAvgPrice},
+            </if>
+            <if test="jpjgPriceFd != null and jpjgPriceFd!=''">
+                #{jpjgPriceFd},
+            </if>
+            <if test="jpjgPriceTraffic != null and jpjgPriceTraffic!=''">
+                #{jpjgPriceTraffic},
+            </if>
+            <if test="jpjgPriceDiff != null and jpjgPriceDiff!='' ">
+                #{jpjgPriceDiff},
+            </if>
+            <if test="pricingId != null and pricingId!=''">
+                #{pricingId},
+            </if>
+            <if test="tytthreeAvgprice != null and tytthreeAvgprice!='' ">
+                #{tytthreeAvgprice},
+            </if>
+            <if test="fyxtDprice != null and fyxtDprice!=''">
+                #{fyxtDprice},
+            </if>
+            <if test="tytTopprice != null and tytTopprice!=''">
+                #{tytTopprice},
+            </if>
+            <if test="tytDskcavgPrice != null and tytDskcavgPrice!=''">
+                #{tytDskcavgPrice},
+            </if>
+            <if test="tytGhbfjPrice != null and tytGhbfjPrice!=''">
+                #{tytGhbfjPrice},
+            </if>
+            <if test="tytthreeTraffic != null and tytthreeTraffic!=''">
+                #{tytthreeTraffic},
+            </if>
+            <if test="tytthreePriceFd != null and tytthreePriceFd!=''">
+                #{tytthreePriceFd},
+            </if>
+            <if test="tytthreeTrafficDiff != null and tytthreeTrafficDiff!=''">
+                #{tytthreeTrafficDiff},
+            </if>
+            <if test="fyxtTraffic != null and fyxtTraffic!=''">
+                #{fyxtTraffic},
+            </if>
+            <if test="fyxtPriceFd != null and fyxtPriceFd!=''">
+                #{fyxtPriceFd},
+            </if>
+            <if test="fyxtTrafficDiff != null and fyxtTrafficDiff!=''">
+                #{fyxtTrafficDiff},
+            </if>
+            <if test="tytTopDiff != null and tytTopDiff!=''">
+                #{tytTopDiff},
+            </if>
+            <if test="tytTopPriceFd != null and tytTopPriceFd!=''">
+                #{tytTopPriceFd},
+            </if>
+            <if test="tytTopTrafficDiff != null and tytTopTrafficDiff!=''">
+                #{tytTopTrafficDiff},
+            </if>
+            <if test="tytDskcTraffic != null and tytDskcTraffic!=''">
+                #{tytDskcTraffic},
+            </if>
+            <if test="tytDskcPriceFd != null and tytDskcPriceFd!=''">
+                #{tytDskcPriceFd},
+            </if>
+            <if test="tytDskcTrafficDiff != null and tytDskcTrafficDiff!=''">
+                #{tytDskcTrafficDiff},
+            </if>
+            <if test="tytGhbfjTraffic != null and tytGhbfjTraffic!=''">
+                #{tytGhbfjTraffic},
+            </if>
+            <if test="tytGhbfjPriceFd != null and tytGhbfjPriceFd!=''">
+                #{tytGhbfjPriceFd},
+            </if>
+            <if test="tytGhbfjTrafficDiff != null and tytGhbfjTrafficDiff!=''">
+                #{tytGhbfjTrafficDiff},
+            </if>
+
+        </trim>
+
+    </insert>
+
+    <!--删除定调价结果和价格对比数据-->
+    <delete id="clearPricingResultData" parameterType="java.util.Map">
+        delete from mm_ap_set_price_ad_result where price_item_id=#{id};
+        delete from mm_ap_set_price_comparison where pricing_id=#{id};
+    </delete>
+
+    <!-- 删除 货值压力测算 和 货值偏差说明 -->
+    <delete id="clearPressureCompute" parameterType="java.util.Map">
+        delete from mm_ap_set_pressure_compute where price_item_id = #{id};
+    </delete>
+
+    <!-- 删除 价格偏离度 -->
+    <delete id="clearPriceDeviation" parameterType="java.util.Map">
+        delete from mm_ap_set_price_deviation where price_item_id = #{id};
+    </delete>
+
+    <!--获取价格对比数据-->
+    <select id="getPriceComparison" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	price_version priceVersion,
+	commercial,
+	code,
+	price,
+	target_traffic targetTraffic,
+	zgzp_avg_price zgzpAvgPrice,
+	zgzp_traffic zgzpTraffic,
+	zgzp_price_fd zgzpPriceFd,
+	zgzp_traffic_diff zgzpTrafficDiff,
+	zgsk_avg_price zgskAvgPrice,
+	zgsk_traffic zgskTraffic,
+	zgsk_price_fd zgskPriceFd,
+	zgsk_traffic_diff zgskTrafficDiff,
+	ghbf_avg_priect ghbfAvgPriect,
+	ghbf_traffic ghbfTraffic,
+	ghbf_price_fd ghbfPriceFd,
+	ghbf_traffic_diff ghbfTrafficDiff,
+	jpjg_avg_price jpjgAvgPrice,
+	jpjg_price_fd jpjgPriceFd,
+	jpjg_price_traffic jpjgPriceTraffic,
+	jpjg_price_diff jpjgPriceDiff,
+	conclusion,
+	tytthree_avgprice tytthreeAvgprice ,
+	fyxt_dprice fyxtDprice,
+	tyt_topprice tytTopprice,
+	tyt_dskcavg_price tytDskcavgPrice,
+	tyt_ghbfj_price tytGhbfjPrice,
+	tytthree_traffic tytthreeTraffic,
+	tytthree_price_fd tytthreePriceFd,
+	tytthree_traffic_diff tytthreeTrafficDiff,
+	fyxt_traffic fyxtTraffic,
+	fyxt_price_fd fyxtPriceFd,
+	fyxt_traffic_diff fyxtTrafficDiff,
+	tyt_top_diff tytTopDiff,
+	tyt_top_price_fd tytTopPriceFd,
+	tyt_top_traffic_diff tytTopTrafficDiff,
+	tyt_dskc_traffic tytDskcTraffic,
+	tyt_dskc_price_fd tytDskcPriceFd,
+	tyt_dskc_traffic_diff tytDskcTrafficDiff,
+	tyt_ghbfj_traffic tytGhbfjTraffic,
+	tyt_ghbfj_price_fd tytGhbfjPriceFd,
+	tyt_ghbfj_traffic_diff tytGhbfjTrafficDiff
+FROM
+	mm_ap_set_price_comparison where pricing_id=#{id}
+
+    </select>
+
+    <!--获取调价结果数据-->
+    <select id="getPricingResult" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+        price_ad_object priceAdObject,
+        price_ad_cargo priceAdCargo,
+        price_ad_avg priceAdAvg,
+        price_adsq_avg priceAdsqAvg,
+        price_adbefore_cargo priceAdbeforeCargo,
+        price_adafter_cargo priceAdafterCargo,
+        price_ad_diff priceAdDiff,
+
+        <!-- 非定价，新增字段 -->
+        current_bottom_average_price CurrentBottomAveragePrice,
+        current_table_average_price CurrentTableAveragePrice,
+        apply_table_average_price ApplyTableAveragePrice,
+        adjust_before_relation AdjustBeforeRelation,
+        adjust_after_relation AdjustAfterRelation,
+        table_average_price_difference TableAveragePriceDifference
+        FROM
+        mm_ap_set_price_ad_result
+        WHERE
+        price_item_id = #{id}
+    </select>
+
+    <!-- 获取 货值压力测算 -->
+    <select id="getPressureCompute" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            price_ad_object priceAdObject,
+            adjustment_before_planned_value adjustmentBeforePlannedValue,
+            budget_value budgetValue,
+            value_difference valueDifference,
+            value_deviation_rate valueDeviationRate
+        FROM
+            mm_ap_set_pressure_compute
+        WHERE
+            price_item_id = #{id}
+    </select>
+
+    <!-- 获取 价格偏离度 -->
+    <select id="getPriceDeviation" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT * FROM mm_ap_set_price_deviation WHERE price_item_id = #{id}
+    </select>
+
+    <!-- 获取 货值偏差说明 -->
+    <select id="getDeviationExplain" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+            deviation_reason deviationReason,
+            sales_target salesTarget,
+            follow_up_action followUpAction
+        FROM
+            mm_ap_set_deviation_explain
+        WHERE
+            price_item_id = #{id}
+    </select>
+
+
+    <!--获取流程id-->
+    <select id="getFlowId" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	flow_id,flow_json,base_id as id,id as kid
+FROM
+	mm_ap_flow_info
+WHERE
+	json_id = #{json_id}
+    </select>
+
+    <!--保存上传文件-->
+    <insert id="saveFile" parameterType="java.util.Map">
+        insert  into
+       s_attach(
+        id,
+        FileNameOld,
+        FileNameSuffix,
+        SaveUrl,
+        FileType,
+        FileSize,
+        ShowName,
+        CreateTime,
+        IsDel
+
+        )
+        values(
+        #{id},
+        #{fileName},
+        #{fileHz},
+        #{fileUrl},
+        #{fileType},
+        #{fileSize},
+        #{fileName},
+        now(),
+        0
+
+        )
+
+
+    </insert>
+
+    <!--修改上传文件关联审批单-->
+    <update id="updateFileBaseId" parameterType="java.lang.String">
+        update s_attach set BizID=#{baseId} where id=#{id}
+
+    </update>
+
+    <!--获取审批单上传文件列表-->
+    <select id="getFileList" parameterType="java.lang.String" resultType="java.util.Map">
+
+        select id,ShowName as name,SaveUrl as url from s_attach where BizID=#{id} and  IsDel=0
+    </select>
+
+    <!--修改审批流主数据关联-->
+    <update id="updateFlowBaseId" parameterType="java.util.Map">
+        update mm_ap_flow_info set base_id=#{id} where json_id=#{json_id}
+
+    </update>
+
+    <!--更改审批流程数据-->
+    <update id="updateFlowData" parameterType="java.util.Map">
+        update mm_ap_flow_info
+        <set>
+            <if test="id != null">
+                id = #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="flowStatus != null">
+                flow_status = #{flowStatus,jdbcType=INTEGER},
+            </if>
+            <if test="projectId != null">
+                project_id = #{projectId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowId != null">
+                flow_id = #{flowId,jdbcType=VARCHAR},
+            </if>
+            <if test="flowType != null">
+                flow_type = #{flowType,jdbcType=VARCHAR},
+            </if>
+            <if test="flowCode != null">
+                flow_code = #{flowCode,jdbcType=VARCHAR},
+            </if>
+            <if test="creator != null">
+                creator = #{creator,jdbcType=VARCHAR},
+            </if>
+            <if test="createTime != null">
+                create_time = #{createTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editTime != null">
+                edit_time = #{editTime,jdbcType=TIMESTAMP},
+            </if>
+            <if test="editor != null">
+                editor = #{editor,jdbcType=VARCHAR},
+            </if>
+            <if test="isdel != null">
+                isdel = #{isdel,jdbcType=INTEGER},
+            </if>
+            <if test="baseId != null">
+                base_id = #{baseId,jdbcType=VARCHAR},
+            </if>
+            <if test="jsonId != null">
+                json_id = #{jsonId,jdbcType=VARCHAR},
+            </if>
+            <if test="zddate != null">
+                zddate = #{zddate,jdbcType=TIMESTAMP},
+            </if>
+            <if test="zphzZs != null">
+                zphz_Zs = #{zphzZs},
+            </if>
+            <if test="dpdjZs != null">
+                dpdj_Zs = #{dpdjZs},
+            </if>
+            <if test="dbzgLr != null">
+                dbzg_Lr = #{dbzgLr},
+            </if>
+            <if test="dbzgLl != null">
+                dbzg_ll = #{dbzgLl},
+            </if>
+            <if test="zj != null">
+                zj = #{zj,jdbcType=VARCHAR},
+            </if>
+            <if test="orgname != null">
+                orgName = #{orgname,jdbcType=VARCHAR},
+            </if>
+            <if test="flowJson != null">
+                flow_json = #{flowJson,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="stageId!=null">
+                stage_id=#{stageId},
+            </if>
+            <if test="title!=null">
+                title=#{title}
+            </if>
+
+        </set>
+        where id=#{id}
+    </update>
+
+    <!--获取项目数据（项目名称）-->
+    <select id="getProjectData" resultType="java.util.Map" parameterType="java.lang.String">
+        select projectid as project_id,projectname as project_Name from t_mm_project where projectCode=#{project_code}
+    </select>
+
+    <!--删除上传文件-->
+    <update id="deleteFile" parameterType="java.lang.String">
+   update s_attach set IsDel=1 where id=#{id}
+    </update>
+    <!--清空OA审批流程数据-->
+    <update id="clearFlowData" parameterType="java.lang.String">
+UPDATE mm_ap_flow_info
+SET zphz_Zs = NULL,
+dpdj_Zs = NULL,
+dbzg_Lr = NULL,
+dbzg_ll = NULL,
+zj = NULL,
+OrgName = NULL
+WHERE
+	json_id = #{id}
+    </update>
+    <update id="clearZhuData" parameterType="java.lang.String">
+        UPDATE `saleman`.`mm_ap_set_the_pricing`
+        SET `this_pricing_value` = NULL,
+        `this_pricing_profit_price` = NULL,
+        `this_pricing_profit_margin` = NULL,
+        `this_pricing_quiet_profit_margin` = NULL,
+        `this_pricing_act_profit_margin` = NULL,
+        `add_sign_value` = NULL,
+        `add_sign_profit_price` = NULL,
+        `add_sign_profit_margin` = NULL,
+        `add_sign_quiet_profit_margin` = NULL,
+        `add_sign_act_profit_margin` = NULL,
+        `surplus_value` = NULL,
+        `surplus_profit_price` = NULL,
+        `surplus_profit_margin` = NULL,
+        `surplus_quiet_profit_margin` = NULL,
+        `surplus_act_profit_margin` = NULL,
+        `theprojected_value` = NULL,
+        `theprojected_profit_price` = NULL,
+        `theprojected_profit_margin` = NULL,
+        `theprojected_quiet_profit_margin` = NULL,
+        `theprojected_act_profit_margin` = NULL,
+        `act_value` = NULL,
+        `act_profit_price` = NULL,
+        `act_profit_margin` = NULL,
+        `quiet_value` = NULL,
+        `quiet_profit_price` = NULL,
+        `quiet_profit_margin` = NULL,
+
+        <!-- 整盘（投资版）相关字段 -->
+        `whole_plate_investment_value` = NULL,
+        `whole_plate_investment_profit_price` = NULL,
+        `whole_plate_investment_profit_margin` = NULL,
+
+        `conclusion` = NULL,
+        `city_level` = NULL,
+        `project_scale` = NULL,
+        `city_period` = NULL,
+        `plate_stock` = NULL,
+        `plate_period` = NULL,
+        `sold_num` = NULL,
+        `sold_per` = NULL,
+        `islimit_price` = NULL,
+        `islimit_explain` = NULL,
+        `ismerge` = NULL,
+        `marketing_explain` = NULL,
+        `stock_per` = NULL,
+        `stock_partner` = NULL,
+        `stock_idea` = NULL,
+        `this_sales_facecase` = NULL,
+        `this_sales_estimate` = NULL,
+        `this_sales_qt` = NULL,
+        `price_mix_selling` = NULL,
+        `price_mix_dis` = NULL,
+        `price_mix_strategy` = NULL,
+        `price_mix_safeguard` = NULL,
+        `price_mix_qt` = NULL,
+        `overall_profit_margin` = NULL,
+        `overall_profit_margin5` = NULL,
+        `department_name` = NULL,
+        `department_id` = NULL,
+        `project_id` = NULL,
+        `project_name` = NULL,
+        `create_time` = NULL,
+        `creator` = NULL,
+        `update_time` = NULL,
+        `editor` = NULL,
+        `applicant_name` = NULL,
+        `applicant_time` = NULL,
+        `pricing_type_code` = NULL,
+        `anticipated_date` = NULL,
+        `tzb_profit` = NULL,
+        `tzb_irr` = NULL,
+        `tzb_jths` = NULL,
+        `zgb_profit` = NULL,
+        `zgb_irr` = NULL,
+        `zgb_jths` = NULL,
+        `dtb_profit` = NULL,
+        `dtb_irr` = NULL,
+        `dtb_jths` = NULL,
+        `tzh_profit` = NULL,
+        `tzh_irr` = NULL,
+        `tzh_jths` = NULL,
+        `content` = NULL,
+        `pricecon_conclusion` = NULL,
+        `examine_title` = NULL,
+        `username` = NULL,
+        `dpc_zgb_value` = NULL
+        WHERE
+        id=#{id}
+    </update>
+
+    <!-- 根据项目id，获取 累计已签约部分 货值 -->
+    <select id="getAddSignValueByProjectId" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT 套数,IFNULL(SUM(金额),0.00) AS addSignValue,project_id
+        FROM (SELECT tb.ProjectID project_id,sum(ifnull(tb.套数, 0)) AS 套数,sum(ifnull(tb.金额, 0)) AS 金额
+        FROM (SELECT ProjectID, COUNT(RoomGUID) AS 套数,sum(ifnull(CjRmbTotal, 0)) AS 金额
+        FROM vs_xsgl_contract a INNER JOIN mm_business_unit b ON a.projectid = b.business_id
+        WHERE IFNULL(CloseReason, '') <![CDATA[ <> ]]> '撤销签约' AND IFNULL(CloseReason, '') <![CDATA[ <> ]]> 'nos退房' AND IFNULL(CloseReason, '') <![CDATA[ <> ]]> '补差'
+        AND b.monthly_weekly_type = 1 GROUP BY ProjectID
+        UNION ALL SELECT ProjectID ,- 1 * COUNT(ifnull(RoomGUID, 0)) AS 套数, - 1 * SUM(ifnull(CjRmbTotal, 0)) AS 金额
+        FROM vs_xsgl_contract a INNER JOIN mm_business_unit b ON a.projectid = b.business_id
+        WHERE IFNULL(CloseReason, '') IN ('nos退房','退房','换房') AND b.monthly_weekly_type = 1
+        GROUP BY ProjectID UNION ALL SELECT ProjectID,0 AS 套数,SUM(ifnull(BcTotal, 0)) AS 金额
+        FROM vs_xsgl_contract a INNER JOIN mm_business_unit b ON a.projectid = b.business_id
+        WHERE STATUS = '激活' AND b.monthly_weekly_type = 1 GROUP BY ProjectID) tb
+        GROUP BY tb.ProjectID) n WHERE project_id = #{projectId}
+    </select>
+</mapper>

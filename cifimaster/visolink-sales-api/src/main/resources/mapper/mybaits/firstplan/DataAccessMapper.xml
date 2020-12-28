@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.dataAccess.dao.DataAccessDao">
+
+    <select id="comcomguest" resultType="java.util.Map" parameterType="java.util.Map">
+
+        select * from comcom_guest WHERE reportData &gt;=#{startTime} and reportData &lt;=#{endTime}
+    </select>
+    <select id="getPanoramaProjectById" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT version_id from fp_comm_panorama_project where project_id=#{projectID}
+    </select>
+
+    <insert id="insertPanoramaProject" parameterType="java.util.Map">
+        insert into fp_comm_panorama_project
+        (project_id,project_code,project_name,stage_id,stage_name,group_id,group_name,take_time,is_del,is_freeze,version_id,open_time
+        ,update_time) values
+            (#{projectID},#{project_code},#{projectName},#{projectfID},#{projectfName},#{batchID},#{batchName},#{takeTime},0,
+            0,#{versionID},#{open_time},now())
+    </insert>
+
+    <update id="updatePanoramaProject" parameterType="java.util.Map">
+        update fp_comm_panorama_project set
+        version_id=#{versionID},project_code=#{project_code},project_name=#{projectName},
+        stage_id=#{projectfID},stage_name=#{projectfName},group_id=#{batchID},group_name=#{batchName},
+        take_time=#{takeTime},open_time=#{open_time},update_time=now()
+        where project_id=#{projectID}
+    </update>
+    <insert id="insertReport" parameterType="java.util.List">
+        INSERT INTO  fp_comm_guest_storage(
+            project_id,total_time,reportCnt,visitCnt,lesser_card,big_card,subscribe_num,create_time
+        )    values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.HKBProjectID},#{item.reportData},#{item.reportCnt},#{item.visitCnt},0,0,0,NOW())
+        </foreach>
+    </insert>
+
+    <insert id="insertCard" parameterType="java.util.List">
+        INSERT INTO  fp_comm_guest_storage(
+        project_id,total_time,reportCnt,visitCnt,lesser_card,big_card,subscribe_num,create_time
+        )    values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectId},#{item.cdate},0,0,#{item.xknum},#{item.dknum},#{item.qynum},NOW())
+        </foreach>
+    </insert>
+
+    <update id="updateReport" parameterType="java.util.Map" >
+    <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+        update fp_comm_guest_storage
+        <set>
+            lesser_card=#{item.xknum},big_card=#{item.dknum},subscribe_num=#{item.qynum}
+        </set>
+        <where>
+            project_id=#{item.projectId} and total_time=#{item.cdate}
+        </where>
+    </foreach>
+</update>
+
+    <delete id="delGuestStorageByDate" parameterType="java.util.Map">
+        delete from fp_comm_guest_storage where total_time &gt;=#{startTime} and total_time &lt;=#{endTime}
+    </delete>
+
+    <delete id="delGuestStorageByProject" parameterType="java.util.Map">
+        delete from fp_comm_guest_storage where total_time &gt;=#{startTime} and project_id=#{projectId}
+    </delete>
+    <delete id="delGuestStorageAll">
+       truncate table fp_comm_guest_storage;
+    </delete>
+
+    <select id="selectNodeReport" resultType="java.util.Map" parameterType="java.util.Map">
+        select pln.send_post_name as jobName,plan.project_id from fp_plan_node pln INNER JOIN
+        (
+        SELECT node.plan_id,
+        (node.node_level+1) as node_level
+        from fp_plan_node node
+        where node.id=#{plan_node_id}
+        ) temp on temp.plan_id=pln.plan_id and temp.node_level=pln.node_level
+        LEFT JOIN fp_plan plan on plan.id=pln.plan_id
+        ORDER BY pln.create_time desc limit 1
+    </select>
+
+    <select id="sendUserName"  parameterType="java.util.Map" resultType="java.util.Map">
+         SELECT temp.mobile,temp.projectId project_id,temp.usercn as userName,temp.userid,temp.alias as userCode
+         FROM (SELECT tsu.mobile,tsur.userid,tsu.alias,tsu.usercn,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(belongDepFullNo,'-',-2),'-',1) projectId
+         FROM t_sys_post tsp
+        INNER JOIN t_sys_userjob_rel tsur
+        ON tsp.jobNum=tsur.jobid
+        INNER JOIN t_sys_user tsu ON tsu.username=tsur.userid
+        WHERE tsp.jobName LIKE "%"#{jobName}"%" AND tsp.isDel=0
+        AND tsu.username IS NOT NULL
+        ) temp where projectId=#{project_id}
+        GROUP BY temp.projectId,temp.userid
+    </select>
+
+    <select id="selectPlanNodeSendNode"  resultType="java.util.Map">
+        select 1 type,plan.open_time,node.plan_end_time,node.warning_day,node.node_level,node.plan_start_time,node.node_name,plan.project_name,plan.project_id,node.send_post_name as jobName,node.id as plan_node_id from fp_plan_node node
+        LEFT JOIN fp_plan plan on node.plan_id=plan.id
+        where plan_start_time &lt;=curdate()
+        and plan.is_del=0  and node.is_del=0 and node.is_effective=1
+        and node.send_status=0 and node.node_level &lt;&gt; 1
+        GROUP BY node.node_level,project_id,jobName
+        UNION all
+        select 2 type,plan.open_time,node.plan_end_time,node.warning_day,node.node_level,node.plan_start_time,node.node_name,plan.project_name,plan.project_id,node.send_post_name as jobName,node.id as plan_node_id from fp_plan_node node
+        LEFT JOIN fp_plan plan on node.plan_id=plan.id
+        where  DATE_FORMAT(DATE_ADD(plan_start_time,INTERVAL 1 DAY),'%Y-%m-%d')=curdate()
+        and node.node_level=8  and node.send_status=1
+        and plan.is_del=0 and node.is_del=0 GROUP BY node.node_level,project_id,jobName
+    </select>
+
+    <select id="updatePlanNodeSendStatusById" parameterType="String" >
+       update fp_plan_node set send_status=1 where id=#{plan_node_id}
+    </select>
+
+    <!--获取钉钉推送状态-->
+    <select id="getDingPushStatus" resultType="int">
+        select dingding from c_switch
+    </select>
+
+    <select id="getLoginOutStatus" resultType="int">
+        select login_out from c_switch
+    </select>
+
+    <!--获取是否同步签约计划-->
+    <select id="getSignAll" resultType="int">
+         select sign_all from c_switch
+    </select>
+</mapper>

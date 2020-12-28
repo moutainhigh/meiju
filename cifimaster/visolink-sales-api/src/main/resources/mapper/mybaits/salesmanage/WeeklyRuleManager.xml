@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.weeklyrule.dao.WeeklyRuleDao">
+
+    <select id="WeeklyRuleSelect" resultType="java.util.Map">
+        SELECT
+        id,
+       DATE_FORMAT(start_time,'%Y-%m-%d %H:%i:%s')  start_time,
+ DATE_FORMAT(end_time,'%Y-%m-%d %H:%i:%s') end_time,
+ `year_month`,
+plan_week,
+how_week,
+DATE_FORMAT(this_time,'%Y-%m-%d %H:%i:%s')  this_time,
+DATE_FORMAT(windows_start,'%Y-%m-%d %H:%i:%s') windows_start,
+DATE_FORMAT(windows_end,'%Y-%m-%d %H:%i:%s')  windows_end
+FROM
+mm_common_week_plan
+WHERE (is_del!=1 OR is_del IS NULL)
+ORDER BY start_time
+    </select>
+
+    <update id="WeeklyRuleUpdate" parameterType="java.util.Map">
+        UPDATE
+        mm_common_week_plan
+        SET
+
+start_time=#{start_time},
+end_time=#{end_time},
+`year_month`=#{year_month},
+plan_week=#{plan_week},
+how_week=#{how_week},
+this_time=#{this_time},
+windows_start=#{windows_start},
+windows_end=#{windows_end}
+WHERE id=#{id}
+    </update>
+
+    <update id="WeeklyRuleDelete" parameterType="java.util.Map">
+        UPDATE
+        mm_common_week_plan
+SET
+is_del=1
+WHERE id=#{id}
+    </update>
+
+    <update id="WeeklyRuleInsert" parameterType="java.util.Map">
+        INSERT INTO
+        mm_common_week_plan
+        (
+        start_time,
+end_time,
+`year_month`,
+plan_week,
+how_week,
+this_time,
+windows_start,
+windows_end,
+is_del
+        )
+        VALUES(
+
+#{start_time},
+#{end_time},
+#{year_month},
+#{plan_week},
+#{how_week},
+#{this_time},
+#{windows_start},
+#{windows_end},
+0)
+    </update>
+
+
+
+
+</mapper>
+

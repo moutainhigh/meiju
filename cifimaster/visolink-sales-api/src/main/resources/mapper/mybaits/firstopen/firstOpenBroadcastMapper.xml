@@ -1,0 +1,1834 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.firstopen.dao.FirstOpenBroadcastDao">
+	<!--查询当前计划的首开节点是否有效-->
+	<select id="getOpenNodeInfo" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	fp_plan_node
+WHERE
+	plan_id = #{plan_id}
+	AND is_effective = 0
+	AND is_del = 0
+	AND node_level = 8
+ORDER BY
+	create_time DESC
+	LIMIT 1
+</select>
+
+	<!--查询次日播报的填报状态-->
+	<select id="getMorrowDataInfo" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	id,
+	plan_id,
+	plan_approval
+FROM
+	fp_open_morrow_broadcast
+WHERE
+	plan_id = #{plan_id}
+ORDER BY
+	create_time DESC,
+	plan_approval DESC limit 1
+    </select>
+
+	<!--查询首开次日数据-->
+<select id="getOpenMorrowDayByPlanNodeId" resultType="java.util.Map" parameterType="java.util.Map">
+	SELECT * from fp_open_morrow_broadcast where plan_node_id=#{plan_node_id} limit 1
+</select>
+	<select id="getOpenMorrowDayByPlanId" resultType="java.util.Map" parameterType="java.util.Map">
+	SELECT * from fp_open_morrow_broadcast where plan_id=#{plan_id}  order by create_time desc Limit 1
+</select>
+
+
+	<!--初始化次日数据(查询首开前7天的有效数据)-->
+	<select id="InitOpenMorrowDayData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+invest_open_node,
+rules_open_node,
+estimate_open_node,
+
+invest_product_type  as invest_xreal_type,
+rules_product_type as rules_xreal_type,
+estimate_product_type as estimate_xreal_type,
+
+invest_take_card_value,
+rules_take_card_value,
+estimate_take_card_value,
+
+invest_take_card_area,
+rules_take_card_area,
+estimate_take_card_area,
+
+invest_push_value,
+rules_push_value,
+estimate_push_value,
+
+invest_push_area,
+rules_push_area,
+estimate_push_area,
+
+invest_selling_value,
+rules_selling_value,
+estimate_selling_value,
+
+invest_selling_area,
+rules_selling_area,
+estimate_selling_area,
+
+invest_take_card_per,
+rules_take_card_per,
+estimate_take_card_per,
+
+invest_this_per as invest_create_per,
+rules_this_per as rules_create_per,
+estimate_this_per as estimate_create_per,
+
+invest_all_per,
+rules_all_per,
+estimate_all_per,
+
+invest_irr,
+rules_irr,
+estimate_irr,
+
+invest_payback,
+rules_payback,
+estimate_payback
+FROM
+	fp_seven_day_index where approval_stuat=4
+	 AND plan_id=#{plan_id}
+	 ORDER BY version desc limit 1
+	</select>
+
+	<!--初始化当日数据-->
+	<select id="InitOpenThisDayData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	IFNULL( ROUND( (IFNULL( twoindex.designtwo_selling_num,0)/ IFNULL( sevenindex.this_customer_visit, 0 ))*100, 2 ), 0 ) AS designtwo_this_clientper,
+	IFNULL( ROUND( (IFNULL( twoindex.designtwo_selling_num,0)/ IFNULL( temptb.designtwo_add_visit,0 ))*100, 2 ), 0 ) AS designtwo_finish,
+
+	node.id AS node_id,
+	IFNULL( twoindex.designtwo_selling_num, 0 ) AS designtwo_selling_num,
+	IFNULL( twoindex.designtwo_selling_value, 0 ) AS designtwo_selling_value,
+	twoindex.designtwo_take_card_per AS designtwo_selling_takeper,
+	IFNULL( ROUND( IFNULL( twoindex.cost_sales_generalize_price, 0 )/ IFNULL(twoindex.designtwo_selling_value, 0 )* 100, 2 ), 0 ) designtwo_sales_generalize_price,
+
+	temptb.designtwo_add_visit,
+	temptb.designtwo_add_big,
+	temptb.designtwo_add_little,
+	temptb.designtwo_add_big_per,
+	temptb.designtwo_add_little_per,
+	temptb.designtwo_finish,
+	sevenindex.this_customer_visit AS designtwo_this_client,
+	estimate_open_node
+FROM
+	fp_designtwo_code_index twoindex
+	INNER JOIN ( SELECT * FROM fp_plan_node WHERE plan_id = #{plan_id} AND node_level = 3 AND is_effective = 0 LIMIT 1 ) node ON node.id = twoindex.plan_node_id
+	LEFT JOIN fp_seven_day_index sevenindex ON twoindex.plan_id = sevenindex.plan_id
+	AND sevenindex.approval_stuat = 4
+	LEFT JOIN (
+	SELECT
+		snode.plan_id,
+		snode.visit_num AS designtwo_add_visit,
+		snode.big_num AS designtwo_add_big,
+		snode.big_per AS designtwo_add_big_per,
+		snode.make_per AS designtwo_finish,
+		snode.little_num AS designtwo_add_little,
+		snode.little_per AS designtwo_add_little_per
+	FROM
+		( SELECT id FROM fp_guest_storage_flow WHERE plan_id =#{plan_id} AND approval_stuat = 4 ORDER BY node_level DESC, version DESC LIMIT 1 ) tb
+		LEFT JOIN fp_guest_storage_node_plan snode ON snode.flow_id = tb.id
+	WHERE
+		node_level = 8
+		AND LEVEL = 1
+	) temptb ON temptb.plan_id = twoindex.plan_id
+ORDER BY
+	sevenindex.version DESC
+	LIMIT 1
+	</select>
+
+	<!--查询客储数据，计算率-->
+	<select id="queryGuestAcutalData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	tb.*,
+	IFNULL( ROUND( (IFNULL(#{actual_selling_num},0)/ IFNULL( actual_add_visit,0 ))*100, 2 ), 0 ) AS actual_finish,
+	IFNULL( ROUND( (IFNULL(#{actual_selling_num},0)/ IFNULL( actual_add_big,0 ))*100, 2 ), 0 ) AS actual_add_big_per,
+	IFNULL( ROUND( (IFNULL(#{actual_selling_num},0)/ IFNULL( actual_add_little,0 ))*100, 2 ), 0 ) AS actual_add_little_per,
+	IFNULL(actual_add_visit,0) AS actual_this_client
+FROM
+	(
+	SELECT
+		ifnull( sum( reportCnt ), 0 ) reportCnt,
+		ifnull( sum( visitCnt ), 0 ) actual_add_visit,
+		ifnull( sum( lesser_card ), 0 ) actual_add_little,
+		ifnull( sum( big_card ), 0 ) actual_add_big,
+		ifnull( sum( subscribe_num ), 0 ) subscribe_num
+	FROM
+		fp_comm_guest_storage
+	WHERE
+		project_id IN (
+		SELECT
+			fpr.project_id
+		FROM
+			fp_project_relationship fpr,
+			( SELECT ID FROM fp_project_relationship WHERE project_id = #{project_id} ) PID
+		WHERE
+			( fpr.id = PID.ID OR fpr.pid = PID.ID )
+		)
+	AND total_time &lt;= #{endTime}) tb
+	</select>
+
+	<!--查询当前节点的审批状态-->
+	<select id="getThisNodeStatus" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	plan_approval,
+	version,
+	this.id as thisDayid
+FROM
+	fp_plan_node node
+	LEFT JOIN fp_open_this_day this on this.plan_node_id=node.id
+	WHERE
+	node.id =#{plan_node_id}
+	ORDER BY create_time desc limit 1
+</select>
+
+	<!--保存次日数据-->
+	<insert id="insertMorrowDayData" parameterType="java.util.Map" >
+		<!--
+          WARNING - @mbggenerated
+          This element is automatically generated by MyBatis Generator, do not modify.
+          This element was generated on Fri Jul 10 11:48:03 CST 2020.
+        -->
+		insert into fp_open_morrow_broadcast
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			ID,
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="invest_xreal_type != null" >
+				invest_xreal_type,
+			</if>
+			<if test="invest_take_card_value != null" >
+				invest_take_card_value,
+			</if>
+			<if test="invest_open_node != null" >
+				invest_open_node,
+			</if>
+			<if test="invest_push_value != null" >
+				invest_push_value,
+			</if>
+			<if test="invest_selling_value != null" >
+				invest_selling_value,
+			</if>
+			<if test="invest_take_card_per != null" >
+				invest_take_card_per,
+			</if>
+			<if test="invest_open_avg_price != null" >
+				invest_open_avg_price,
+			</if>
+			<if test="invest_create_per != null" >
+				invest_create_per,
+			</if>
+			<if test="invest_all_per != null" >
+				invest_all_per,
+			</if>
+			<if test="invest_irr != null" >
+				invest_irr,
+			</if>
+			<if test="invest_payback != null" >
+				invest_payback,
+			</if>
+			<if test="rules_xreal_type != null" >
+				rules_xreal_type,
+			</if>
+			<if test="rules_take_card_value != null" >
+				rules_take_card_value,
+			</if>
+			<if test="rules_open_node != null" >
+				rules_open_node,
+			</if>
+			<if test="rules_push_value != null" >
+				rules_push_value,
+			</if>
+			<if test="rules_selling_value != null" >
+				rules_selling_value,
+			</if>
+			<if test="rules_take_card_per != null" >
+				rules_take_card_per,
+			</if>
+			<if test="rules_open_avg_price != null" >
+				rules_open_avg_price,
+			</if>
+			<if test="rules_create_per != null" >
+				rules_create_per,
+			</if>
+			<if test="rules_all_per != null" >
+				rules_all_per,
+			</if>
+			<if test="rules_irr != null" >
+				rules_irr,
+			</if>
+			<if test="rules_payback != null" >
+				rules_payback,
+			</if>
+			<if test="estimate_xreal_type != null" >
+				estimate_xreal_type,
+			</if>
+			<if test="estimate_take_card_value != null" >
+				estimate_take_card_value,
+			</if>
+			<if test="estimate_open_node != null" >
+				estimate_open_node,
+			</if>
+			<if test="estimate_push_value != null" >
+				estimate_push_value,
+			</if>
+			<if test="estimate_selling_value != null" >
+				estimate_selling_value,
+			</if>
+			<if test="estimate_take_card_per != null" >
+				estimate_take_card_per,
+			</if>
+			<if test="estimate_open_avg_price != null" >
+				estimate_open_avg_price,
+			</if>
+			<if test="estimate_create_per != null" >
+				estimate_create_per,
+			</if>
+			<if test="estimate_all_per != null" >
+				estimate_all_per,
+			</if>
+			<if test="estimate_irr != null" >
+				estimate_irr,
+			</if>
+			<if test="estimate_payback != null" >
+				estimate_payback,
+			</if>
+			<if test="cash_xreal_type != null" >
+				cash_xreal_type,
+			</if>
+			<if test="cash_take_card_value != null" >
+				cash_take_card_value,
+			</if>
+			<if test="cash_open_node != null" >
+				cash_open_node,
+			</if>
+			<if test="cash_push_value != null" >
+				cash_push_value,
+			</if>
+			<if test="cash_selling_value != null" >
+				cash_selling_value,
+			</if>
+			<if test="cash_take_card_per != null" >
+				cash_take_card_per,
+			</if>
+			<if test="cash_open_avg_price != null" >
+				cash_open_avg_price,
+			</if>
+			<if test="cash_create_per != null" >
+				cash_create_per,
+			</if>
+			<if test="cash_all_per != null" >
+				cash_all_per,
+			</if>
+			<if test="cash_irr != null" >
+				cash_irr,
+			</if>
+			<if test="cash_payback != null" >
+				cash_payback,
+			</if>
+			<if test="bias_xreal_type != null" >
+				bias_xreal_type,
+			</if>
+			<if test="bias_take_card_value != null" >
+				bias_take_card_value,
+			</if>
+			<if test="bias_open_node != null" >
+				bias_open_node,
+			</if>
+			<if test="bias_push_value != null" >
+				bias_push_value,
+			</if>
+			<if test="bias_selling_value != null" >
+				bias_selling_value,
+			</if>
+			<if test="bias_take_card_per != null" >
+				bias_take_card_per,
+			</if>
+			<if test="bias_open_avg_price != null" >
+				bias_open_avg_price,
+			</if>
+			<if test="bias_create_per2 != null" >
+				bias_create_per2,
+			</if>
+			<if test="bias_create_per != null" >
+				bias_create_per,
+			</if>
+			<if test="bias_all_per != null" >
+				bias_all_per,
+			</if>
+			<if test="bias_irr != null" >
+				bias_irr,
+			</if>
+			<if test="bias_payback != null" >
+				bias_payback,
+			</if>
+			<if test="biasper_xreal_type != null" >
+				biasper_xreal_type,
+			</if>
+			<if test="biasper_take_card_value != null" >
+				biasper_take_card_value,
+			</if>
+			<if test="biasper_open_node != null" >
+				biasper_open_node,
+			</if>
+			<if test="biasper_push_value != null" >
+				biasper_push_value,
+			</if>
+			<if test="biasper_selling_value != null" >
+				biasper_selling_value,
+			</if>
+			<if test="biasper_take_card_per != null" >
+				biasper_take_card_per,
+			</if>
+			<if test="biasper_open_avg_price != null" >
+				biasper_open_avg_price,
+			</if>
+			<if test="biasper_create_per != null" >
+				biasper_create_per,
+			</if>
+			<if test="biasper_all_per != null" >
+				biasper_all_per,
+			</if>
+			<if test="biasper_irr != null" >
+				biasper_irr,
+			</if>
+			<if test="biasper_payback != null" >
+				biasper_payback,
+			</if>
+			<if test="content_bazaar != null" >
+				content_bazaar,
+			</if>
+			<if test="content_team != null" >
+				content_team,
+			</if>
+			<if test="content_product != null" >
+				content_product,
+			</if>
+			<if test="content_policy != null" >
+				content_policy,
+			</if>
+			<if test="version != null" >
+				version,
+			</if>
+			<if test="plan_approval != null" >
+				plan_approval,
+			</if>
+				create_time,
+			<if test="approval_time != null" >
+				approval_time,
+			</if>
+			<if test="invest_take_card_area != null" >
+				invest_take_card_area,
+			</if>
+			<if test="invest_push_area != null" >
+				invest_push_area,
+			</if>
+			<if test="invest_selling_area != null" >
+				invest_selling_area,
+			</if>
+			<if test="rules_take_card_area != null" >
+				rules_take_card_area,
+			</if>
+			<if test="rules_push_area != null" >
+				rules_push_area,
+			</if>
+			<if test="rules_selling_area != null" >
+				rules_selling_area,
+			</if>
+			<if test="estimate_take_card_area != null" >
+				estimate_take_card_area,
+			</if>
+			<if test="estimate_push_area != null" >
+				estimate_push_area,
+			</if>
+			<if test="estimate_selling_area != null" >
+				estimate_selling_area,
+			</if>
+			<if test="cash_take_card_area != null" >
+				cash_take_card_area,
+			</if>
+			<if test="cash_push_area != null" >
+				cash_push_area,
+			</if>
+			<if test="cash_selling_area != null" >
+				cash_selling_area,
+			</if>
+			<if test="bias_take_card_area != null" >
+				bias_take_card_area,
+			</if>
+			<if test="bias_push_area != null" >
+				bias_push_area,
+			</if>
+			<if test="bias_selling_area != null" >
+				bias_selling_area,
+			</if>
+			<if test="biasper_take_card_area != null" >
+				biasper_take_card_area,
+			</if>
+			<if test="biasper_push_area != null" >
+				biasper_push_area,
+			</if>
+			<if test="biasper_selling_area != null" >
+				biasper_selling_area,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			uuid(),
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_xreal_type != null" >
+				#{invest_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_take_card_value != null" >
+				#{invest_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_open_node != null" >
+				#{invest_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_push_value != null" >
+				#{invest_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_value != null" >
+				#{invest_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_take_card_per != null" >
+				#{invest_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_open_avg_price != null" >
+				#{invest_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_create_per != null" >
+				#{invest_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_all_per != null" >
+				#{invest_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_irr != null" >
+				#{invest_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_payback != null" >
+				#{invest_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_xreal_type != null" >
+				#{rules_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_take_card_value != null" >
+				#{rules_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_open_node != null" >
+				#{rules_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_push_value != null" >
+				#{rules_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_value != null" >
+				#{rules_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_take_card_per != null" >
+				#{rules_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_open_avg_price != null" >
+				#{rules_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_create_per != null" >
+				#{rules_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_all_per != null" >
+				#{rules_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_irr != null" >
+				#{rules_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_payback != null" >
+				#{rules_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_xreal_type != null" >
+				#{estimate_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_take_card_value != null" >
+				#{estimate_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_open_node != null" >
+				#{estimate_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_push_value != null" >
+				#{estimate_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_value != null" >
+				#{estimate_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_take_card_per != null" >
+				#{estimate_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_open_avg_price != null" >
+				#{estimate_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_create_per != null" >
+				#{estimate_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_all_per != null" >
+				#{estimate_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_irr != null" >
+				#{estimate_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_payback != null" >
+				#{estimate_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_xreal_type != null" >
+				#{cash_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="cash_take_card_value != null" >
+				#{cash_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_open_node != null" >
+				#{cash_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="cash_push_value != null" >
+				#{cash_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_selling_value != null" >
+				#{cash_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_take_card_per != null" >
+				#{cash_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_open_avg_price != null" >
+				#{cash_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_create_per != null" >
+				#{cash_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_all_per != null" >
+				#{cash_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_irr != null" >
+				#{cash_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_payback != null" >
+				#{cash_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_xreal_type != null" >
+				#{bias_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="bias_take_card_value != null" >
+				#{bias_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_open_node != null" >
+				#{bias_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="bias_push_value != null" >
+				#{bias_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_value != null" >
+				#{bias_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_take_card_per != null" >
+				#{bias_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_open_avg_price != null" >
+				#{bias_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_create_per2 != null" >
+				#{bias_create_per2,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_create_per != null" >
+				#{bias_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_all_per != null" >
+				#{bias_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_irr != null" >
+				#{bias_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_payback != null" >
+				#{bias_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_xreal_type != null" >
+				#{biasper_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="biasper_take_card_value != null" >
+				#{biasper_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_open_node != null" >
+				#{biasper_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="biasper_push_value != null" >
+				#{biasper_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_value != null" >
+				#{biasper_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_take_card_per != null" >
+				#{biasper_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_open_avg_price != null" >
+				#{biasper_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_create_per != null" >
+				#{biasper_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_all_per != null" >
+				#{biasper_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_irr != null" >
+				#{biasper_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_payback != null" >
+				#{biasper_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="content_bazaar != null" >
+				#{content_bazaar,jdbcType=VARCHAR},
+			</if>
+			<if test="content_team != null" >
+				#{content_team,jdbcType=VARCHAR},
+			</if>
+			<if test="content_product != null" >
+				#{content_product,jdbcType=VARCHAR},
+			</if>
+			<if test="content_policy != null" >
+				#{content_policy,jdbcType=VARCHAR},
+			</if>
+			<if test="version != null" >
+				#{version,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_approval != null" >
+				#{plan_approval,jdbcType=TINYINT},
+			</if>
+			now(),
+			<if test="approval_time != null" >
+				#{approval_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="invest_take_card_area != null" >
+				#{invest_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_push_area != null" >
+				#{invest_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_area != null" >
+				#{invest_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_take_card_area != null" >
+				#{rules_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_push_area != null" >
+				#{rules_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_area != null" >
+				#{rules_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_take_card_area != null" >
+				#{estimate_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_push_area != null" >
+				#{estimate_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_area != null" >
+				#{estimate_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_take_card_area != null" >
+				#{cash_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_push_area != null" >
+				#{cash_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_selling_area != null" >
+				#{cash_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_take_card_area != null" >
+				#{bias_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_push_area != null" >
+				#{bias_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_area != null" >
+				#{bias_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_take_card_area != null" >
+				#{biasper_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_push_area != null" >
+				#{biasper_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_area != null" >
+				#{biasper_selling_area,jdbcType=DECIMAL},
+			</if>
+		</trim>
+	</insert>
+	<!--修改次日数据-->
+	<update id="updateMorrowDayData" parameterType="map" >
+		<!--
+          WARNING - @mbggenerated
+          This element is automatically generated by MyBatis Generator, do not modify.
+          This element was generated on Fri Jul 10 11:48:03 CST 2020.
+        -->
+		update fp_open_morrow_broadcast
+		<set >
+
+			<if test="plan_node_id != null" >
+				plan_node_id = #{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_id != null" >
+				plan_id = #{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_xreal_type != null" >
+				invest_xreal_type = #{invest_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_take_card_value != null" >
+				invest_take_card_value = #{invest_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_open_node != null" >
+				invest_open_node = #{invest_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_push_value != null" >
+				invest_push_value = #{invest_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_value != null" >
+				invest_selling_value = #{invest_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_take_card_per != null" >
+				invest_take_card_per = #{invest_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_open_avg_price != null" >
+				invest_open_avg_price = #{invest_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_create_per != null" >
+				invest_create_per = #{invest_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_all_per != null" >
+				invest_all_per = #{invest_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_irr != null" >
+				invest_irr = #{invest_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_payback != null" >
+				invest_payback = #{invest_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_xreal_type != null" >
+				rules_xreal_type = #{rules_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_take_card_value != null" >
+				rules_take_card_value = #{rules_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_open_node != null" >
+				rules_open_node = #{rules_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="rules_push_value != null" >
+				rules_push_value = #{rules_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_value != null" >
+				rules_selling_value = #{rules_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_take_card_per != null" >
+				rules_take_card_per = #{rules_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_open_avg_price != null" >
+				rules_open_avg_price = #{rules_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_create_per != null" >
+				rules_create_per = #{rules_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_all_per != null" >
+				rules_all_per = #{rules_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_irr != null" >
+				rules_irr = #{rules_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_payback != null" >
+				rules_payback = #{rules_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_xreal_type != null" >
+				estimate_xreal_type = #{estimate_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_take_card_value != null" >
+				estimate_take_card_value = #{estimate_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_open_node != null" >
+				estimate_open_node = #{estimate_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="estimate_push_value != null" >
+				estimate_push_value = #{estimate_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_value != null" >
+				estimate_selling_value = #{estimate_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_take_card_per != null" >
+				estimate_take_card_per = #{estimate_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_open_avg_price != null" >
+				estimate_open_avg_price = #{estimate_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_create_per != null" >
+				estimate_create_per = #{estimate_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_all_per != null" >
+				estimate_all_per = #{estimate_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_irr != null" >
+				estimate_irr = #{estimate_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_payback != null" >
+				estimate_payback = #{estimate_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_xreal_type != null" >
+				cash_xreal_type = #{cash_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="cash_take_card_value != null" >
+				cash_take_card_value = #{cash_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_open_node != null" >
+				cash_open_node = #{cash_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="cash_push_value != null" >
+				cash_push_value = #{cash_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_selling_value != null" >
+				cash_selling_value = #{cash_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_take_card_per != null" >
+				cash_take_card_per = #{cash_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_open_avg_price != null" >
+				cash_open_avg_price = #{cash_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_create_per != null" >
+				cash_create_per = #{cash_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_all_per != null" >
+				cash_all_per = #{cash_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_irr != null" >
+				cash_irr = #{cash_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_payback != null" >
+				cash_payback = #{cash_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_xreal_type != null" >
+				bias_xreal_type = #{bias_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="bias_take_card_value != null" >
+				bias_take_card_value = #{bias_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_open_node != null" >
+				bias_open_node = #{bias_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="bias_push_value != null" >
+				bias_push_value = #{bias_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_value != null" >
+				bias_selling_value = #{bias_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_take_card_per != null" >
+				bias_take_card_per = #{bias_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_open_avg_price != null" >
+				bias_open_avg_price = #{bias_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_create_per2 != null" >
+				bias_create_per2 = #{bias_create_per2,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_create_per != null" >
+				bias_create_per = #{bias_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_all_per != null" >
+				bias_all_per = #{bias_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_irr != null" >
+				bias_irr = #{bias_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_payback != null" >
+				bias_payback = #{bias_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_xreal_type != null" >
+				biasper_xreal_type = #{biasper_xreal_type,jdbcType=VARCHAR},
+			</if>
+			<if test="biasper_take_card_value != null" >
+				biasper_take_card_value = #{biasper_take_card_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_open_node != null" >
+				biasper_open_node = #{biasper_open_node,jdbcType=VARCHAR},
+			</if>
+			<if test="biasper_push_value != null" >
+				biasper_push_value = #{biasper_push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_value != null" >
+				biasper_selling_value = #{biasper_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_take_card_per != null" >
+				biasper_take_card_per = #{biasper_take_card_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_open_avg_price != null" >
+				biasper_open_avg_price = #{biasper_open_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_create_per != null" >
+				biasper_create_per = #{biasper_create_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_all_per != null" >
+				biasper_all_per = #{biasper_all_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_irr != null" >
+				biasper_irr = #{biasper_irr,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_payback != null" >
+				biasper_payback = #{biasper_payback,jdbcType=DECIMAL},
+			</if>
+			<if test="content_bazaar != null" >
+				content_bazaar = #{content_bazaar,jdbcType=VARCHAR},
+			</if>
+			<if test="content_team != null" >
+				content_team = #{content_team,jdbcType=VARCHAR},
+			</if>
+			<if test="content_product != null" >
+				content_product = #{content_product,jdbcType=VARCHAR},
+			</if>
+			<if test="content_policy != null" >
+				content_policy = #{content_policy,jdbcType=VARCHAR},
+			</if>
+			<if test="version != null" >
+				version = #{version,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_approval != null" >
+				plan_approval = #{plan_approval,jdbcType=TINYINT},
+			</if>
+
+			<if test="approval_time != null" >
+				approval_time = #{approval_time,jdbcType=TIMESTAMP},
+			</if>
+				update_time = NOW(),
+			<if test="invest_take_card_area != null" >
+				invest_take_card_area = #{invest_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_push_area != null" >
+				invest_push_area = #{invest_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="invest_selling_area != null" >
+				invest_selling_area = #{invest_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_take_card_area != null" >
+				rules_take_card_area = #{rules_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_push_area != null" >
+				rules_push_area = #{rules_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_selling_area != null" >
+				rules_selling_area = #{rules_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_take_card_area != null" >
+				estimate_take_card_area = #{estimate_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_push_area != null" >
+				estimate_push_area = #{estimate_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_selling_area != null" >
+				estimate_selling_area = #{estimate_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_take_card_area != null" >
+				cash_take_card_area = #{cash_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_push_area != null" >
+				cash_push_area = #{cash_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_selling_area != null" >
+				cash_selling_area = #{cash_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_take_card_area != null" >
+				bias_take_card_area = #{bias_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_push_area != null" >
+				bias_push_area = #{bias_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_area != null" >
+				bias_selling_area = #{bias_selling_area,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_take_card_area != null" >
+				biasper_take_card_area = #{biasper_take_card_area,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_push_area != null" >
+				biasper_push_area = #{biasper_push_area,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_area != null" >
+				biasper_selling_area = #{biasper_selling_area,jdbcType=DECIMAL},
+			</if>
+		</set>
+	WHERE id=#{morrowDayId}
+	</update>
+
+	<!--保存当日数据-->
+	<insert id="insertThisDayData" parameterType="java.util.Map" >
+		insert into fp_open_this_day
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			id,
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="project_duty != null" >
+				project_duty,
+			</if>
+			<if test="take_card_time != null" >
+				take_card_time,
+			</if>
+			<if test="open_time != null" >
+				open_time,
+			</if>
+			<if test="take_card_type != null" >
+				take_card_type,
+			</if>
+			<if test="push_real_type != null" >
+				push_real_type,
+			</if>
+			<if test="take_num != null" >
+				take_num,
+			</if>
+			<if test="push_num != null" >
+				push_num,
+			</if>
+			<if test="take_value != null" >
+				take_value,
+			</if>
+			<if test="push_value != null" >
+				push_value,
+			</if>
+			<if test="take_avg_price != null" >
+				take_avg_price,
+			</if>
+			<if test="push_avg_price != null" >
+				push_avg_price,
+			</if>
+			<if test="designtwo_selling_num != null" >
+				designtwo_selling_num,
+			</if>
+			<if test="designtwo_selling_value != null" >
+				designtwo_selling_value,
+			</if>
+			<if test="designtwo_selling_avg_price != null" >
+				designtwo_selling_avg_price,
+			</if>
+			<if test="designtwo_selling_takeper != null" >
+				designtwo_selling_takeper,
+			</if>
+			<if test="designtwo_add_visit != null" >
+				designtwo_add_visit,
+			</if>
+			<if test="designtwo_add_little != null" >
+				designtwo_add_little,
+			</if>
+			<if test="designtwo_add_big != null" >
+				designtwo_add_big,
+			</if>
+			<if test="designtwo_add_big_per != null" >
+				designtwo_add_big_per,
+			</if>
+			<if test="designtwo_this_client != null" >
+				designtwo_this_client,
+			</if>
+			<if test="designtwo_this_clientper != null" >
+				designtwo_this_clientper,
+			</if>
+			<if test="designtwo_finish != null" >
+				designtwo_finish,
+			</if>
+			<if test="actual_selling_num != null" >
+				actual_selling_num,
+			</if>
+			<if test="actual_selling_value != null" >
+				actual_selling_value,
+			</if>
+			<if test="actual_selling_avg_price != null" >
+				actual_selling_avg_price,
+			</if>
+			<if test="actual_selling_takeper != null" >
+				actual_selling_takeper,
+			</if>
+			<if test="actual_add_visit != null" >
+				actual_add_visit,
+			</if>
+			<if test="actual_add_little != null" >
+				actual_add_little,
+			</if>
+			<if test="actual_add_big != null" >
+				actual_add_big,
+			</if>
+			<if test="actual_add_big_per != null" >
+				actual_add_big_per,
+			</if>
+			<if test="actual_this_client != null" >
+				actual_this_client,
+			</if>
+			<if test="actual_this_clientper != null" >
+				actual_this_clientper,
+			</if>
+			<if test="actual_finish != null" >
+				actual_finish,
+			</if>
+			<if test="bias_selling_num != null" >
+				bias_selling_num,
+			</if>
+			<if test="bias_selling_value != null" >
+				bias_selling_value,
+			</if>
+			<if test="bias_selling_avg_price != null" >
+				bias_selling_avg_price,
+			</if>
+			<if test="bias_selling_takeper != null" >
+				bias_selling_takeper,
+			</if>
+			<if test="bias_add_visit != null" >
+				bias_add_visit,
+			</if>
+			<if test="bias_add_big != null" >
+				bias_add_big,
+			</if>
+			<if test="bias_add_big_per != null" >
+				bias_add_big_per,
+			</if>
+			<if test="bias_this_client != null" >
+				bias_this_client,
+			</if>
+			<if test="bias_this_clientper != null" >
+				bias_this_clientper,
+			</if>
+			<if test="bias_finish != null" >
+				bias_finish,
+			</if>
+			<if test="biasper_selling_num != null" >
+				biasper_selling_num,
+			</if>
+			<if test="biasper_selling_value != null" >
+				biasper_selling_value,
+			</if>
+			<if test="biasper_selling_avg_price != null" >
+				biasper_selling_avg_price,
+			</if>
+			<if test="biasper_selling_takeper != null" >
+				biasper_selling_takeper,
+			</if>
+			<if test="biasper_add_visit != null" >
+				biasper_add_visit,
+			</if>
+			<if test="biasper_add_big != null" >
+				biasper_add_big,
+			</if>
+			<if test="biasper_add_big_per != null" >
+				biasper_add_big_per,
+			</if>
+			<if test="biasper_this_client != null" >
+				biasper_this_client,
+			</if>
+			<if test="biasper_this_clientper != null" >
+				biasper_this_clientper,
+			</if>
+			<if test="biasper_finish != null" >
+				biasper_finish,
+			</if>
+			<if test="biasper_sales_generalize_price != null" >
+				biasper_sales_generalize_price,
+			</if>
+			<if test="bias_sales_generalize_price != null" >
+				bias_sales_generalize_price,
+			</if>
+			<if test="actual_sales_generalize_price != null" >
+				actual_sales_generalize_price,
+			</if>
+			<if test="designtwo_sales_generalize_price != null" >
+				designtwo_sales_generalize_price,
+			</if>
+			<if test="bias_add_little != null" >
+				bias_add_little,
+			</if>
+			<if test="biasper_add_little != null" >
+				biasper_add_little,
+			</if>
+			<if test="designtwo_add_little_per != null" >
+				designtwo_add_little_per,
+			</if>
+			<if test="actual_add_little_per != null" >
+				actual_add_little_per,
+			</if>
+			<if test="bias_add_little_per != null" >
+				bias_add_little_per,
+			</if>
+			<if test="biasper_add_little_per != null" >
+				biasper_add_little_per,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			UUID(),
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="project_duty != null" >
+				#{project_duty,jdbcType=VARCHAR},
+			</if>
+			<if test="take_card_time != null" >
+				#{take_card_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="open_time != null" >
+				#{open_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="take_card_type != null" >
+				#{take_card_type,jdbcType=VARCHAR},
+			</if>
+			<if test="push_real_type != null" >
+				#{push_real_type,jdbcType=VARCHAR},
+			</if>
+			<if test="take_num != null" >
+				#{take_num,jdbcType=VARCHAR},
+			</if>
+			<if test="push_num != null" >
+				#{push_num,jdbcType=VARCHAR},
+			</if>
+			<if test="take_value != null" >
+				#{take_value,jdbcType=DECIMAL},
+			</if>
+			<if test="push_value != null" >
+				#{push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="take_avg_price != null" >
+				#{take_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="push_avg_price != null" >
+				#{push_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_num != null" >
+				#{designtwo_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_selling_value != null" >
+				#{designtwo_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_avg_price != null" >
+				#{designtwo_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_takeper != null" >
+				#{designtwo_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_add_visit != null" >
+				#{designtwo_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_add_little != null" >
+				#{designtwo_add_little,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_add_big != null" >
+				#{designtwo_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_add_big_per != null" >
+				#{designtwo_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_this_client != null" >
+				#{designtwo_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_this_clientper != null" >
+				#{designtwo_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_finish != null" >
+				#{designtwo_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_selling_num != null" >
+				#{actual_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="actual_selling_value != null" >
+				#{actual_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_selling_avg_price != null" >
+				#{actual_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_selling_takeper != null" >
+				#{actual_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_add_visit != null" >
+				#{actual_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="actual_add_little != null" >
+				#{actual_add_little,jdbcType=INTEGER},
+			</if>
+			<if test="actual_add_big != null" >
+				#{actual_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="actual_add_big_per != null" >
+				#{actual_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_this_client != null" >
+				#{actual_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="actual_this_clientper != null" >
+				#{actual_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_finish != null" >
+				#{actual_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_num != null" >
+				#{bias_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="bias_selling_value != null" >
+				#{bias_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_avg_price != null" >
+				#{bias_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_takeper != null" >
+				#{bias_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_add_visit != null" >
+				#{bias_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="bias_add_big != null" >
+				#{bias_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="bias_add_big_per != null" >
+				#{bias_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_this_client != null" >
+				#{bias_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="bias_this_clientper != null" >
+				#{bias_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_finish != null" >
+				#{bias_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_num != null" >
+				#{biasper_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_selling_value != null" >
+				#{biasper_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_avg_price != null" >
+				#{biasper_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_takeper != null" >
+				#{biasper_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_add_visit != null" >
+				#{biasper_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_add_big != null" >
+				#{biasper_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_add_big_per != null" >
+				#{biasper_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_this_client != null" >
+				#{biasper_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_this_clientper != null" >
+				#{biasper_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_finish != null" >
+				#{biasper_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_sales_generalize_price != null" >
+				#{biasper_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_sales_generalize_price != null" >
+				#{bias_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_sales_generalize_price != null" >
+				#{actual_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_sales_generalize_price != null" >
+				#{designtwo_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_add_little != null" >
+				#{bias_add_little,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_add_little != null" >
+				#{biasper_add_little,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_add_little_per != null" >
+				#{designtwo_add_little_per,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_add_little_per != null" >
+				#{actual_add_little_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_add_little_per != null" >
+				#{bias_add_little_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_add_little_per != null" >
+				#{biasper_add_little_per,jdbcType=DECIMAL},
+			</if>
+		</trim>
+	</insert>
+
+	<!--修改当日数据-->
+	<update id="updateThisDayData" parameterType="map" >
+		update fp_open_this_day
+		<set >
+			<if test="plan_id != null" >
+				plan_id = #{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id = #{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="project_duty != null" >
+				project_duty = #{project_duty,jdbcType=VARCHAR},
+			</if>
+			<if test="take_card_time != null" >
+				take_card_time = #{take_card_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="open_time != null" >
+				open_time = #{open_time,jdbcType=TIMESTAMP},
+			</if>
+			<if test="take_card_type != null" >
+				take_card_type = #{take_card_type,jdbcType=VARCHAR},
+			</if>
+			<if test="push_real_type != null" >
+				push_real_type = #{push_real_type,jdbcType=VARCHAR},
+			</if>
+			<if test="take_num != null" >
+				take_num = #{take_num,jdbcType=VARCHAR},
+			</if>
+			<if test="push_num != null" >
+				push_num = #{push_num,jdbcType=VARCHAR},
+			</if>
+			<if test="take_value != null" >
+				take_value = #{take_value,jdbcType=DECIMAL},
+			</if>
+			<if test="push_value != null" >
+				push_value = #{push_value,jdbcType=DECIMAL},
+			</if>
+			<if test="take_avg_price != null" >
+				take_avg_price = #{take_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="push_avg_price != null" >
+				push_avg_price = #{push_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_num != null" >
+				designtwo_selling_num = #{designtwo_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_selling_value != null" >
+				designtwo_selling_value = #{designtwo_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_avg_price != null" >
+				designtwo_selling_avg_price = #{designtwo_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_selling_takeper != null" >
+				designtwo_selling_takeper = #{designtwo_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_add_visit != null" >
+				designtwo_add_visit = #{designtwo_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_add_little != null" >
+				designtwo_add_little = #{designtwo_add_little,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_add_big != null" >
+				designtwo_add_big = #{designtwo_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_add_big_per != null" >
+				designtwo_add_big_per = #{designtwo_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_this_client != null" >
+				designtwo_this_client = #{designtwo_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="designtwo_this_clientper != null" >
+				designtwo_this_clientper = #{designtwo_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_finish != null" >
+				designtwo_finish = #{designtwo_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_selling_num != null" >
+				actual_selling_num = #{actual_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="actual_selling_value != null" >
+				actual_selling_value = #{actual_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_selling_avg_price != null" >
+				actual_selling_avg_price = #{actual_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_selling_takeper != null" >
+				actual_selling_takeper = #{actual_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_add_visit != null" >
+				actual_add_visit = #{actual_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="actual_add_little != null" >
+				actual_add_little = #{actual_add_little,jdbcType=INTEGER},
+			</if>
+			<if test="actual_add_big != null" >
+				actual_add_big = #{actual_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="actual_add_big_per != null" >
+				actual_add_big_per = #{actual_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_this_client != null" >
+				actual_this_client = #{actual_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="actual_this_clientper != null" >
+				actual_this_clientper = #{actual_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_finish != null" >
+				actual_finish = #{actual_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_num != null" >
+				bias_selling_num = #{bias_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="bias_selling_value != null" >
+				bias_selling_value = #{bias_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_avg_price != null" >
+				bias_selling_avg_price = #{bias_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_selling_takeper != null" >
+				bias_selling_takeper = #{bias_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_add_visit != null" >
+				bias_add_visit = #{bias_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="bias_add_big != null" >
+				bias_add_big = #{bias_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="bias_add_big_per != null" >
+				bias_add_big_per = #{bias_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_this_client != null" >
+				bias_this_client = #{bias_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="bias_this_clientper != null" >
+				bias_this_clientper = #{bias_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_finish != null" >
+				bias_finish = #{bias_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_num != null" >
+				biasper_selling_num = #{biasper_selling_num,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_selling_value != null" >
+				biasper_selling_value = #{biasper_selling_value,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_avg_price != null" >
+				biasper_selling_avg_price = #{biasper_selling_avg_price,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_selling_takeper != null" >
+				biasper_selling_takeper = #{biasper_selling_takeper,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_add_visit != null" >
+				biasper_add_visit = #{biasper_add_visit,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_add_big != null" >
+				biasper_add_big = #{biasper_add_big,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_add_big_per != null" >
+				biasper_add_big_per = #{biasper_add_big_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_this_client != null" >
+				biasper_this_client = #{biasper_this_client,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_this_clientper != null" >
+				biasper_this_clientper = #{biasper_this_clientper,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_finish != null" >
+				biasper_finish = #{biasper_finish,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_sales_generalize_price != null" >
+				biasper_sales_generalize_price = #{biasper_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_sales_generalize_price != null" >
+				bias_sales_generalize_price = #{bias_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_sales_generalize_price != null" >
+				actual_sales_generalize_price = #{actual_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_sales_generalize_price != null" >
+				designtwo_sales_generalize_price = #{designtwo_sales_generalize_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_add_little != null" >
+				bias_add_little = #{bias_add_little,jdbcType=INTEGER},
+			</if>
+			<if test="biasper_add_little != null" >
+				biasper_add_little = #{biasper_add_little,jdbcType=DECIMAL},
+			</if>
+			<if test="designtwo_add_little_per != null" >
+				designtwo_add_little_per = #{designtwo_add_little_per,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_add_little_per != null" >
+				actual_add_little_per = #{actual_add_little_per,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_add_little_per != null" >
+				bias_add_little_per = #{bias_add_little_per,jdbcType=DECIMAL},
+			</if>
+			<if test="biasper_add_little_per != null" >
+				biasper_add_little_per = #{biasper_add_little_per,jdbcType=DECIMAL},
+			</if>
+		</set>
+	WHERE id=#{thisDayId}
+	</update>
+
+	<!--清空均价数据-->
+	<delete id="clearAvgPriceData" parameterType="java.lang.String">
+DELETE
+FROM
+	fp_open_this_day_avg
+WHERE
+	plan_node_id =#{plan_node_id};
+DELETE
+FROM
+	fp_open_morrow_broadcast_avg
+WHERE
+	plan_node_id =#{plan_node_id};
+	</delete>
+
+	<!--保存当日均价数据-->
+	<insert id="insertThisDayAvg" parameterType="java.util.Map" >
+		insert into fp_open_this_day_avg
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+			ID,
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="product_type_code != null" >
+				product_type_code,
+			</if>
+			<if test="product_type != null" >
+				product_type,
+			</if>
+			<if test="targ_avg != null" >
+				targ_avg,
+			</if>
+			<if test="actual_avg != null" >
+				actual_avg,
+			</if>
+			<if test="bias_price != null" >
+				bias_price,
+			</if>
+			<if test="bias_per != null" >
+				bias_per,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			uuid(),
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type_code != null" >
+				#{product_type_code,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type != null" >
+				#{product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="targ_avg != null" >
+				#{targ_avg,jdbcType=DECIMAL},
+			</if>
+			<if test="actual_avg != null" >
+				#{actual_avg,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_price != null" >
+				#{bias_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_per != null" >
+				#{bias_per,jdbcType=DECIMAL},
+			</if>
+		</trim>
+	</insert>
+
+	<!--保存次日均价数据-->
+	<insert id="inertMorrowDayAvg" parameterType="java.util.Map">
+		insert into fp_open_morrow_broadcast_avg
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+		id,
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="plan_node_id != null" >
+				plan_node_id,
+			</if>
+			<if test="product_type_code != null" >
+				product_type_code,
+			</if>
+			<if test="product_type != null" >
+				product_type,
+			</if>
+			<if test="invest_avg != null" >
+				invest_avg,
+			</if>
+			<if test="rules_avg != null" >
+				rules_avg,
+			</if>
+			<if test="estimate_price != null" >
+				estimate_price,
+			</if>
+			<if test="cash_price != null" >
+				cash_price,
+			</if>
+			<if test="bias_price != null" >
+				bias_price,
+			</if>
+			<if test="bias_per != null" >
+				bias_per,
+			</if>
+			<if test="morrow_id != null" >
+				morrow_id,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+			uuid(),
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="plan_node_id != null" >
+				#{plan_node_id,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type_code != null" >
+				#{product_type_code,jdbcType=VARCHAR},
+			</if>
+			<if test="product_type != null" >
+				#{product_type,jdbcType=VARCHAR},
+			</if>
+			<if test="invest_avg != null" >
+				#{invest_avg,jdbcType=DECIMAL},
+			</if>
+			<if test="rules_avg != null" >
+				#{rules_avg,jdbcType=DECIMAL},
+			</if>
+			<if test="estimate_price != null" >
+				#{estimate_price,jdbcType=DECIMAL},
+			</if>
+			<if test="cash_price != null" >
+				#{cash_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_price != null" >
+				#{bias_price,jdbcType=DECIMAL},
+			</if>
+			<if test="bias_per != null" >
+				#{bias_per,jdbcType=DECIMAL},
+			</if>
+			<if test="morrow_id != null" >
+				#{morrow_id,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+
+
+	<select id="getPlanDataByPlanNodeData" resultType="java.lang.String" parameterType="java.lang.String">
+select
+plan_id
+from fp_plan_node where id=#{plan_node_id} limit 1
+	</select>
+</mapper>

@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.flow.dao.WorkflowDao">
+
+    <!--修改发起数据的状态-->
+    <update id="updateStartworkflow" parameterType="java.util.Map">
+         update mm_ap_flow_info
+        <trim prefix="set" suffixOverrides=",">
+            <if test="instId!=null">flow_id = #{instId},</if>
+            <if test="flowStatus!=null">flow_status = #{flowStatus},</if>
+            <if test="taskId!=null">taskId = #{taskId},</if>
+            <if test="isTransaction!=null">zj = #{isTransaction},</if>
+        </trim>
+         where json_id = #{businessKey}
+	</update>
+
+    <!--添加发起的数据-->
+    <insert id="insertStartworkflow" parameterType="java.util.Map">
+        INSERT INTO mm_ap_flow_info
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="flow_status != null">
+                flow_status,
+            </if>
+            <if test="projectId != null">
+                project_id,
+            </if>
+            <if test="flow_id != null">
+                flow_id,
+            </if>
+            <if test="flow_type != null">
+                flow_type,
+            </if>
+            <if test="flow_json != null">
+                flow_json,
+            </if>
+            <if test="flow_code != null">
+                flow_code,
+            </if>
+            <if test="creator != null">
+                creator,
+            </if>
+            <if test="editor != null">
+                editor,
+            </if>
+            <if test="base_id != null">
+                base_id,
+            </if>
+            <if test="json_id != null">
+                json_id,
+            </if>
+            <if test="zddate != null">
+                zddate,
+            </if>
+            ID,create_time,isdel
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="flow_status != null">
+                #{flow_status},
+            </if>
+            <if test="projectId != null">
+                #{projectId},
+            </if>
+            <if test="flow_id != null">
+                #{flow_id},
+            </if>
+            <if test="flow_type != null">
+                #{flow_type},
+            </if>
+            <if test="flow_json != null">
+                #{flow_json},
+            </if>
+            <if test="flow_code != null">
+                #{flow_code},
+            </if>
+            <if test="creator != null">
+                #{creator},
+            </if>
+            <if test="editor != null">
+                #{editor},
+            </if>
+            <if test="base_id != null">
+                #{base_id},
+            </if>
+            <if test="json_id != null">
+                #{json_id},
+            </if>
+            <if test="zddate != null">
+                #{zddate},
+            </if>
+            UUID(),now(),0
+        </trim>
+
+    </insert>
+
+    <!--查流程发起需要的字段-->
+    <select id="queryworkflow" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT zphz_Zs,dpdj_Zs,dbzg_Lr,dbzg_ll,zj,orgName,stage_id,flow_id,taskId,flow_status,title,comcommon,base_id,creator,flow_code,project_id FROM mm_ap_flow_info where json_id = #{BOID}
+    </select>
+
+
+    <!--添加消息表-->
+    <insert id="insertMessage" parameterType="java.lang.String">
+        insert INTO mm_mq_message(id,jsonStr,createTime) values(UUID(),#{message},NOW())
+    </insert>
+
+    <!--周上报需要的主数据id-->
+    <select id="selectBaseId" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT orgName,stage_id,flow_id,taskId,flow_status,title,comcommon,base_id,flow_id,flow_code,creator,editor,json_id,zj as isTransaction  FROM mm_ap_flow_info where json_id = #{businessKey}
+    </select>
+
+    <!--周上报需要的参数-->
+    <select id="queryMmWeekMarketingPlan" parameterType="java.lang.String" resultType="java.util.Map">
+        select how_week,project_id,DATE_FORMAT( this_time,'%Y-%m-%d') this_time,type from mm_week_marketing_plan where id = #{id}
+    </select>
+
+    <!--周上报跳转路径需要的参数-->
+    <select id="selectUrl" parameterType="java.lang.String" resultType="java.util.Map">
+        select project_id,how_week,area_id,DATE_FORMAT(this_time,'%Y-%m-%d') this_time,DATE_FORMAT(start_time,'%Y-%m-%d') start,
+        DATE_FORMAT(end_time,'%Y-%m-%d') end,plan_status,type from mm_week_marketing_plan where id = #{BOID}
+    </select>
+
+    <!--渲染定调价页面需要的json_id-->
+    <select id="selectJsonId" parameterType="java.lang.String" resultType="java.lang.String">
+        select project_id from mm_ap_flow_info where json_id = #{jsonId}
+    </select>
+
+    <!--对比数据的全口径日报插入-->
+    <insert id="insertCheckSale" parameterType="java.util.Map">
+        insert  into mm_check_sale_collect_daily (guid,execution_datetime,project_code,project_name,
+        create_time,update_time,status,YearWQYRgRmbAmount) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{item.todayTime},#{item.ProjCode},#{item.ProjName},#{item.todayTime},#{item.todayTime},1,#{item.YearWQYRgRmbAmount})
+        </foreach>
+    </insert>
+
+    <!--对比数据的营销周计划插入-->
+    <insert id="insertWeelPlan" parameterType="java.util.Map">
+        insert  into mm_check_week_plan (guid,execution_datetime,project_code,project_name,
+        create_time,update_time,status,YearWQYRgRmbAmount,SyWzQyRgAmount,LrlMonthMb,QyAmoutMonthMb,
+        LrlWeekMb,QyAmoutWeekMb,MonthVisitNum,WeekVisitNum,MonthQyAmount,WeekQyAmount,WeekBcAmount,MonthBcAmount) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{item.todayTime},#{item.XMProjCode},#{item.XMProjName},#{item.todayTime},#{item.todayTime},1,#{item.YearWQYRgRmbAmount},
+            #{item.SyWzQyRgAmount},#{item.LrlMonthMb},#{item.QyAmoutMonthMb},#{item.LrlWeekMb},#{item.QyAmoutWeekMb},
+            #{item.MonthVisitNum},#{item.WeekVisitNum},#{item.MonthQyAmount},#{item.WeekQyAmount},#{item.WeekBcAmount},#{item.MonthBcAmount})
+        </foreach>
+    </insert>
+
+    <!--获取项目数据（项目名称）-->
+    <select id="getProjectData" resultType="java.util.Map" parameterType="java.util.Map">
+        select projectid as project_id,projectname as project_Name from t_mm_project
+        <where>
+            1=1
+            <if test="project_code != null and project_code!='' ">
+                and projectCode=#{project_code}
+            </if>
+            <if test="KeyProjGUID != null and KeyProjGUID!='' ">
+                and kingdeeProjectID=#{KeyProjGUID}
+            </if>
+            <if test="myProjectId != null and myProjectId!='' ">
+                and myProjectId=#{myProjectId}
+            </if>
+        </where>
+    </select>
+
+    <!--修改提交时间-->
+    <update id="updateFlowzdDateByJsonId" parameterType="java.lang.String" >
+        update mm_ap_flow_info set zddate=now() where json_id=#{json_id} and zddate is null
+     </update>
+
+    <!--查询流程模板参数-->
+    <select id="queryFlowKey" resultType="java.util.Map">
+        SELECT ID FROM S_Dictionary d
+        WHERE IsDel = 0 AND PID = '-1'
+        AND (d.`DictionaryLevel`=1 OR (d.`DictionaryLevel`=2 )) and DictCode = 'flowKey' ORDER BY CAST(ListIndex AS SIGNED)
+    </select>
+
+
+    <!--查询系统下配置流程-->
+    <select id="getFlowCodeData" resultType="java.util.Map">
+	SELECT
+		id,
+		DictCode,
+		DictType,
+		DictName
+	FROM
+		s_dictionary
+WHERE
+	DictCode = #{flowCode} and isdel=0 and DictionaryLevel=1 ORDER BY DictType desc limit 1
+    </select>
+    <select id="getFlowChildCodeData" resultType="java.util.Map">
+	SELECT
+		id,
+		DictCode,
+		DictType,
+		DictName
+	FROM
+		s_dictionary
+WHERE
+	pid = #{id}
+	AND DictName like  CONCAT('%',#{orgName},'%')
+	and isdel=0
+	ORDER BY DictType
+	LIMIT 1;
+    </select>
+    <select id="getProjectSubordinateOrg" resultType="java.util.Map" parameterType="java.lang.String">
+ select DictCode,DictName from s_dictionary where DictCode=(SELECT
+	business_unit_id
+FROM
+	mm_idm_business_unit_project_rel
+WHERE
+	project_id = #{project_id} limit 1) and isdel=0 limit 1
+    </select>
+    <select id="selectPrimaryByFlowId" resultType="java.lang.String">
+select id from mm_ap_flow_info where flow_id=#{flow_id};
+    </select>
+    <update id="updateFlowStatusById" parameterType="java.util.Map">
+        update mm_ap_flow_info set flow_id=NULL,taskid=NULL where id=#{id}
+    </update>
+    <insert id="insertParamLog" parameterType="java.lang.String">
+INSERT INTO log( `id`, `create_time`, `description`, `log_type`, `params`, `time`, `username` )
+VALUES(UUID(),NOW(),'推送OA参数','PUSHOA',#{jsonStr},0,'admin');
+   </insert>
+    <!--适配珍珠链上线以前的流程推演-->
+    <select id="getFlowId" resultType="java.util.Map" parameterType="java.util.Map">
+
+SELECT
+	DictName
+FROM
+	s_dictionary
+WHERE
+	pid =(
+	SELECT
+		id
+	FROM
+		s_dictionary
+	WHERE
+	DictCode = 'flow_id'
+	LIMIT 1)
+	 </select>
+
+    <!--根据flow_id查询flow_code-->
+
+    <select id="getFlowCodeByFlowId" resultType="java.lang.String" parameterType="java.lang.String">
+SELECT
+	flow_code
+FROM
+	mm_ap_flow_info
+WHERE
+	flow_id = #{flow_id} LIMIT 1
+    </select>
+
+
+    <!--查询最近的流程-->
+
+    <select id="getFlowNewData" resultType="java.util.Map">
+ SELECT
+ create_time,
+ json_id,
+ base_id,
+ flow_status
+ FROM mm_ap_flow_info
+WHERE create_time &gt;= DATE_ADD(NOW(), INTERVAL -30 MINUTE) AND  create_time &lt;=NOW()
+AND flow_status IS NOT NULL
+group by json_id
+    </select>
+
+    <select id="getOApushNewApplay" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	mm_mq_message
+WHERE
+	jsonstr LIKE "%"#{json_id}"%"
+ORDER BY
+	createtime DESC
+	LIMIT 1
+    </select>
+
+    <select id="getPushDownstreamSystemNew" parameterType="java.util.Map" resultType="java.util.Map">
+ SELECT *FROM mm_flow_result
+    WHERE param like "%"#{json_id}"%"
+    ORDER BY create_time desc
+    LIMIT 1
+    </select>
+
+</mapper>

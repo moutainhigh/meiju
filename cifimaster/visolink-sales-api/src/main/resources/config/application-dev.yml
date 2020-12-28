@@ -1,0 +1,340 @@
+#配置数据源
+spring:
+  servlet:
+    multipart:
+      max-file-size: 300MB
+      maxRequestSize: 500MB
+  datasource:
+    druid:
+      url: jdbc:mysql://10.129.37.103:3306/saleman?serverTimezone=Asia/Shanghai&characterEncoding=utf8&useSSL=false&useCursorFetch=true&defaultFetchSize=500&useServerPrepStmts=true&allowMultiQueries=true
+      username: saleman
+      password: Sale#123
+      driverClassName: com.mysql.cj.jdbc.Driver
+      type: com.alibaba.druid.pool.DruidDataSource
+      # 初始化配置
+      initial-size: 3
+      # 最小连接数·
+      min-idle: 3
+      # 最大连接数
+      max-active: 15
+      # 获取连接超时时间
+      max-wait: 5000
+      # 连接有效性检测时间
+      time-between-eviction-runs-millis: 90000
+      # 最大空闲时间
+      min-evictable-idle-time-millis: 1800000
+      test-while-idle: true
+      test-on-borrow: false
+      test-on-return: false
+      validation-query: select 1
+      # 配置监控统计拦截的filters
+      filters: stat
+      stat-view-servlet:
+        url-pattern: /druid/*
+        reset-enable: false
+      web-stat-filter:
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.bmp,*.png,*.css,*.ico,/druid/*"
+  #配置 Jpa
+  jpa:
+    hibernate:
+      # 生产环境设置成 none，避免程序运行时自动更新数据库结构
+      ddl-auto: none
+  redis:
+    #数据库索引
+    database: 1
+    lettuce:
+      pool:
+        max-active: 500
+        max-idle: 10
+        max-wait: -1
+        min-idle: 0
+    password: K(878ihdkjfiiijfieiyyiyi1
+    timeout: 5000
+    sentinel:
+      nodes: 10.129.36.24:26379,10.129.36.25:26379,10.129.36.26:26379
+      master: mymaster
+
+#  activemq:
+#    user: admin
+#    password: admin
+#    broker-url: failover:(tcp://10.129.36.25:61616,tcp://10.129.36.26:61616,tcp://10.129.36.27:61616)
+#  jms:
+#    pub-sub-domain: true
+#failover:(tcp://10.129.36.25:61616,tcp://10.129.36.26:61616,tcp://10.129.36.27:61616)
+activemq:
+  user: admin
+  password: admin
+  broker-url: failover:(tcp://10.129.36.36:61616,tcp://10.129.36.25:61616,tcp://10.129.36.26:61616,tcp://10.129.36.27:61616)
+  pool:
+    enabled: true
+    max-connections: 10
+  alignment: xsgl
+
+queueName: publish.queue
+topicName: publish.topic
+
+# 旭辉数据库
+#明源数据库，TEST环境（10.129.36.182）
+mingyuan:
+  url: jdbc:sqlserver://10.129.37.147:1433;DatabaseName=dotnet_erp60
+  #url: jdbc:sqlserver://10.129.37.147:1433;DatabaseName=dotnet_erp60
+  username: saleman
+  password: saleman@123
+  driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+
+#明源数据库，TEST环境（10.129.36.182）
+mingyuan352:
+  url: jdbc:sqlserver://10.129.37.147:1433;DatabaseName=dotnet_erp352
+  username: saleman
+  password: saleman@123
+  driverClassName: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+#供销存
+gongxiaocun:
+  url: jdbc:mysql://10.129.37.108:3306/mars?serverTimezone=Asia/Shanghai&characterEncoding=utf8&useCursorFetch=true&defaultFetchSize=500&allowMultiQueries=true
+  username: salemanview
+  password: Sale#123
+  driverClassName:  com.mysql.cj.jdbc.Driver
+
+#非操盘数据库配置UAT
+nos:
+  url: jdbc:mysql://10.129.36.115:3306/saleprj?characterEncoding=utf8&useCursorFetch=true&defaultFetchSize=500&allowMultiQueries=true&serverTimezone=Asia/Shanghai
+  username: salemanview
+  password: Sale_0412
+  driverClassName:  com.mysql.cj.jdbc.Driver
+
+#非工程采购系统
+mingyuancost:
+  url: jdbc:oracle:thin:@10.129.36.169:1521/tender
+  username: salemanview
+  password: Sale_1211
+  driverClassName: oracle.jdbc.driver.OracleDriver
+
+#旭客
+xuke:
+  url: jdbc:mysql://10.129.37.52:3306/xuke?characterEncoding=utf8&useCursorFetch=true&defaultFetchSize=500&allowMultiQueries=true
+  username: xuke
+  password: XUke#1234
+  driverClassName:  com.mysql.cj.jdbc.Driver
+#jwt
+jwt:
+  header: Authorization
+  secret: mySecret
+  refresh:
+    secret: mySecret-refresh
+    # token 1440 小时   一个月
+    expiration: 1440
+    # token 3600 秒   1小时
+  expiration: 2592000
+  auth:
+    # 授权路径
+    path: /login
+    # 获取用户信息
+    account: /info
+  backLogin:
+    path: /backLogin
+  dingLogin:
+    path: /dingLogin
+
+loadIp:
+  thisIp: salesmgt-test.cifi.com.cn
+#是否允许生成代码，生产环境设置为false
+generator:
+  enabled: true
+
+#是否开启 swagger-ui
+swagger:
+  enabled: true
+
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  params: count=cswagger-starterountSql
+
+oa:
+  host: https://oadev.cifi.com.cn
+  oaPreviewUrl: https://oadev.cifi.com.cn
+  sysCode: xsgl
+  secretKey: xsgl
+®
+
+# 日志配置  为空为项目跟目录下的logs  或者指定已经存在的目录
+log:
+  path: logs/app
+
+
+sso:
+  appUser: AUTH_SALEMAN_TEST
+  privateKey: mmgkce6w2c7usix3
+  url: https://sso-uat.cifi.com.cn/siam/api/v2/token/tgt/auth
+  tempTokenUrl: https://sso-uat.cifi.com.cn/siam/oauth2.0/accessTokenByJson?client_id=AUTH_SALEMAN_TEST&client_secret=mmgkce6w2c7usix3&response_type=code&redirect_uri=http%3A%2F%2Fsalesmgt-test.cifi.com.cn%2F%23%2Fdashboard&code=
+  accessUrl: https://sso-uat.cifi.com.cn/siam/oauth2.0/profileByJson?access_token=
+
+
+
+testmingyuan:
+  url: https://salesmgt-uat-api.cifi.com.cn/api/public/writedatatobpm
+
+testmingyuanflow:
+  url: https://salesmgt-uat-api.cifi.com.cn/Workflow/MTStart2.aspx
+
+resultUrl:
+  url: https://salesmgt-uat-api.cifi.com.cn/Workflow/MTStart2.aspx?
+#销管发送供销存月度签约计划esb接口地址，账号，密码
+testgongxiaocun:
+  url: http://esb-uat.cifi.com.cn:8100/v1/sms/signPlan/insert
+  userId: salesmanager01
+  password: uat@salesmanager#
+
+
+testMyApi:
+  #urlStart: http://sales-test.cifi.com.cn:9050/api/service/Mysoft.Slxt.Common.Plugin.AppServices.BPMWorkFlowAppService/CreateResult/
+  urlStart: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.Common.Plugin.AppServices.BPMWorkFlowAppService/CreateResult/
+  urlHistory: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.Common.Plugin.AppServices.BPMWorkFlowAppService/Audit/
+  urlEnd: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.Common.Plugin.AppServices.BPMWorkFlowAppService/ApproveClose/
+  adjustmentStart: https://sales-api-uat.cifi.com.cn/api/FyglService/CreateResult/
+  adjustmentHistory: https://sales-api-uat.cifi.com.cn/api/FyglService/Audit/
+  adjustmentEnd: https://sales-api-uat.cifi.com.cn/api/FyglService/ApproveClose/
+  #明源校验费用接口
+  SendApproveCheck: https://myfee-uat.cifi.com.cn/service/Mysoft.Fygl.Services.BPMWorkflowServices.BPMWorkflow/SendApproveCheck.aspx
+  #售楼接口
+  salesOfficeStart: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.Common.Plugin.AppServices.BPMWorkFlowAppService/CreateResult/
+  salesOfficeHistory: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.Common.Plugin.AppServices.BPMWorkFlowAppService/Audit/
+  salesOfficeEnd: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.Common.Plugin.AppServices.BPMWorkFlowAppService/ApproveClose/
+uploadPath:
+  /app/nginx/web/salesmgtfiles
+relepath:
+  /salesmgtfiles
+
+#编制页面路径
+organization:
+  url: http://salesmgt-test.cifi.com.cn/#/floatingPriceMy?
+
+#永中文件预览
+yongzhongurl: https://10.129.0.28:8080/dcs.web/onlinefile
+
+#风控接口
+#mingyuanrisk:
+#风控接口
+#mingyuanrisk:
+qdfkesb:
+  #url: https://face-auth.cifi.com.cn/fk/project-list-esb
+  url: http://esb.cifi.com.cn:8115/v1/qdfk/riskManageInfo/query
+  userId: salesmanager01
+  password: prod@salesmanager#
+createTimerisk:
+  #url: https://face-auth.cifi.com.cn/project/findProjectCreateTime-esb
+  url : http://esb.cifi.com.cn:8115/v1/qdfk/project/query
+  userId: salesmanager01
+  password: prod@salesmanager#
+
+fkEsbTrade:
+  #url: https://face-auth.cifi.com.cn/fk/trade-list-esb
+  url: https://face-auth-test.cifi.com.cn/fk/trade-list-esb
+  userId: salesmanager01
+  password: prod@salesmanager#
+
+
+#注册xxl-job需要的参数
+xxl:
+  job:
+    admin:
+      #注册地址
+      addresses: http://10.129.37.42:9001/xxladmin/
+    executor:
+      #执行器名称
+      appname: sman
+      ip:
+      #端口
+      port: 9998
+      logpath: /app/ApiLog
+      logretentiondays: 30
+    accessToken:
+DingDing:
+  httpIp: https://service-test.cifi.com.cn/messaging/push/ding_user/214438503
+  AgentId: 627862754
+  CorpId: dingbc2887e7d0b1676535c2f4657eb6378f
+  appkey: dingoyslg6njgncp1t1j
+  appsecret: 6lVPA39Wv_HPz_1Rmqd5PkSsNNfaGwRnSXQLbhbS-s6f62kP0--07v7nxsEPKrJI
+  accessTokenIp: https://oapi.dingtalk.com/gettoken
+  userIdIp: https://oapi.dingtalk.com/user/getuserinfo
+  userInfoIp: https://oapi.dingtalk.com/user/get
+  messageInfo: http://salesmgt-uat.cifi.com.cn/dingTalkMessage.html
+  speedLogoUrl: https://salesmgt.cifi.com.cn/netdata/logo/20200618223519-fd7de0c7-912a-4467-8e2a-0c0120896b08.png?n=%E9%92%89%E9%92%89%E6%8E%A8%E9%80%81_%E9%A6%96%E5%BC%80%E8%8A%82%E7%82%B9%E8%BF%9B%E5%BA%A6%E7%AE%80%E6%8A%A5.png
+  warningLogoUrl: https://salesmgt.cifi.com.cn/netdata/logo/20200618220512-4829b840-2a5a-4d14-8f57-b308a1068ce8.png?n=%E9%92%89%E9%92%89%E6%8E%A8%E9%80%81_%E5%AE%9A%E8%B0%83%E4%BB%B7%E9%A2%84%E8%AD%A6%E7%AE%80%E6%8A%A5-3.png
+  pricIngLogoUrl: https://salesmgt.cifi.com.cn/netdata/logo/20200622161423-b89745e9-ae7d-4168-9fe3-eba2fdc69529.png?n=lALPD2sQsWWnHb7NAprNBII_1154_666.png
+  firstBriefingLogoUrl: https://salesmgt.cifi.com.cn/netdata/logo/20200901164136-8875f0c8-360d-4375-a848-3f0e48af5f59.jpg?n=%E5%BC%80%E7%9B%98%E6%92%AD%E6%8A%A55.jpg
+  firstBriefingMappUrl: https://salesmgt-uat.cifi.com.cn/openingBoard.html
+prcDimProjGoal:
+  httpIp: https://service-test.cifi.com.cn/datacollector/load/prcDimProjGoalMMy
+  apikey: 9c82bcfcc52390bf1346106f5d9f3c9f
+
+oaflow:
+  fpFlowCode: skcslc
+#钉钉群聊机器人地址
+dingTalkRobot:
+  url: https://oapi.dingtalk.com/robot/send?access_token=c30bcd22cb1205e3ec8f4136ae5b5605864b0c91f0bf3c65d4408c5bf4b92928
+  secret: SEC27663c7c0119f2d2b6e5a104b0895737a33809e5dc0c3e77c36793dfbbb927f5
+#旭辉集团邮箱服务器
+#测试
+emailServer:
+  messageHost: https://service-test.cifi.com.cn
+  header: application/x-www-form-urlencoded
+Pricing:
+  Pcinfourl: https://oadev.cifi.com.cn/front/#/reviewApproval/
+  mobileInfoUrl: https://oadev.cifi.com.cn/mobile/view/bpm/getProcessRun.html
+syncStageData:
+  url: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.ProjectPrep.Plugin.AppServices.ProjectApiAppService/SyncPolicy
+  #电商政策申请数据同步明源
+  dsPolicyUrl: https://sales-api-uat.cifi.com.cn/api/service/Mysoft.Slxt.ProjectPrep.Plugin.AppServices.ProjectApiAppService/SyncCommerceCompany
+  userId: salesmanager01
+  password: uat@salesmanager#
+firstOpenSystemUrl: http://salesmgt-test.cifi.com.cn/#/planWrite
+
+#流程结束回调人脸风控系统地址
+faceSysCallback:
+  url: https://face-sys-test.cifi.com.cn/oa/callBack
+#签约后变更神批表单查询调用明源链接明源
+obtainJsonID:
+  urlOne: http://sales.cifi.com.cn:9060/PubPlatform/Nav/Login/SSO/Login.aspx?UserCode=admin&Password=4076f862096d1536b6cac6866e386685&PageUrl=http%3a%2f%2fsales.cifi.com.cn%3a9060%2fapi%2fMysoft.Map6.FileManager.AppServices.FileManagerAppService
+  urlTwo: https://sales.cifi.com.cn/PubPlatform/Nav/Login/SSO/Login.aspx?UserCode=admin&Password=4076f862096d1536b6cac6866e386685&PageUrl=https%3a%2f%2fsales.cifi.com.cn%2fapi%2fMysoft.Map6.FileManager.AppServices.FileManagerAppService
+  fileUrlOld: http://sales-dev.cifi.com.cn:9020
+  fileUrlNew: https://myfee-dev.cifi.com.cn
+#定调价,获取定调价前C1定稿版
+pricingC1:
+  controlDateUrl: https://biboard-prod.cifi.com.cn/api/cdr/common/monthlyReport
+  dtjqHzUrl: https://service-test.cifi.com.cn/datacollector/load/prcJyxlProjJyxlStrc?params={},{},{},0,0
+#薇链接口参数
+Vlink:
+  #平台地址
+  url: http://ceshi.myviding.com/tap/api/gateway/service
+  #旭辉appid
+  groupId: 4b9ebeea3d9211d0fa4e1f28c43592f6
+  appId:
+  appName: 分公司A测试
+  #旭辉私钥
+  appPriKey: MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAIBBiGcReIpRdLwe5EqXPyHnY9iCiH9KS3g7anffN/5SWSQTc9vh+2ZDfdikauzGT5ZrOo4+Ze6byA3K4fQQcXG2Z8Z62rVaX5yzd0dfh6SO/rdB1jAw5BQbFhDGwYJmyvFdC2Y8WjgGRj2HJUSMWwX+aF6f8eWsB7vwAgZ9NTHpAgMBAAECgYAw1MKSO1yhjRHc7gYNQDiROAAT1t8RV8AULssCiMJQ2hmGWsGp3ghRjzDC4xayv25d3sWUkr1Mc5NfbPdKbVhDYSpQcHFn1d3YQY4o1RBIR+7L5G3ScLwEW7DD9dtwJiz5ONnb4fIQVw+80GvbLUZ7bHc69pquUoCTBTYibb9Z4QJBALdTu8Kr+ZDKSQB5qlJnIPzcQapxuKMBL9vuDk+a47SJ0Ruw7cvgbLMJVlEOrDuTYVrqiYvlBQPX3xhO4wzzaOsCQQCzGR09ny1O5q9i0S9c0BrrccoEIK65pkQdx7x3pkVhG/N2lxPF8Il8xLOqOJ7JvsWFgYgcnEx0KT1jd068Uxt7AkAA7nb8xTzuZGi8jOG1q3p6bnAS+qLyiRYCKxJ9iw7vIugiGOMMbyZ+PmTm4okzgEs1WA283TwKSfWDPRtgPHhjAkAkXikt5jDRIM7khg3UDv4oaUbYZ7qTQEv8sB55PW5BNefOYQdG3n1MtLS3ECBOX0rEvXTiOmrb+7PXitaWL1oZAkEAguD+u99QY6ClzGB7/RBhrrUIQK676sXaDVCAShhENr4FlsYsZSaiCWirRfTScX4HiRvKFCvDDu1vT5eEyw0DrQ==
+  #旭辉公钥
+  appPubKey: MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCVMG9GV0hQWlUqd7vjD0anaDlHosqgIp00pv+ikUjSIg0RbnWqMw+w2ZSZfam/JlwD6C/cyjtjYVxFzlniLQpqFdVCM+Kx4dOu/5pfeAF8E+4aUDW1i5Eeu5yOyI0+UyR87tDS8x9asd9HWG0+yfcwjEe7nJiU9zK1hoaKHNckxQIDAQAB
+  #平台公钥
+  publicKey: MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCUQUvOrI7z+shO6ULDywzPYEhmrTD5GgE/nUEToXeSe8EM5LGQreZ/OTQ3SwLagX+0mOk3hOEe6zIWRt0yhqKGzvM0XIwRgrghwpkA4ILJGJzQCjZ5sPLoHKM8642SadnOKRK9uPTufSdGyY4XMHgsZTvpzM1POoQn9T9fp7kKgwIDAQAB
+  #薇链回调接口
+  callBackVlink: https://salesmgt-test-api.cifi.com.cn/VlinkDocking/callBackVlink
+
+#对接投资系统
+dockingInvestment:
+  #货值接口
+  supplyPlanDataValueUrl: https://iems-uat.cifi.com.cn/invmode/esb/versionExtn/supplyPlanDataValue
+  #时间节点和销售目标接口
+  salesTargetUrl: https://iems-uat.cifi.com.cn/invmode/esb/versionExtn/salesTarget
+
+#获取非工程采购数据
+nonProjectPur:
+  #url: http://esb.cifi.com.cn:8083/v1/nonprojectpur/supplier/query
+  url: http://esb-uat.cifi.com.cn:8083/v1/nonprojectpur/supplier/query
+  userId: salesmanager01
+  password: uat@salesmanager#
+

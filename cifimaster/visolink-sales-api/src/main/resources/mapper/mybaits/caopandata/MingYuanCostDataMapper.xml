@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.caopandata.dao.MingYuanCostDataMapper">
+    <delete id="emptyMingYuanCost">
+    DELETE FROM vs_contractinfo;
+</delete>
+    <insert id="initedCostData" parameterType="java.util.List">
+        INSERT INTO vs_contractinfo (
+        owner_id,
+        project_code,
+        project_name,
+        item_code,
+        item_name,
+        lx_money,
+        big_benefit,
+        benefit_code,
+        bud_prject_name,
+        month,
+        matter_name,
+        share_money,
+        cost_code,
+        cost_name,
+        share_year
+        )
+        VALUES
+        <foreach collection="list" index="index" item="item" separator=",">
+            (
+            #{item.owner_id},
+            #{item.project_code},
+            #{item.project_name},
+            #{item.item_code},
+            #{item.item_name},
+            #{item.lx_money},
+            #{item.big_benefit},
+            #{item.benefit_code},
+            #{item.bud_prject_name},
+            #{item.month},
+            #{item.matter_name},
+            #{item.share_money},
+            #{item.cost_code},
+            #{item.cost_name},
+            #{item.share_year}
+            )
+        </foreach>
+    </insert>
+
+</mapper>

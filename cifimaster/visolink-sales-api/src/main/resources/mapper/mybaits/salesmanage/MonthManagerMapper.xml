@@ -1,0 +1,866 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.monthdetail.dao.MonthManagerMapper">
+
+<!--通过具体的项目ID和对应的月份，找出对应的月度计划明细-->
+    <select id="mouthPlanSelect" resultType="java.util.Map" parameterType="java.util.Map">
+
+        SELECT
+ mpid. guid,
+  mpid.creator,
+   DATE_FORMAT(mpid.create_time,'%Y-%m-%d') create_time,
+  mpid.is_delete_flag,
+  mpid.editor,
+   DATE_FORMAT(mpid.update_time,'%Y-%m-%d') update_time,
+
+  DATE_FORMAT(mpid.months,'%Y-%m-%d') months,
+  monthly_plan_id,
+  mpid.version,
+  mpid.monthly_plan_index_id,
+  mpid.compiler_account_id,
+  mpid.big_card,
+  mpid.come_client_quantity,
+  mpid.small_card,
+  mpid.come_client_cost,
+  mpid.cost,
+  mpid.turnover_rate,
+  mpid.rate,
+  mpid.transaction_cost,
+  mpid.subscription_number,
+  mpid.subscription_funds,
+  mpid.sign_number_set,
+  mpid.sign_funds,
+  mpid.risk_point,
+  mpid.countermeasures,
+  mpid.policy_use,
+  mpid.core_action,
+  mpid.project_id,
+  mpid.channel_id,
+  mpid.is_effective
+        <if test="userId!=null and userId!=''">
+          , IFNULL(J.is_manage,0) AS is_manage
+        </if>
+ FROM mm_monthly_plan_index_detail  mpid
+ LEFT JOIN   `mm_business_unit` bu ON bu.`business_id` = project_id
+ <if test="userId!=null and userId!=''">
+    LEFT JOIN (
+
+  SELECT
+  SUM(1) is_manage  ,j.`JobOrgID`,o.`OrgName`
+  FROM
+  `saleman`.`s_jobsuserrel` jur
+  LEFT JOIN `s_jobs` j ON j.`ID` = jur.`JobID`
+  LEFT JOIN `s_organization` o ON o.`ID` = j.`JobOrgID`
+  WHERE  `AccountID` = #{userId}
+  GROUP BY  j.`JobOrgID`
+
+   ) J ON J.`JobOrgID` =  bu.guid
+ </if>
+ WHERE project_id = #{projectId}
+  AND months = #{months}
+  AND is_effective=#{isEffective}
+
+ LIMIT 0,1
+    </select>
+
+    <!--查找月度计划指标里二下版本里的营销推广费用来初始化到表二-->
+  <select id="selectPromotionCost" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+ IFNULL( mpi.marketing_promotion_cost,0) marketing_promotion_cost
+FROM
+mm_monthly_plan_index mpi
+LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = mpi.`prepared_by_unit_org_id`  AND mpi.`months` = mpb.`months`
+WHERE mpi.months = #{months}
+AND mpi.prepared_by_unit_org_id = #{projectId}
+AND mpi.prepared_by_unit_type = 2
+  </select>
+
+    <!--查找月度计划指标里的合计签约金额，合金签约套，计划认购套，计划认购金额来初始化到表二-->
+    <select id="selectTotalAndPlan" resultType="java.util.Map" parameterType="java.util.Map" >
+SELECT
+   IFNULL( total_sign_funds,0) total_sign_funds
+, IFNULL( total_sign_set ,0) total_sign_set
+,  (  SELECT
+        IFNULL(SUM(mpi.plan_subscription_set),0) plan_subscription_set
+        FROM
+        `mm_business_unit` bu
+        LEFT JOIN `mm_monthly_plan` mp ON  0=0
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3 AND mpi.`months` = mp.`months`
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`prepared_by_unit_org_id` = bu.`business_id` AND mpb.`months` = mp.`months`
+        WHERE 0=0 AND bu. `business_id` IN(
+        SELECT business_id FROM mm_business_unit WHERE  (project_org_id=#{projectId} OR business_id=#{projectId} )
+        AND `TYPE`=(
+        SELECT `type` FROM `mm_business_unit` WHERE (project_org_id=#{projectId} OR business_id=#{projectId} )
+
+        AND  `type`&lt;7 ORDER BY `type` DESC LIMIT 1)
+           AND business_name NOT LIKE '车位%'
+        AND business_name NOT LIKE '%储藏室%'
+        )
+        AND mp.`months` =  #{months}  and prepared_by_unit_type = 3
+
+        ORDER BY bu.Sort_code ASC
+)plan_subscription_set
+, IFNULL( plan_subscription_funds ,0) plan_subscription_funds
+
+FROM
+   mm_monthly_plan_index
+
+   WHERE months = #{months} AND prepared_by_unit_org_id =#{projectId} AND prepared_by_unit_type = 3
+  </select>
+
+    <select id="selectMouthPlan"  parameterType="java.util.Map" resultType="int">
+        select count(guid) from mm_monthly_plan_index_detail
+        WHERE project_id = #{projectId}
+         AND months = #{months}
+        AND is_effective= 0
+    </select>
+
+    <!--通过具体的项目ID和对应的月份，初始化月度计划明细-->
+ <insert id="initialMouthPlan" parameterType="java.util.Map">
+     INSERT INTO mm_monthly_plan_index_detail (
+  guid,
+  creator,
+  create_time,
+  is_delete_flag,
+  editor,
+  update_time,
+  months,
+  monthly_plan_id,
+  version,
+  monthly_plan_index_id,
+  compiler_account_id,
+  big_card,
+  come_client_quantity,
+  small_card,
+  come_client_cost,
+  cost,
+  turnover_rate,
+  rate,
+  transaction_cost,
+  subscription_number,
+  subscription_funds,
+  sign_number_set,
+  sign_funds,
+  risk_point,
+  countermeasures,
+  policy_use,
+  core_action,
+  project_id,
+  channel_id,
+  is_effective
+)
+VALUES
+  (
+    #{guid},
+    0,
+    now(),
+    0,
+    0,
+    now(),
+    #{months},
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    #{cost},
+    0,
+    0,
+    0,
+ #{subscription_number},
+  #{subscription_funds},
+  #{sign_number_set},
+  #{sign_funds},
+    #{risk_point},
+    #{countermeasures},
+    #{policy_use},
+    #{core_action},
+    #{projectId},
+    0,
+    0)
+  </insert>
+
+    <!--设置月度计划明细是否为激活可上报状态-->
+    <update id="mouthPlanEffective" parameterType="java.util.Map">
+          UPDATE
+  mm_monthly_plan_index_detail
+SET
+ is_effective=#{isEffective}
+WHERE
+project_id=#{projectId} AND months=#{months}
+    </update>
+
+
+
+
+    <!--跟新月度计划明细，不包括风险点等字段，也就是表四里的字段-->
+ <update id="mouthPlanUpdate" parameterType="java.util.Map">
+     UPDATE
+
+     `mm_business_unit` bu
+     LEFT JOIN `mm_monthly_plan` mp ON  0=0
+     LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`prepared_by_unit_org_id` = bu.`business_id` AND mpi.`prepared_by_unit_type` = 3 AND mpi.`months` = mp.`months`
+     LEFT JOIN mm_monthly_plan_index_detail detail ON detail.`project_id` = bu.`business_id`  AND detail.`months` = mp.`months`
+set
+
+  <if test="big_card!='' and big_card!=null">
+      detail.big_card = #{big_card},
+  </if>
+    <if test="come_client_quantity!=''and come_client_quantity!=null">
+        detail.come_client_quantity = #{come_client_quantity},
+    </if>
+    <if test="small_card!='' and small_card!=null">
+        detail.small_card = #{small_card},
+    </if>
+
+
+    detail.come_client_cost = #{come_client_cost},
+    detail.cost = #{cost},
+    detail.turnover_rate = #{turnover_rate},
+    detail.rate = #{rate},
+    detail.transaction_cost = #{transaction_cost},
+    mpi.plan_turnover_rate= #{turnover_rate}
+
+WHERE bu.`business_id`  = #{projectId} AND  mp.`months` = #{months}
+     AND prepared_by_unit_type = 3
+ </update>
+
+    <!--跟新月度计划明细风险点等字段，也就是表四里的字段-->
+   <update id="mouthPlanUpdateRisk" parameterType="java.util.Map">
+     UPDATE
+  mm_monthly_plan_index_detail
+SET
+         risk_point = #{risk_point},
+  countermeasures = #{countermeasures},
+  policy_use = #{policy_use},
+  core_action = #{core_action}
+  WHERE project_id = #{projectId} AND  months = #{months}
+   </update>
+
+
+	<!--查找所有的招揽客人的渠道-->
+	<select id="allChannelSelect"  resultType="java.util.Map" >
+		SELECT
+  id,
+  guid,
+  sort_code,
+  matter_name,
+  action_name,
+  creator,
+  create_time,
+MediaTypeGUID,
+  editor,
+  update_time
+FROM
+mm_channel
+	</select>
+
+	<!--若某个项目的某个月份没有渠道费用明细，就先初始化该渠道并将它显示到表三-->
+<insert id="initialMouthChannelDetail" parameterType="java.util.Map">
+INSERT INTO mm_monthly_plan_index_channel_cost_detail (
+
+  guid,
+  creator,
+  create_time,
+  is_delete_flag,
+  editor,
+  update_time,
+  months,
+  monthly_plan_id,
+  version,
+  monthly_plan_index_id,
+  compiler_account_id,
+  matter,
+  action,
+  subscription_number,
+  subscription_amount,
+  first_three_months_average_monthly_turnover,
+  come_client_quantity,
+  first_three_months_monthly_average_coming_proportion,
+  coming_proportion,
+  first_three_months_monthly_average_turnover_rate,
+  turnover_rate,
+  contract_amount,
+  contract_cost_rate,
+  right_responsibility_amount,
+  right_responsibility_cost_rate,
+  first_three_months_average_monthly_transaction_cost,
+  transaction_cost,
+  first_three_months_monthly_average_coming_cost,
+  coming_cost,
+  first_three_months_average_monthly_sets,
+  first_three_months_monthly_average_monthly_coming_amount,
+  project_id,
+  channel_id,
+  is_effective
+)
+VALUES
+  (
+    #{guid},
+    0,
+   now(),
+    0,
+    0,
+     now(),
+    #{months},
+    0,
+    0,
+    0,
+    0,
+    #{matter},
+    #{action},
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    #{first_three_months_monthly_average_turnover_rate},
+    0,
+    0,
+    0,
+    0,
+    0,
+   #{first_three_months_average_monthly_transaction_cost},
+  0,
+  #{first_three_months_monthly_average_coming_cost},
+  0,
+    #{first_three_months_average_monthly_sets},
+    #{first_three_months_monthly_average_monthly_coming_amount},
+    #{projectId},
+    #{channel_id},
+    0
+  ) ;
+</insert>
+
+	<!--通过项目ID和月份来查找项目渠道费用等明细-->
+<select id="selectMouthChannelDetail" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+    guid,
+  creator,
+  DATE_FORMAT(create_time,'%Y-%m-%d') create_time,
+
+  is_delete_flag,
+  editor,
+   DATE_FORMAT(update_time,'%Y-%m-%d') update_time,
+
+ DATE_FORMAT(months,'%Y-%m-%d') months,
+  monthly_plan_id,
+  version,
+  monthly_plan_index_id,
+  compiler_account_id,
+  matter,
+  action,
+  subscription_number,
+  subscription_amount,
+  first_three_months_average_monthly_turnover,
+  come_client_quantity,
+  first_three_months_monthly_average_coming_proportion,
+  coming_proportion,
+  first_three_months_monthly_average_turnover_rate,
+  turnover_rate,
+  contract_amount,
+  contract_cost_rate,
+  right_responsibility_amount,
+  right_responsibility_cost_rate,
+  first_three_months_average_monthly_transaction_cost,
+  transaction_cost,
+  first_three_months_monthly_average_coming_cost,
+  coming_cost,
+  first_three_months_average_monthly_sets,
+  first_three_months_monthly_average_monthly_coming_amount,
+  project_id,
+  channel_id,
+  is_effective
+FROM
+  mm_monthly_plan_index_channel_cost_detail
+  where
+  project_id=#{projectId} AND months=#{months} AND is_effective=#{isEffective}
+</select>
+<!--查找每个事项在前三月的总费用-->
+<select id="selectMouthChannelDetailAction" parameterType="java.util.Map" resultType="java.util.Map">
+    SELECT
+    IFNULL(SUM(right_responsibility_amount),0.00) sumamount,
+    matter,
+    ACTION ,
+    IFNULL(SUM(first_three_months_average_monthly_sets)/SUM(first_three_months_monthly_average_monthly_coming_amount),0)transactionRate,
+    IFNULL(SUM(subscription_number)/SUM(come_client_quantity),0) nowtransactionRate,
+
+    project_id
+    FROM
+    mm_monthly_plan_index_channel_cost_detail
+ WHERE  project_id=#{projectId}
+    <if test="months!=null and months!=''">
+        AND
+        DATE_FORMAT(months,'%Y-%m') = #{months}
+    </if>
+    <if test="BeginDate!=null and BeginDate!=''">
+        AND  months BETWEEN #{BeginDate} AND #{EndDate}
+    </if>
+
+    <if test="matter!=null and matter!=''">
+        AND matter=#{matter}
+    </if>
+    <if test="action!=null and action!=''">
+        AND action=#{action}
+    </if>
+</select>
+
+
+
+    <!--查找每个动作在前三月的总费用-->
+    <select id="selectAllTheMouthChannelDetailAction" parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+
+        IFNULL(SUM(right_responsibility_amount),0.00) sumamount,
+        action ,
+        IFNULL(sum(turnover_rate),0) sumrate,
+        project_id,
+        IFNULL(SUM(first_three_months_average_monthly_sets)/SUM(first_three_months_monthly_average_monthly_coming_amount),0)transactionRate,
+        IFNULL(SUM(subscription_number)/SUM(come_client_quantity),0) nowtransactionRate
+        FROM
+        mm_monthly_plan_index_channel_cost_detail
+        WHERE  project_id=#{projectId}
+        <if test="months!=null and months!=''">
+            AND  DATE_FORMAT(months,'%Y-%m') = #{months}
+
+        </if>
+        <if test="BeginDate!=null and BeginDate!=''">
+            AND  months BETWEEN #{BeginDate} AND #{EndDate}
+        </if>
+        <if test="action!=null and action!=''">
+            AND action=#{action}
+        </if>
+    </select>
+
+
+    <!--跟新项目渠道费用等明细-->
+    <update id="updateChannelDetail" parameterType="java.util.Map">
+        UPDATE
+            mm_monthly_plan_index_channel_cost_detail
+        SET
+            update_time=NOW(),
+            subscription_number=#{subscription_number},
+            subscription_amount=#{subscription_amount},
+            first_three_months_average_monthly_turnover=#{first_three_months_average_monthly_turnover},
+            come_client_quantity=#{come_client_quantity},
+            first_three_months_monthly_average_coming_proportion=#{first_three_months_monthly_average_coming_proportion},
+            coming_proportion=#{coming_proportion},
+            first_three_months_monthly_average_turnover_rate=#{first_three_months_monthly_average_turnover_rate},
+            turnover_rate=#{turnover_rate},
+            contract_amount=#{contract_amount},
+            contract_cost_rate=#{contract_cost_rate},
+            right_responsibility_amount=#{right_responsibility_amount},
+            right_responsibility_cost_rate=#{right_responsibility_cost_rate},
+            first_three_months_average_monthly_transaction_cost=#{first_three_months_average_monthly_transaction_cost},
+            transaction_cost=#{transaction_cost},
+            first_three_months_monthly_average_coming_cost=#{first_three_months_monthly_average_coming_cost},
+            coming_cost=#{coming_cost},
+            first_three_months_average_monthly_sets=#{first_three_months_average_monthly_sets},
+            first_three_months_monthly_average_monthly_coming_amount=#{first_three_months_monthly_average_monthly_coming_amount}
+        WHERE project_id = #{projectId}
+            AND months = #{months}
+        <if test="actionName!=null and actionName!=''">
+            AND action=#{actionName}
+        </if>
+        <if test="channel_id!=null" >
+            AND channel_id=#{channel_id}
+        </if>
+    </update>
+
+    <!--批量跟新项目渠道费用等明细 bql 2020.07.28-->
+    <update id="updateChannelDetailBatch" parameterType="java.util.Map">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            <if test="item!=null">
+                update mm_monthly_plan_index_channel_cost_detail
+                set
+                    update_time=NOW(),
+                    subscription_number=#{item.subscription_number},
+                    subscription_amount=#{item.subscription_amount},
+                    first_three_months_average_monthly_turnover=#{item.first_three_months_average_monthly_turnover},
+                    come_client_quantity=#{item.come_client_quantity},
+                    first_three_months_monthly_average_coming_proportion=#{item.first_three_months_monthly_average_coming_proportion},
+                    coming_proportion=#{item.coming_proportion},
+                    first_three_months_monthly_average_turnover_rate=#{item.first_three_months_monthly_average_turnover_rate},
+                    turnover_rate=#{item.turnover_rate},
+                    contract_amount=#{item.contract_amount},
+                    contract_cost_rate=#{item.contract_cost_rate},
+                    right_responsibility_amount=#{item.right_responsibility_amount},
+                    right_responsibility_cost_rate=#{item.right_responsibility_cost_rate},
+                    first_three_months_average_monthly_transaction_cost=#{item.first_three_months_average_monthly_transaction_cost},
+                    transaction_cost=#{item.transaction_cost},
+                    first_three_months_monthly_average_coming_cost=#{item.first_three_months_monthly_average_coming_cost},
+                    coming_cost=#{item.coming_cost},
+                    first_three_months_average_monthly_sets=#{item.first_three_months_average_monthly_sets},
+                    first_three_months_monthly_average_monthly_coming_amount=#{item.first_three_months_monthly_average_monthly_coming_amount}
+
+                where
+                    project_id = #{item.projectId}
+                    AND months = #{item.months}
+                <if test="item.actionName !=null and item.actionName!=''">
+                    AND action=#{item.actionName}
+                </if>
+                <if test="item.channel_id !=null " >
+                    AND channel_id=#{item.channel_id}
+                </if>
+            </if>
+        </foreach>
+    </update>
+
+
+    <!--设置该条项目渠道费用明细是否为上报状态-->
+    <update id="channelDetailEffective" parameterType="java.util.Map">
+          UPDATE
+  mm_monthly_plan_index_channel_cost_detail
+SET
+ is_effective=#{isEffective}
+WHERE
+project_id=#{projectId} AND months=#{months}
+    </update>
+
+
+
+
+    <!--通过项目ID和月份来查找对应的周计划-->
+ <select id="selectWeeklyPlan" parameterType="java.util.Map" resultType="java.util.Map">
+     SELECT
+  id,
+     CONCAT ('第',(
+     CASE
+     week_serial_number
+     WHEN '1' THEN '一'
+     WHEN '2' THEN '二'
+     WHEN '3' THEN '三'
+     WHEN '4' THEN '四'
+     WHEN '5' THEN '五'
+     ELSE     '六'       END
+     )
+     ,'周' ) howWeek,
+  guid,
+  creator,
+    DATE_FORMAT(create_time,'%Y-%m-%d') create_time,
+
+  is_delete_flag,
+  editor,
+  DATE_FORMAT(update_time,'%Y-%m-%d') update_time,
+
+   DATE_FORMAT(months,'%Y-%m-%d') months,
+  monthly_plan_id,
+  version,
+  monthly_plan_index_id,
+  compiler_account_id,
+  sign_target,
+  sign_number_set,
+  visit_quantity,
+  subscription_number_set,
+  small_card,
+  big_card,
+  core_action,
+  week_serial_number,
+  project_id,
+  is_effective,
+     start_time,
+     end_time,
+     day_num
+FROM
+mm_monthly_plan_weekly_plan
+WHERE project_id=#{projectId} AND months=#{months}
+<if test="is_effective!='' and is_effective!=null ">
+AND is_effective=#{isEffective}
+</if>
+ </select>
+
+    <!--在上报表四周计划之前先验证是否可以验证
+    -->
+    <select id="testWeeklyPlanSum"  parameterType="java.util.Map" resultType="java.util.Map">
+                 SELECT
+
+		SUM(sign_target) sign_target ,
+		SUM(sign_number_set) sign_number_set ,
+		SUM(visit_quantity) visit_quantity ,
+		SUM(subscription_number_set) subscription_number_set ,
+		SUM(small_card) small_card ,
+		SUM(big_card) big_card
+
+FROM
+mm_monthly_plan_weekly_plan
+WHERE project_id=#{projectId} AND months=#{months}
+
+    </select>
+
+
+    <!--通过项目ID和月份来插入对应的周计划，初始化-->
+ <insert id="initialWeeklyPlan" parameterType="java.util.Map">
+     INSERT INTO mm_monthly_plan_weekly_plan (
+
+  guid,
+  creator,
+  create_time,
+  is_delete_flag,
+  editor,
+  update_time,
+  months,
+  monthly_plan_id,
+  version,
+  monthly_plan_index_id,
+  compiler_account_id,
+  sign_target,
+  sign_number_set,
+  visit_quantity,
+  subscription_number_set,
+  small_card,
+  big_card,
+  core_action,
+  week_serial_number,
+  project_id,
+  is_effective,
+  start_time,
+  end_time,
+  day_num
+)
+VALUES
+  (
+
+    #{guid},
+    0,
+    now(),
+    0,
+    0,
+    null,
+    #{months},
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    null,
+    #{week_serial_number},
+    #{projectId},
+    0,
+     #{start_time},
+  #{end_time},
+  #{day_num}
+     )
+ </insert>
+
+    <!--通过项目ID和月份来跟新对应的周计划-->
+<update id="updateWeeklyPlan" parameterType="java.util.Map">
+    UPDATE
+  mm_monthly_plan_weekly_plan
+SET
+  creator = #{creator},
+  create_time = #{create_time},
+  editor = #{editor},
+  update_time = NOW(),
+  monthly_plan_id = #{monthly_plan_id},
+  version = #{version},
+  monthly_plan_index_id = #{monthly_plan_index_id},
+  compiler_account_id = #{compiler_account_id},
+  sign_target = #{sign_target},
+  sign_number_set = #{sign_number_set},
+  visit_quantity = #{visit_quantity},
+  subscription_number_set = #{subscription_number_set},
+  small_card = #{small_card},
+  big_card = #{big_card},
+  core_action = #{core_action}
+WHERE
+    project_id = #{projectId} AND  months = #{months} AND week_serial_number=#{week_serial_number}
+</update>
+
+    <!--通过项目ID和月份来决定是否上报对应的周计划-->
+<update id="weeklyPlanIsEffective" parameterType="java.util.Map">
+      UPDATE
+  mm_monthly_plan_weekly_plan
+  SET
+   is_effective = #{isEffective}
+   WHERE
+    project_id = #{projectId} AND  months = #{months}
+</update>
+
+
+<!--附件的上传和下载,此处是查找-->
+    <select id="selectAttach"  resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT
+    ID,
+  FileNameOld,
+  FileNameSuffix,
+  SaveUrl,
+  FileType,
+  FileSize,
+  CreateUser,
+  CreateTime,
+  Status,
+  IsDel
+FROM
+  s_attach
+  where IsDel=0
+AND BizID=#{projectId}
+    </select>
+
+    <!--上传附件-->
+<insert id="insertAttach" parameterType="java.util.Map">
+    INSERT INTO s_attach (
+    ID,
+  FileNameOld,
+  FileNameSuffix,
+  BizID,
+  SaveUrl,
+  FileType,
+  FileSize,
+  CreateUser,
+  CreateTime,
+  Status,
+  IsDel
+)
+VALUES
+  (
+   #{ID},
+    #{FileNameOld},
+    #{FileNameSuffix},
+    #{BizID},
+    #{SaveUrl},
+    #{FileType},
+    #{FileSize},
+    #{CreateUser},
+    #{CreateTime},
+    #{Status},
+    0
+  )
+</insert>
+
+    <!--删除附件-->
+<update id="deleteAttach" parameterType="java.util.Map">
+      UPDATE s_attach SET
+  IsDel=#{IsDel}
+  WHERE
+   ID=#{ID}
+</update>
+
+    <!--
+        前三月月均来人量
+    -->
+<select id="selectCnt" parameterType="java.util.Map" resultType="java.util.Map">
+    SELECT
+   HKBProjectID,
+    mainMediaGuid,
+     SUM(cnt) cnt
+     FROM  vs_yxgk_cstnums
+      WHERE HKBProjectID= #{HKBProjectID}
+      AND TheFirstVisitDate
+       BETWEEN #{BeginDate} AND #{EndDate}
+       <if test="mainMediaGuid!=null and mainMediaGuid!='' ">
+       GROUP BY mainMediaGuid HAVING mainMediaGuid=#{mainMediaGuid}
+       </if>
+</select>
+
+    <!--
+        找到表三里的前三个月均成交套数
+    -->
+    <select id="selectAverageMonthlySets" parameterType="java.util.Map" resultType="java.util.Map">
+        select tb.ProjectID,tb.projectName,MediaTypeGUID,mainMediaName,sum(tb.num) as AverageMonthlySets from
+        (
+        select
+        projectId,
+        PROJECTNAME,
+        mainMediaGuid MediaTypeGUID,mainMediaName,
+        COUNT(RoomGUID) as num
+        FROM  VS_XSGL_ORDER
+        WHERE  YwgsDate &gt;= #{BeginDate}
+        AND YwgsDate &lt; #{EndDate}
+        and projectId=#{HKBProjectID}
+        AND IFNULL(CloseReason, '') NOT IN ( '撤销认购' )
+        GROUP BY mainMediaGuid
+        UNION ALL
+        SELECT
+        projectId,
+        PROJECTNAME,
+        mainMediaGuid MediaTypeGUID,mainMediaName,
+        -1 * COUNT(RoomGUID) as num
+        FROM   VS_XSGL_ORDER
+        WHERE  CloseReason IN ( '退房', '换房' )
+        and CloseDate &lt; #{BeginDate} and CloseDate>=#{EndDate}
+        and projectId=#{HKBProjectID}
+        group by mainMediaGuid
+        UNION ALL
+        SELECT
+        projectId,
+        PROJECTNAME,
+        mainMediaGuid MediaTypeGUID,mainMediaName,
+        -1 * COUNT(RoomGUID) as num
+        FROM   VS_XSGL_ORDER
+        WHERE projectId=#{HKBProjectID}
+        and   CloseDate &gt;= #{BeginDate}
+        AND CloseDate &lt; #{EndDate}
+        AND QYCloseDate &gt;= #{BeginDate}
+        AND QYCloseDate &lt; #{EndDate}
+        AND QYCloseReason IN ( '退房', '换房' )
+        AND CloseReason = '转签约'
+        group by mainMediaGuid
+        )tb
+         <if test="mainMediaName!=null and mainMediaName!='' ">
+            where mainMediaName=#{mainMediaName}
+         </if>
+    GROUP BY tb.MediaTypeGUID
+</select>
+<!--前三月来人量和前三月权责费用-->
+<select id="threeMonthDealCost" parameterType="java.util.Map" resultType="java.util.Map">
+
+SELECT
+      lrl.`ProjectID`,
+  --  fy.`projectCode`,
+      lrl.ProjectName,
+     lrl.projectName ,
+     lrl.MainMediaName action_name,
+    lrl.MainMediaName,
+    lrl.MediaTypeGUID,
+    IFNULL( ROUND(fy.ftAmounts,2) ,0.00) ftAmounts,
+ IFNULL(lrl.gjcount,0)  gjcount,
+     IFNULL( ROUND(fy.ftAmounts/10000,2) ,0.00) finalftAmounts
+   -- IFNULL(lrl.gjcount,0)  gjcount
+    FROM
+     (
+    SELECT SUM( gjcount) AS gjcount,lrl.`projectName`,lrl.`projectCode`,lrl.MainMediaName,lrl.MediaTypeGUID,b.`ProjectID`
+    FROM vs_xsgl_visits lrl
+    LEFT JOIN t_mm_project b ON lrl.projectCode=b.projectcode
+    WHERE b.`ProjectID`=#{projectId} AND gjdate BETWEEN #{BeginDate} AND #{EndDate}
+    AND MediaTypeGUID IS NOT NULL
+    GROUP BY lrl.`projectCode`,lrl.MainMediaName
+
+    ) lrl
+    LEFT JOIN
+
+
+    (
+    SELECT b.ProjectID,a.project_code projectCode,a.project_name ProjectName,a.big_benefit action_name,
+    '' costShortName,
+    SUM(share_money) ftAmounts FROM vs_contractinfo a
+    LEFT JOIN t_mm_project b ON a.project_code=b.projectcode
+    WHERE 0=0
+    AND DATE_FORMAT(a.`share_year`,'%Y') = #{year} AND a.month=#{month}
+    AND big_benefit IS NOT NULL AND big_benefit &lt;&gt;''
+    GROUP BY a.project_code,a.big_benefit
+  ) fy
+
+    ON lrl.`ProjectCode` = fy.`projectCode` AND lrl.MainMediaName = fy.action_name
+
+ -- LEFT JOIN `mm_channel_real` cc ON cc.`subject` = fy.`costShortName`
+
+
+</select>
+<!--查找项目名-->
+<select id="selectProjectName" resultType="java.lang.String" parameterType="java.lang.String">
+        SELECT business_name FROM mm_business_unit WHERE `business_id`=#{projectId} LIMIT 0,1
+    </select>
+
+
+
+</mapper>

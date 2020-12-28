@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.commission.dao.CommissionProcessingDao">
+
+    <!-- 第一步、修改立项后、渠道变更情况的，交易数据-->
+    <select id ="selectMyStatus" parameterType="java.lang.String" resultType="java.lang.String">
+        select distinct a.id
+        from  cm_checklist c
+        left join cm_checklist_detail dc on c.id = dc.checklist_id
+        left join cm_commission a on dc.commission_id = a.id and (ifnull(a.remarks,'') &lt;&gt; '渠道变化')
+        left join v_myxk_commission m on dc.transaction_id=m.transaction_id
+        where a.transaction_id IN  ('${ids}')
+        and a.my_STATUS &lt;&gt; '关闭'
+        and c.project_status >0
+        and dc.isdel = 0
+        and (a.source_type_desc &lt;&gt; m.deal_type or a.gain_num &lt;&gt; m.gain_num)
+    </select>
+
+    <!-- 第一步、将交易状态置为失效-->
+    <update id="updateMyStatus" parameterType="java.util.List">
+        update cm_commission set my_STATUS='关闭' where id
+        a.id in
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+    <!-- 第二步、查询渠道变化后的新数据，交易id与原数据相同，状态置为激活-->
+    <select id="selectNewSourceTypeDesc" parameterType="java.lang.String" resultType="int">
+        select count(1)
+        from  cm_checklist_detail dc
+        left join cm_checklist c on dc.checklist_id=c.id
+        left join cm_commission a on dc.commission_id = a.id
+        left join v_myxk_commission m on dc.transaction_id=m.transaction_id
+        where a.transaction_id IN  ('${ids}')
+        and c.project_status >0
+        and dc.isdel = 0
+        and not EXISTS (select 1 from cm_commission cm where  cm.remarks = '渠道变化' and cm.transaction_id =dc.transaction_id)
+        and (a.source_type_desc &lt;&gt; m.deal_type or a.gain_num &lt;&gt; m.gain_num);
+    </select>
+
+    <!-- 第二步、添加渠道变化后的新数据，交易id与原数据相同，状态置为激活-->
+    <insert id="initNewSourceTypeDesc" parameterType="java.lang.String">
+        insert into cm_commission(id,
+            intention_id,
+            room_name, room_id, customer_name,customer_code, customer_mobile, my_STATUS,transaction_status,
+            subscription_date, signing_date, is_intermediary_commission, total_price,
+            contract_price, subscription_price, transaction_id,
+            gain_by, gain_num, operation_type_big,operation_type_Small, project_id, stages_id,
+            build_id, source_type_desc,back_price,
+            reportIdCard,bank_name, bank_num, report_mobile,
+            employee_name, user_name, current_role,
+            modified_time,create_time, creator, is_bill, is_commission, `status`, is_del,remarks,
+            isAuthentication,built_up_area
+        )
+        select uuid(),
+            m.intention_id,
+            m.room_name,m.room_id,m.customer_name,m.customer_code,m.customer_mobile,m.my_STATUS,
+            m.transaction_status,
+            m.subscription_date, m.signing_date, m.is_intermediary_commission, m.total_price,
+            m.contract_price, m.subscription_price, m.transaction_id,
+            m.gain_by, m.gain_num, m.operation_type_big,m.operation_type_Small, m.project_id, m.stages_id,
+            m.build_id, m.deal_type,m.back_price,
+            m.reportIdCard,m.bank_name, m.bank_num, m.report_mobile,
+            m.employee_name, m.user_name, m.current_role,``
+            m.modified_time,now(),'admin','1','1','1','0','渠道变化',
+            m.isAuthentication,m.built_up_area
+            -- case when c.project_status >=3 then '渠道变化' else '' end
+        from  cm_checklist_detail dc
+        left join cm_checklist c on dc.checklist_id=c.id
+        left join cm_commission a on dc.commission_id = a.id
+        left join v_myxk_commission m on dc.transaction_id=m.transaction_id
+        where  a.transaction_id IN  ('${ids}')
+        and c.project_status >0
+        and dc.isdel = 0
+        and not EXISTS (select 1 from cm_commission cm where  cm.remarks = '渠道变化' and cm.transaction_id =dc.transaction_id)
+        and (a.source_type_desc &lt;&gt; m.deal_type or a.gain_num &lt;&gt; m.gain_num);
+    </insert>
+
+    <!-- 第三步、更新明源为激活 and 本系统内为激活，的数据内容-->
+    <select id="countUpdateCmCommission" parameterType="java.lang.String" resultType="int">
+        select count(1) from cm_commission a
+        left JOIN vs_xsgl_trade m on a.transaction_id=m.transaction_id and a.intention_id=m.intention_id
+        LEFT JOIN vs_yxgk_ordercst x on m.intention_id = x.intention_id
+        where a.transaction_id IN  ('${ids}')
+        and (ifnull(a.my_STATUS,'') &lt;&gt; '关闭') and (ifnull(m.my_STATUS,'') &lt;&gt; '关闭') and (ifnull(a.remarks,'') &lt;&gt; '欠款');
+    </select>
+
+    <!-- 第三步、更新明源为激活 and 本系统内为激活，的数据内容-->
+    <update id="updateCmCommission" parameterType="java.lang.String">
+        update cm_commission a
+        left join v_myxk_commission m on a.transaction_id=m.transaction_id
+        set a.room_name = m.room_name,
+        a.room_id = m.room_id,
+        a.customer_name = m.customer_name,
+        a.customer_code = m.customer_code,
+        a.customer_mobile = m.customer_mobile,
+        a.my_STATUS=m.my_STATUS,
+        a.transaction_status = m.transaction_status,
+        a.subscription_date = m.subscription_date,
+        a.signing_date = m.signing_date,
+        a.is_intermediary_commission = m.is_intermediary_commission,
+        a.total_price = m.total_price,
+        a.contract_price = m.contract_price,
+        a.subscription_price = m.subscription_price,
+        a.gain_by = m.gain_by,
+        a.gain_num = m.gain_num,
+        a.operation_type_big = m.operation_type_big,
+        a.operation_type_Small = m.operation_type_Small,
+        a.project_id = m.project_id,
+        a.stages_id = m.stages_id,
+        a.build_id = m.build_id,
+        a.source_type_desc = m.deal_type,
+        a.back_price = m.back_price,
+        a.built_up_area = m.built_up_area,
+        a.reportIdCard = m.reportIdCard,
+        a.bank_name = m.bank_name,
+        a.bank_num = m.bank_num,
+        a.report_mobile = m.report_mobile,
+        a.employee_name = m.employee_name,
+        a.user_name = m.user_name,
+        a.current_role = m.current_role,
+        a.modified_time = m.modified_time,
+        a.isAuthentication = m.isAuthentication,
+        a.edit_time = now(),
+        a.editor='admin'
+        where  a.transaction_id IN  ('${ids}') and a.transaction_id &lt;&gt; '' and (a.source_type_desc in ('全民经纪人','中介成交') or m.deal_type in ('全民经纪人','中介成交') )
+        and (ifnull(a.my_STATUS,'') &lt;&gt; '关闭') and (ifnull(m.my_STATUS,'') &lt;&gt; '关闭') and (ifnull(a.remarks,'') &lt;&gt; '欠款');
+    </update>
+
+    <!-- 第四步、更新明源为关闭 and 本系统内为激活，的数据的状态置为关闭-->
+    <select id="selectNewStatus" parameterType="java.lang.String" resultType="java.lang.String">
+        select a.id from  cm_commission a
+        left JOIN vs_xsgl_trade m on a.transaction_id=m.transaction_id
+        where  a.transaction_id IN  ('${ids}')
+        and (ifnull(a.my_STATUS,'') &lt;&gt; '关闭') and m.my_STATUS = '关闭' and (ifnull(a.remarks,'') &lt;&gt; '欠款');
+    </select>
+
+    <!-- 第四步、更新明源为关闭 and 本系统内为激活，的数据的状态置为关闭-->
+    <update id="updateNewStatus" parameterType="java.util.List">
+        update cm_commission a
+        left JOIN vs_xsgl_trade m on a.transaction_id=m.transaction_id
+        set a.my_STATUS=m.my_STATUS,
+            a.modified_time = m.modified_time,
+            a.edit_time = now(),
+            a.editor='admin'
+        where a.id
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+    <select id="countCommission" resultType="int">
+        select count(1)
+        from v_myxk_commission m
+        where m.intention_id &lt;&gt; '' and a.transaction_id &lt;&gt; ''
+        and not EXISTS(select 1 from cm_commission c where c.intention_id=m.intention_id and c.transaction_id = m.transaction_id);
+    </select>
+
+    <insert id="insertCommission">
+        <!-- 第五步、根据交易ID添加本系统内没有，明源新增的交易数据 -->
+        insert into cm_commission(id,
+        intention_id,
+        room_name, room_id, customer_name,customer_code, customer_mobile, my_STATUS,transaction_status,
+        subscription_date, signing_date, is_intermediary_commission, total_price,
+        contract_price, subscription_price, transaction_id,
+        gain_by, gain_num, operation_type_big,operation_type_Small, project_id, stages_id,
+        build_id, source_type_desc,
+        back_price,
+        reportIdCard,bank_name, bank_num, report_mobile,
+        employee_name, user_name, current_role,
+        modified_time,create_time, creator, is_bill, is_commission, `status`, is_del,
+        isAuthentication,built_up_area
+        )
+        select uuid(),
+        m.intention_id,m.room_name,m.room_id,m.customer_name,m.customer_code,m.customer_mobile,m.my_STATUS,m.transaction_status,
+        m.subscription_date, m.signing_date, m.is_intermediary_commission, m.total_price,
+        m.contract_price, m.subscription_price, m.transaction_id,
+        m.gain_by, m.gain_num, m.operation_type_big,m.operation_type_Small, m.project_id, m.stages_id,
+        m.build_id, m.deal_type,
+        m.back_price,
+        m.reportIdCard,m.bank_name, m.bank_num, m.report_mobile,
+        m.employee_name, m.user_name, m.current_role,
+        m.modified_time,now(),'admin','1','1','1','0',
+        m.isAuthentication,m.built_up_area
+        from v_myxk_commission m
+        where   a.transaction_id &lt;&gt; '' and m.intention_id &lt;&gt; '' and not EXISTS(select 1 from cm_commission c where c.intention_id=m.intention_id and c.transaction_id = m.transaction_id);
+    </insert>
+
+    <select id="countQkCommission" parameterType="java.lang.String" resultType="int">
+        select count(1)
+        from cm_receipt_detail crd
+        left join cm_receipt cr on crd.receipt_id = cr.id
+        left join v_myxk_commission m on crd.transaction_id = m.transaction_id
+        where m.transaction_id IN  ('${ids}')
+        and cr.payment_status = '4' and m.my_STATUS='关闭'
+        and not exists(select 1 from cm_commission vm where vm.transaction_status = '付款后退房' and crd.transaction_id = vm.transaction_id )
+        GROUP BY crd.transaction_id;
+    </select>
+
+    <!-- 第六步、添加付款通过后，状态刚刚被置为失效的数据，为欠款数据 -->
+    <insert id="insertQkCommission" parameterType="java.lang.String">
+        insert into cm_commission(id,
+        intention_id,
+        room_name, room_id, customer_name,customer_code, customer_mobile, my_STATUS,transaction_status,
+        subscription_date, signing_date, is_intermediary_commission, total_price,
+        contract_price, subscription_price, transaction_id,
+        gain_by, gain_num, operation_type_big,operation_type_Small, project_id, stages_id,
+        build_id, source_type_desc,back_price,
+        reportIdCard,bank_name, bank_num, report_mobile,
+        employee_name, user_name, current_role,
+        commission_money,
+        modified_time,create_time, creator, is_bill, is_commission, `status`, is_del,remarks,
+        isAuthentication,built_up_area
+        )
+        select uuid(),
+        m.intention_id,m.room_name,m.room_id,m.customer_name,m.customer_code,m.customer_mobile,'激活',
+        '付款后退房' as transaction_status,
+        m.subscription_date, m.signing_date, m.is_intermediary_commission, m.total_price,
+        m.contract_price, m.subscription_price, m.transaction_id,
+        m.gain_by, m.gain_num, m.operation_type_big,m.operation_type_Small, m.project_id, m.stages_id,
+        m.build_id, m.deal_type,m.back_price,
+        m.reportIdCard,m.bank_name, m.bank_num, m.report_mobile,
+        m.employee_name, m.user_name, m.current_role,
+        -sum(crd.application_amount),
+        m.modified_time,now(),'admin','1','1','1','0','欠款',
+        m.isAuthentication,m.built_up_area
+        from cm_receipt_detail crd
+        left join cm_receipt cr on crd.receipt_id = cr.id
+        left join v_myxk_commission m on crd.transaction_id = m.transaction_id
+        where  m.transaction_id IN  ('${ids}')
+        and cr.payment_status = '4' and m.my_STATUS='关闭'
+        and not exists(select 1 from cm_commission vm where vm.transaction_status = '付款后退房' and crd.transaction_id = vm.transaction_id )
+        GROUP BY crd.transaction_id;
+    </insert>
+
+    <!-- 第七步、把立项后退房的核算单状态置为异常 -->
+    <select id="selectIsAbnormal" parameterType="java.lang.String" resultType="java.lang.String">
+        select c.id from cm_checklist c
+        left join cm_checklist_detail dc on c.id = dc.checklist_id
+        left join cm_commission a on dc.commission_id = a.id
+        left join v_myxk_commission m on dc.transaction_id=m.transaction_id
+        where a.transaction_id IN  ('${ids}')
+        and c.project_status >=3
+        and (m.my_STATUS='关闭' or a.my_STATUS='关闭')
+        and dc.is_negative &lt;2
+        and dc.isdel = 0
+        and not exists(select 1 from cm_commission vm where vm.transaction_status = '付款后退房' and dc.transaction_id = vm.transaction_id )
+        and dc.outstanding_amount >0;
+    </select>
+
+    <!-- 第七步、把立项后退房的核算单状态置为异常 -->
+    <update id="updateIsAbnormal" parameterType="java.util.List">
+        update cm_checklist c
+        set  is_abnormal = 1
+        where id
+        <foreach collection="list" index="index" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </update>
+
+    <!-- 第吧步、同步orgId -->
+    <update id="updateOrgId" parameterType="java.lang.String">
+        update cm_commission c
+        left join t_mm_project t on c.project_id = t.kingdeeProjectID
+        set c.org_id = t.projectID
+        where c.transaction_id IN  ('${ids}') and t.isDelete = 0
+    </update>
+
+</mapper>

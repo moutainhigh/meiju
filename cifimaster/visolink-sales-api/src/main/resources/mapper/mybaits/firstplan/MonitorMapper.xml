@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.monitor.dao.MonitorDao">
+
+    <select id="selectMonitorPlan" parameterType="String" resultType="map">
+        SELECT area_name,plnode.node_name,mpro.projectCode,this_node,project_id,project_name,
+        plnode.node_name,plnode.overday_num,DATE_FORMAT(plnode.plan_end_time,'%Y-%m-%d') as plan_end_time from fp_plan plan
+        LEFT JOIN fp_plan_node plnode on plnode.plan_id=plan.id and
+        plnode.node_level=plan.this_node
+        LEFT JOIN t_mm_project mpro on mpro.projectID=plan.project_id
+        where plan_id=#{plan_id}
+        ORDER BY plnode.create_time desc limit 1
+    </select>
+
+    <select id="selectMonitorPlanNode" parameterType="String" resultType="map">
+        SELECT * from (SELECT id,node_level,node_name,DATE_FORMAT(plan_end_time,'%Y-%m-%d') as plan_end_time,plan_approval,light_stuat,overday_num,
+        actual_finish_time,node_order from fp_plan_node where
+        plan_id=#{plan_id}
+        and is_del=0
+        ORDER BY is_effective limit 100
+        ) tb GROUP BY tb.node_level  ORDER BY node_order
+    </select>
+
+    <select id="selectMonitorLand"  parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT node.product_set,sum(land.will_front_value) as will_front_value,
+        sum(land.land_back_value) as land_back_value,
+        cost.will_per as will_per,
+        cost.land_per as land_per,
+        target.will_price,target.land_back_price
+        ,tai.will_price as will_price2,tai.land_back_price as land_back_price2
+        from fp_plan_node node
+        LEFT JOIN fp_land_value land on node.id=land.plan_node_id
+        LEFT JOIN fp_land_cost cost on cost.plan_node_id=node.id
+        LEFT JOIN fp_land_sales_target target on
+        target.plan_node_id=node.id and target.sales_time='首开'
+        LEFT JOIN (select plan_node_id,will_price,land_back_price from fp_land_sales_target  where
+        plan_node_id=#{plan_node_id} and sales_time &lt;&gt; '首开' ORDER BY sales_time limit 1) tai on
+        tai.plan_node_id=node.id
+        where node.id=#{plan_node_id} and node.plan_approval=4 limit 1
+    </select>
+
+    <select id="selectMonitorDesignone"  parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT node.product_set,sum(one.land_back_value) as land_back_value,
+        sum(designonel_front_value) as designonel_front_value
+        ,target.will_price,target.land_back_price
+        ,tai.will_price as will_price2,tai.land_back_price as land_back_price2
+        from fp_plan_node node
+        LEFT JOIN fp_designone_value one on one.plan_node_id=node.id
+        LEFT JOIN fp_designone_sales_target target on target.plan_node_id=node.id and  target.sales_time='首开'
+        LEFT JOIN (select plan_node_id,will_price,land_back_price from fp_designone_sales_target  where
+        plan_node_id=#{plan_node_id} and sales_time &lt;&gt; '首开' ORDER BY sales_time limit 1) tai on
+        tai.plan_node_id=node.id
+        where node.id=#{plan_node_id} and node.plan_approval=4 limit 1
+    </select>
+
+
+
+
+    <select id="selectMonitorDesigntwo"  parameterType="java.lang.String" resultType="java.util.Map">
+   SELECT two.designtwo_push_value,
+SUM(two.cost_open_sales_price/two.designtwo_selling_value*100) cost_open_sales_price,
+    num.visit_num,num.little_num,num.big_num,num.sub_num,num.make_per
+    from fp_plan_node node
+    LEFT JOIN fp_designtwo_code_index two on two.plan_node_id=node.id
+    LEFT JOIN fp_guest_storage_node_plan num on num.plan_node_id=node.id and nide_name='首开'
+    where node.id=#{plan_node_id} and node.plan_approval=4 limit 1
+    </select>
+
+<!--    <select id="selectMonitorThreeNode"  parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT flow.version,line_name,num.report_num,num.visit_num,num.little_num,num.big_num
+        from fp_guest_storage_flow flow
+        LEFT JOIN fp_guest_storage_node_plan num on
+        num.flow_id=flow.id where flow.plan_id=#{plan_id}
+        and flow.node_level=#{node_level}
+        and num.node_level=#{node_level} AND flow.approval_stuat=4
+        ORDER BY flow.version desc,num.`level`  limit 0,3
+    </select>-->
+    <select id="selectMonitorThreeNode"  parameterType="java.util.Map" resultType="java.util.Map">
+ SELECT
+    flow.version,
+    line_name,
+    IFNULL(num.report_num,0) report_num,
+    IFNULL(num.visit_num,0) visit_num,
+    IFNULL(num.little_num,0) little_num,
+    IFNULL(num.big_num,0) big_num
+    FROM fp_guest_storage_node_plan num INNER JOIN (SELECT id,version from fp_guest_storage_flow WHERE plan_id=#{plan_id}
+    AND approval_stuat=4 AND node_level=#{node_level} ORDER BY version desc limit 1) flow
+    on  num.flow_id=flow.id
+    AND node_level=#{node_level}
+    ORDER BY num.`level` limit 0,3
+    </select>
+
+
+
+    <select id="selectMonitorThreeWeek"  parameterType="java.util.Map" resultType="java.util.Map">
+        SELECT
+        day_date,actual_total,plan_total,bias_per
+        from fp_guest_storage_flow flow
+        LEFT JOIN fp_guest_storage_week num on num.flow_id=flow.id
+        LEFT JOIN fp_plan_node node on node.plan_id=flow.plan_id and node.node_level=#{node_level}
+        and node.is_effective=0 and flow.node_level=#{node_level} and num.week!='完成波段' and num.week!='完整波段'
+        where flow.plan_id=#{plan_id} and node.plan_approval=4
+        and flow.version=(select
+        max(version) from fp_guest_storage_flow where
+        plan_id=#{plan_id} and node_level=#{node_level} and plan_approval=4)
+        and `change`=(select
+        max(`change`) from fp_guest_storage_flow where
+        plan_id=#{plan_id} and node_level=#{node_level})
+        and num.start_time &lt;=node.plan_end_time and
+        num.start_time &gt;=date_add(node.plan_end_time, interval -30 day)
+        ORDER BY num.start_time;
+    </select>
+
+    <select id="selectMonitorNewNode"  parameterType="java.lang.String" resultType="java.util.Map">
+       SELECT plan.id,flow.plan_id,flow.plan_node_id,nide_name,DATE_FORMAT(node_time,'%Y-%m-%d')
+        as node_time,
+        IFNULL(report_num,0) report_num ,IFNULL(visit_num,0) visit_num,IFNULL(little_num,0) little_num,IFNULL(little_per,0) little_per,IFNULL(big_num,0) big_num,
+        IFNULL(big_per,0) big_per,IFNULL(sub_num,0) sub_num,IFNULL(make_per,0) make_per,level,line_name,little_way,big_way,
+        flow.node_level,flow.version,flow_id from fp_guest_storage_node_plan plan
+		inner JOIN (SELECT id,plan_id,plan_node_id,node_level,version from fp_guest_storage_flow
+		where plan_id=#{plan_id}
+        and approval_stuat=4 ORDER BY node_level desc,version desc limit 1) flow on flow.id=plan.flow_id
+        and (flow.node_level=plan.node_level or plan.node_level=8)
+        and line_name='计划'
+         order by node_time asc ,level asc
+    </select>
+
+    <select id="selectDesigntwoCodeIndexAvg"  parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT product_type,designtwo_open_avg_price from fp_designtwo_code_index_price
+        where plan_node_id=#{plan_node_id}
+    </select>
+
+    <!--查询客储实际数据-->
+    <select id="getActualCustomerStorage" resultType="java.util.Map" parameterType="java.util.Map">
+
+ SELECT
+        node_level,
+        nide_name,
+        line_name,
+        report_num,
+        visit_num,
+        little_num,
+        big_num,
+        sub_num,
+        #小卡率
+        CONVERT(IFNULL((little_num / visit_num ),0.00)*100,DECIMAL(10,2)) little_per,
+        #大卡率
+        CONVERT( IFNULL(( big_num / visit_num ),0.00)*100,DECIMAL(10,2)) big_per,
+        #认购率
+        CONVERT(IFNULL(( sub_num / visit_num ),0.00)*100,DECIMAL(10,2)) make_per
+        FROM
+        (
+        SELECT
+        7  as node_level,
+		'首开'as nide_name,
+		'实际' as line_name,
+		IFNULL( SUM( reportCnt ), 0 ) AS report_num,
+        IFNULL( SUM( visitCnt ), 0 ) AS visit_num,
+        IFNULL( SUM( big_card ), 0 ) AS big_num,
+				IFNULL( SUM( lesser_card ), 0 ) AS little_num,
+        IFNULL( SUM( subscribe_num ), 0 ) AS sub_num
+        FROM
+        fp_comm_guest_storage
+				where project_id in (
+				select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{project_id} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID ))
+ <if test="node_time!=null and node_time!=''">
+     and  total_time &lt;= #{node_time}
+ </if>
+ ) s
+    </select>
+    <select id="getProjectidByPlanId" resultType="java.lang.String" parameterType="java.lang.String">
+        SELECT project_id FROM  fp_plan WHERE ID=#{plan_id};
+    </select>
+
+
+    <!--获取延期开盘时间-->
+    <select id="getDelayApplayOpenDate" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	DATE_FORMAT( new_first_time, '%Y-%m-%d' ) new_first_time,
+	DATE_FORMAT( new_applay_7time, '%Y-%m-%d' ) new_applay_7time,
+	DATE_FORMAT( new_applay_21time, '%Y-%m-%d' ) new_applay_21time
+FROM
+	fp_delay_apply
+WHERE
+	plan_id = #{plan_id}
+	AND approval_stuat = 4
+ORDER BY
+	create_time DESC
+	LIMIT 1
+    </select>
+
+</mapper>

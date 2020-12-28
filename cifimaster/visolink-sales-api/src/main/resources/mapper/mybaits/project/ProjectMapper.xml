@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.system.project.dao.ProjectMapper">
+<!--	根据当前登录人查询对应所拥有的项目列表-->
+	<select id="findProjectListByUserName" resultType="java.util.Map" >
+		<choose>
+
+				<when test="jobCode!='10001'">
+					SELECT
+					so.ProjectID projectId,
+					p.projectName,
+					so.ID orgId,
+					ac.UserName userName
+					FROM
+					b_account ac
+					inner join s_jobsuserrel jur on jur.AccountID = ac.ID
+					inner join s_jobs job on job.ID = jur.JobID and job.Status = 1 and job.IsDel = 0
+					inner JOIN s_organization so ON job.JobOrgID = so.ID and so.Status = 1 and so.IsDel = 0
+					inner JOIN b_project p ON so.ProjectID = p.ID  and p.Status = 1 and p.IsDel = 0
+					WHERE
+					ac.UserName = #{UserName}
+					and p.IsStages =0
+					and p.pid is null
+					and p.orgId is not null
+					and p.Status = 1
+					and p.IsDel = 0
+					and p.orgId != ''
+					<if test="projectName!=null and projectName!=''">
+					and p.ProjectName like "%"#{projectName}"%"
+					</if>
+					group by so.ProjectID
+				</when>
+				<otherwise>
+						SELECT
+						p.id projectId,
+						p.projectName,
+						#{UserName} userName
+						FROM
+						b_project p where  p.Status = 1 and p.IsDel = 0
+						and IsStages =0
+						and pid is null
+						and orgId is not null
+						and orgId != ''
+					<if test="projectName!=null and projectName!=''">
+						and p.ProjectName like "%"#{projectName}"%"
+					</if>
+				</otherwise>
+		</choose>
+
+	</select>
+
+ </mapper>

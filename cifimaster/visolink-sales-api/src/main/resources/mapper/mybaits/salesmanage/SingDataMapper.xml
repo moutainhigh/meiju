@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.signdata.dao.SingDataMapper">
+
+    <!--获取周签约金额-->
+    <select id="getSingWeekData" resultType="java.util.Map" parameterType="java.util.Map">
+		select
+		IFNULL(ROUND(SUM(cjRmbTotal)/10000,2) ,0)  as cjRmbTotal,t.projectId,t.projectId project_id from  (
+		SELECT
+		cjRmbTotal,
+		projectid
+		FROM
+		vs_xsgl_contract S1
+		WHERE
+		IFNULL( CloseReason, '' ) NOT IN ( '撤销签约','nos退房','补差')
+		AND YwgsDate &gt;= #{startTime}
+		AND YwgsDate &lt;  #{endTime}
+		UNION all
+		SELECT
+		- 1 * CjRmbTotal CJRmbTotal,
+		projectid
+		FROM
+		vs_xsgl_contract S2
+		WHERE
+		CloseReason IN ( '退房', '换房' ,'nos退房')
+		and CloseDate &gt;= #{startTime}  and CloseDate &lt; #{endTime}
+
+		union ALL
+		SELECT
+		bcTotal as cjRmbTotal,projectid
+		FROM    vs_xsgl_contract as S3
+		WHERE   Status = '激活' and AuditDate  &gt;= #{startTime}  and  AuditDate &lt; #{endTime}
+
+		) t
+		GROUP BY t.ProjectID
+
+
+	</select>
+    <select id="getSingMonthData" resultType="java.util.Map" parameterType="java.util.Map">
+select
+ IFNULL(ROUND(SUM(cjRmbTotal)/10000,2) ,0) as cjRmbTotal,t.projectId ,t.projectId project_id from  (
+		SELECT
+		cjRmbTotal,
+		projectid
+		FROM
+		vs_xsgl_contract S1
+		WHERE
+		IFNULL( CloseReason, '' ) NOT IN ( '撤销签约','nos退房','补差' )
+		AND YwgsDate &gt;= #{startTime}
+		AND YwgsDate &lt; #{endTime}
+		UNION all
+		SELECT
+		- 1 * CjRmbTotal CJRmbTotal,
+		projectid
+		FROM
+		vs_xsgl_contract S2
+		WHERE
+		CloseReason IN ( '退房', '换房','nos退房' )
+		and CloseDate &gt;= #{startTime}  and CloseDate &lt; #{endTime}
+
+		union ALL
+		SELECT
+		bcTotal,projectid
+		FROM    vs_xsgl_contract as S3
+		WHERE   Status = '激活' and AuditDate  &gt;= #{startTime}  and  AuditDate &lt; #{endTime}
+		) t
+		GROUP BY t.ProjectID
+    </select>
+	<!--获取某一时间段的来人量-->
+	<select id="getVistiCountData" resultType="java.util.Map" parameterType="java.util.Map">
+
+SELECT
+	SUM( GJCount ) AS visitCount,
+	ProjectID AS projectid,
+	ProjectID AS project_id
+
+FROM
+	vs_xsgl_visits
+WHERE
+	GjDate BETWEEN #{startTime} and #{endTime}
+
+GROUP BY
+	ProjectID
+	</select>
+
+</mapper>

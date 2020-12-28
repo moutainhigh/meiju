@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.plandatainterface.dao.PlanDataInterfaceDao">
+    <!--新增月度计划人来量以及目标金额中间表-->
+    <insert id="insertMonthPlanCurrent" parameterType="arraylist">
+        INSERT INTO mm_monthly_plan_index_detail_mingyuan
+      (
+        id,
+        project_id,
+        projectId,
+        months,
+        is_effective,
+        come_client_quantity,
+        total_sign_funds
+
+      )
+          values
+        <foreach collection="list" index="index" separator="," item="item">
+            (
+            UUID(),
+            #{item.project_id},
+            #{item.projectId},
+            #{item.months},
+            1,
+            #{item.come_client_quantity},
+            #{item.total_sign_funds}
+            )
+        </foreach>
+
+
+    </insert>
+
+    <!--新增月度计划人来量以及目标金额中间表-->
+    <insert id="insertWeekPlan" parameterType="arraylist">
+        INSERT INTO mm_monthly_plan_weekly_plan_mingyuan
+      (
+        id,
+        sign_target,
+        visit_quantity,
+        project_id,
+        projectId,
+        months,
+        week_serial_number,
+        is_effective
+      )
+         values
+        <foreach collection="list" index="index" separator="," item="item">
+            (
+            UUID(),
+            #{item.sign_target},
+            #{item.visit_quantity},
+            #{item.project_id},
+            #{item.projectId},
+            #{item.months},
+            #{item.week_serial_number},
+            1
+            )
+        </foreach>
+
+
+    </insert>
+
+
+
+
+    <!--新增月度计划人来量以及目标金额中间表-->
+    <insert id="insertBasic" parameterType="arraylist">
+        INSERT INTO mm_basic_trader_mingyuan
+      (
+        id,
+        project_id,
+        trader,
+        is_late_trader,
+        is_trader,
+        project_name,
+        project_status,
+        is_used
+      )
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (
+            UUID(),
+            #{item.project_id},
+            #{item.trader},
+            #{item.is_late_trader},
+            #{item.is_trader},
+            #{item.project_name},
+            #{item.project_status},
+            #{item.is_used}
+            )
+        </foreach>
+
+
+    </insert>
+
+    <!--删除月度中间表-->
+    <delete id="deleteMonthPlan" parameterType="java.util.Map">
+           delete from mm_monthly_plan_index_detail_mingyuan where months = #{months}
+    </delete>
+
+    <!--删除周度中间表-->
+    <delete id="deleteWeekPlan" parameterType="java.util.Map">
+           delete from mm_monthly_plan_weekly_plan_mingyuan where months = #{months} and week_serial_number = #{weekSerialNumber}
+    </delete>
+
+    <!--删除基础数据-->
+    <delete id="deleteBasic" >
+           delete from mm_basic_trader_mingyuan
+    </delete>
+
+    <!--查询系月度计划表数据-->
+    <select id="reportMonthSelect" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        m.project_id as projectId,m.projectId as projectID,m.*,b.trader,b.is_late_trader,b.is_trader
+        FROM mm_monthly_plan_index_detail_mingyuan m
+        left join mm_basic_trader_mingyuan b on m.project_id = b.project_id
+        WHERE  m.months=#{months}
+    </select>
+
+    <!--查询系周度计划表数据-->
+    <select id="reportWeekSelect" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT
+        m.project_id as projectId,m.projectId as projectID,m.*,b.trader,b.is_late_trader,b.is_trader
+        FROM mm_monthly_plan_weekly_plan_mingyuan m
+        left join mm_basic_trader_mingyuan b on m.project_id = b.project_id
+        WHERE m.months=#{months}
+        and m.week_serial_number = #{how_week}
+    </select>
+
+
+</mapper>

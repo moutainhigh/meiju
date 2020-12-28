@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.fileimport.dao.ImportDao">
+    <update id="updateMonthlyPlanBasis" parameterType="Map">
+        UPDATE mm_monthly_plan_basis mpb
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid`
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        <trim prefix="set" suffixOverrides=",">
+            <if test="reserve_can_sell_set!=null">reserve_can_sell_set=#{reserve_can_sell_set},</if>
+            <if test="reserve_can_sell_funds!=null">reserve_can_sell_funds=#{reserve_can_sell_funds},</if>
+            <if test="new_reserve_set!=null">new_reserve_set=#{new_reserve_set},</if>
+            <if test="new_reserve_funds!=null">new_reserve_funds=#{new_reserve_funds},</if>
+            <if test="total_reserve_set!=null">total_reserve_set=#{total_reserve_set},</if>
+            <if test="total_reserve_funds!=null">total_reserve_funds=#{total_reserve_funds},</if>
+            <if test="year_plan_sign!=null">year_plan_sign=#{year_plan_sign},</if>
+            <if test="year_grand_total_sign!=null">year_grand_total_sign=#{year_grand_total_sign},</if>
+            <if test="top_three_month_average_sign_set!=null">
+                top_three_month_average_sign_set=#{top_three_month_average_sign_set},
+            </if>
+            <if test="top_three_month_average_sign_funds!=null">
+                top_three_month_average_sign_funds=#{top_three_month_average_sign_funds},
+            </if>
+            <if test="upper_moon_sign_set!=null">upper_moon_sign_set=#{upper_moon_sign_set},</if>
+            <if test="upper_moon_sign_funds!=null">upper_moon_sign_funds=#{upper_moon_sign_funds},</if>
+            <if test="reserve_sign_funds">reserve_sign_funds=#{reserve_sign_funds},</if>
+            <if test="new_sign_funds!=null">new_sign_funds=#{new_sign_funds},</if>
+            <if test="total_sign_funds!=null">total_sign_funds=#{total_sign_funds},</if>
+     <!--       <if test="business_name!=null">business_name=#{business_name},</if>-->
+            <if test="marketing_promotion_cost!=null">marketing_promotion_cost=#{marketing_promotion_cost},</if>
+        </trim>
+        where mpb.guid=#{basisGuid}
+        AND prepared_by_unit_type = #{prepared_by_unit_type}
+    </update>
+</mapper>

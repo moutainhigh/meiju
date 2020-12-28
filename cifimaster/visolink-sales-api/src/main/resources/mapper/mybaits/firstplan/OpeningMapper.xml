@@ -1,0 +1,745 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.opening.dao.OpeningDao">
+
+    <select id="selectdesigntwoSellCase"  parameterType="java.lang.String"  resultType="java.util.Map">
+SELECT
+	IFNULL( ROUND( (IFNULL( twoindex.designtwo_selling_num,0)/ IFNULL( sevenindex.this_customer_visit, 0 ))*100, 2 ), 0 ) AS designtwo_this_clientper,
+	IFNULL( ROUND( (IFNULL( twoindex.designtwo_selling_num,0)/ IFNULL( temptb.designtwo_add_visit,0 ))*100, 2 ), 0 ) AS designtwo_finish,
+	node.id AS node_id,
+	IFNULL( twoindex.designtwo_selling_num, 0 ) AS designtwo_selling_num,
+	IFNULL( twoindex.designtwo_selling_value, 0 ) AS designtwo_selling_value,
+	twoindex.designtwo_take_card_per AS designtwo_selling_takeper,
+	temptb.designtwo_add_visit,
+	temptb.designtwo_add_big,
+	temptb.designtwo_add_big_per,
+	temptb.designtwo_finish,
+	sevenindex.this_customer_visit AS designtwo_this_client,#sevenindex.this_customer_conversionper as designtwo_this_clientper,
+	estimate_open_node,
+	0 actual_selling_takeper
+FROM
+	fp_designtwo_code_index twoindex
+	INNER JOIN ( SELECT * FROM fp_plan_node WHERE plan_id = #{plan_id} AND node_level = 3 AND is_effective = 0 LIMIT 1 ) node ON node.id = twoindex.plan_node_id
+	LEFT JOIN fp_seven_day_index sevenindex ON twoindex.plan_id = sevenindex.plan_id
+	AND sevenindex.approval_stuat = 4
+	LEFT JOIN (
+	SELECT
+		snode.plan_id,
+		snode.visit_num AS designtwo_add_visit,
+		snode.big_num AS designtwo_add_big,
+		snode.big_per AS designtwo_add_big_per,
+		snode.make_per AS designtwo_finish
+	FROM
+		( SELECT id FROM fp_guest_storage_flow WHERE plan_id =#{plan_id} AND approval_stuat = 4 ORDER BY node_level DESC, version DESC LIMIT 1 ) tb
+		LEFT JOIN fp_guest_storage_node_plan snode ON snode.flow_id = tb.id
+	WHERE
+		node_level = 8
+		AND LEVEL = 1
+	) temptb ON temptb.plan_id = twoindex.plan_id
+ORDER BY
+	sevenindex.version DESC
+	LIMIT 1
+	</select>
+    <select id="selectdesigntwoAvg" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT product_type_code,product_type,designtwo_open_avg_price as targ_avg
+        from fp_designtwo_code_index_price
+        where plan_node_id=#{plan_node_id}
+    </select>
+
+
+    <select id="selectOpenThisDayByNodeId" parameterType="java.lang.String" resultType="java.util.Map" >
+        SELECT thisday.id as thisdayId,proj.projectName,ba.EmployeeName,flow.flow_status,flow.post_name,DATE_FORMAT(IFNULL(flow.zddate,SYSDATE()),'%Y-%m-%d') as zddate,thisday.id,plan_id,plan_node_id,project_duty,DATE_FORMAT(take_card_time,'%Y-%m-%d') as take_card_time,DATE_FORMAT(open_time,'%Y-%m-%d') as open_time,take_card_type,push_real_type,
+        take_num,push_num,take_value,push_value,take_avg_price,push_avg_price,designtwo_selling_num,designtwo_selling_value,
+        designtwo_selling_avg_price,designtwo_selling_takeper,designtwo_add_visit,designtwo_add_big,designtwo_add_big_per,
+        designtwo_this_client,designtwo_this_clientper,designtwo_finish,actual_selling_num,actual_selling_value,
+        actual_selling_avg_price,actual_selling_takeper,actual_add_visit,actual_add_big,actual_add_big_per,actual_this_client,
+        actual_this_clientper,actual_finish,bias_selling_num,bias_selling_value,bias_selling_avg_price,bias_selling_takeper,
+        bias_add_visit,bias_add_big,bias_add_big_per,bias_this_client,bias_this_clientper,bias_finish,biasper_selling_num,
+        biasper_selling_value,biasper_selling_avg_price,biasper_selling_takeper,biasper_add_visit,biasper_add_big,
+        biasper_add_big_per,biasper_this_client,biasper_this_clientper,biasper_finish,
+designtwo_add_little,
+actual_add_little,
+bias_add_little,
+biasper_add_little_per,
+designtwo_add_little_per,
+actual_add_little_per,
+bias_add_little_per,
+biasper_add_little_per,
+designtwo_sales_generalize_price,
+actual_sales_generalize_price,
+bias_sales_generalize_price,
+biasper_sales_generalize_price
+        FROM fp_open_this_day thisday
+        LEFT JOIN mm_ap_flow_info flow on flow.json_id=thisday.plan_node_id
+        LEFT JOIN b_account ba on ba.UserName=flow.creator
+        LEFT JOIN t_mm_project proj on proj.projectID=flow.project_id
+        where plan_node_id=#{plan_node_id}
+        limit 1
+    </select>
+
+    <!--获取审批信息-->
+    <select id="getApplayData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	proj.projectName,
+	ba.EmployeeName,
+	flow.flow_status,
+	flow.post_name,
+	DATE_FORMAT( IFNULL( flow.zddate, SYSDATE()), '%Y-%m-%d' ) AS zddate
+FROM
+	fp_open_this_day thisday
+	INNER JOIN mm_ap_flow_info flow ON flow.json_id = thisday.plan_node_id
+	INNER JOIN b_account ba ON ba.UserName = flow.creator
+	INNER JOIN t_mm_project proj ON proj.projectID = flow.project_id
+WHERE
+	plan_node_id = #{plan_node_id};
+    </select>
+    <select id="selectOpenThisDayAvgByNodeId" parameterType="java.lang.String" resultType="java.util.Map" >
+        SELECT * from fp_open_this_day_avg where plan_node_id=#{plan_node_id}
+    </select>
+
+
+    <select id="selectOpenMorrowDayByPlanId" parameterType="String" resultType="map" >
+        SELECT * from fp_open_morrow_broadcast where plan_id=#{plan_id}
+        <if test='isType!= null and isType=="view"' >
+            and plan_approval=4
+        </if>
+     order by version desc limit 1
+    </select>
+
+    <select id="selectOpenMorrowDayAvgByPlanId" parameterType="java.lang.String" resultType="list" >
+        SELECT * from fp_open_morrow_broadcast_avg where plan_id=#{plan_id}
+    </select>
+    <select id="selectOpenMorrowDayAvgByPlanNodeId" parameterType="java.lang.String" resultType="java.util.Map" >
+        SELECT * from fp_open_morrow_broadcast_avg where plan_node_id=#{plan_node_id}
+    </select>
+
+    <select id="selectOpenMorrowDayById" parameterType="java.lang.String" resultType="java.util.Map" >
+                SELECT broa.*,proj.projectName,ba.EmployeeName,flow.post_name,DATE_FORMAT(IFNULL(flow.zddate,SYSDATE()),'%Y-%m-%d') as zddate
+                from fp_open_morrow_broadcast broa	LEFT JOIN mm_ap_flow_info flow on
+                flow.json_id=broa.id
+				LEFT JOIN b_account ba on ba.UserName=flow.creator
+				LEFT JOIN t_mm_project proj on proj.projectID=flow.project_id
+                where broa.id=#{id}
+    </select>
+
+    <select id="selectOpenMorrowDayAvgById" parameterType="java.lang.String" resultType="java.util.Map">
+        SELECT * from fp_open_morrow_broadcast_avg where morrow_id=#{morrow_id}
+    </select>
+
+    <insert id="insertOpenThisDay" parameterType="java.util.Map">
+        insert into fp_open_this_day
+        (id,plan_id,plan_node_id,project_duty,take_card_time,open_time,
+        take_card_type,push_real_type,take_num,push_num,take_value,push_value,
+        take_avg_price,push_avg_price,designtwo_selling_num,designtwo_selling_value,
+        designtwo_selling_avg_price,designtwo_selling_takeper,designtwo_add_visit,
+        designtwo_add_big,designtwo_add_big_per,designtwo_this_client,designtwo_this_clientper,
+        designtwo_finish,actual_selling_num,actual_selling_value,actual_selling_avg_price,actual_selling_takeper,
+        actual_add_visit,actual_add_big,actual_add_big_per,actual_this_client,actual_this_clientper,actual_finish,
+        bias_selling_num,bias_selling_value,bias_selling_avg_price,bias_selling_takeper,bias_add_visit,
+        bias_add_big,bias_add_big_per,bias_this_client,bias_this_clientper,bias_finish,biasper_selling_num,
+        biasper_selling_value,biasper_selling_avg_price,biasper_selling_takeper,biasper_add_visit,
+        biasper_add_big,biasper_add_big_per,biasper_this_client,biasper_this_clientper,biasper_finish
+        ) values
+           (#{id},#{plan_id},#{plan_node_id},#{project_duty},#{take_card_time},#{open_time},#{take_card_type},
+           #{push_real_type},#{take_num},#{push_num},#{take_value},#{push_value},#{take_avg_price},#{push_avg_price},
+           #{designtwo_selling_num},#{designtwo_selling_value},#{designtwo_selling_avg_price},#{designtwo_selling_takeper},
+           #{designtwo_add_visit},#{designtwo_add_big},#{designtwo_add_big_per},#{designtwo_this_client},
+           #{designtwo_this_clientper},#{designtwo_finish},#{actual_selling_num},#{actual_selling_value},
+           #{actual_selling_avg_price},#{actual_selling_takeper},#{actual_add_visit},#{actual_add_big},
+           #{actual_add_big_per},#{actual_this_client},#{actual_this_clientper},#{actual_finish},#{bias_selling_num},
+           #{bias_selling_value},#{bias_selling_avg_price},#{bias_selling_takeper},#{bias_add_visit},#{bias_add_big},
+           #{bias_add_big_per},#{bias_this_client},#{bias_this_clientper},#{bias_finish},#{biasper_selling_num},
+           #{biasper_selling_value},#{biasper_selling_avg_price},#{biasper_selling_takeper},#{biasper_add_visit},
+           #{biasper_add_big},#{biasper_add_big_per},#{biasper_this_client},#{biasper_this_clientper},#{biasper_finish})
+    </insert>
+
+    <update id="updateOpenThisDay" parameterType="java.util.Map">
+        update fp_open_this_day set
+        plan_id=#{plan_id},plan_node_id=#{plan_node_id},project_duty=#{project_duty},take_card_time=#{take_card_time},open_time=#{open_time},
+        take_card_type=#{take_card_type},push_real_type=#{push_real_type},take_num=#{take_num},push_num=#{push_num},take_value=#{take_value},push_value=#{push_value},
+        take_avg_price=#{take_avg_price},push_avg_price=#{push_avg_price},designtwo_selling_num=#{designtwo_selling_num},designtwo_selling_value=#{designtwo_selling_value},
+        designtwo_selling_avg_price=#{designtwo_selling_avg_price},designtwo_selling_takeper=#{designtwo_selling_takeper},designtwo_add_visit=#{designtwo_add_visit},
+        designtwo_add_big=#{designtwo_add_big},designtwo_add_big_per=#{designtwo_add_big_per},designtwo_this_client=#{designtwo_this_client},designtwo_this_clientper=#{designtwo_this_clientper},
+        designtwo_finish=#{designtwo_finish},actual_selling_num=#{actual_selling_num},actual_selling_value=#{actual_selling_value},actual_selling_avg_price=#{actual_selling_avg_price},
+        actual_selling_takeper=#{actual_selling_takeper},
+        actual_add_visit=#{actual_add_visit},actual_add_big=#{actual_add_big},actual_add_big_per=#{actual_add_big_per},actual_this_client=#{actual_this_client},
+        actual_this_clientper=#{actual_this_clientper},actual_finish=#{actual_finish},
+        bias_selling_num=#{bias_selling_num},bias_selling_value=#{bias_selling_value},bias_selling_avg_price=#{bias_selling_avg_price},bias_selling_takeper=#{bias_selling_takeper},
+        bias_add_visit=#{bias_add_visit},
+        bias_add_big=#{bias_add_big},bias_add_big_per=#{bias_add_big_per},bias_this_client=#{bias_this_client},bias_this_clientper=#{bias_this_clientper},
+        bias_finish=#{bias_finish},biasper_selling_num=#{biasper_selling_num},
+        biasper_selling_value=#{biasper_selling_value},biasper_selling_avg_price=#{biasper_selling_avg_price},biasper_selling_takeper=#{biasper_selling_takeper},biasper_add_visit=#{biasper_add_visit},
+        biasper_add_big=#{biasper_add_big},biasper_add_big_per=#{biasper_add_big_per},biasper_this_client=#{biasper_this_client},
+        biasper_this_clientper=#{biasper_this_clientper},biasper_finish=#{biasper_finish}
+        where id=#{id}
+    </update>
+
+
+    <insert id="insertOpenAvg" parameterType="java.util.Map">
+        insert  into fp_open_this_day_avg (id,plan_id,plan_node_id,product_type_code,product_type,
+        targ_avg,actual_avg,bias_price,bias_per
+        ) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{plan_id},#{plan_node_id},#{item.product_type_code},#{item.product_type},#{item.targ_avg},
+            #{item.actual_avg},#{item.bias_price},#{item.bias_per})
+        </foreach>
+    </insert>
+
+    <delete id="delOpenAvgByPlanNodeId">
+        DELETE from fp_open_this_day_avg where plan_node_id=#{plan_node_id}
+    </delete>
+
+    <select id="getTraderByProjectId"  parameterType="java.lang.String" resultType="map">
+            SELECT * from fp_comm_project_trader where project_id=#{project_id} limit 1
+    </select>
+
+    <select id="getBuildingNameInfo"  >
+            SELECT x_buildingName from vs_xsgl_order where projectId=#{project_id} GROUP BY x_buildingName
+    </select>
+
+    <select id="getOrderByProjectIdPriceNum" parameterType="java.util.Map"  resultType="map">
+         SELECT SUM(tb.套数) as num,ROUND((SUM(tb.金额)/10000),2) as price from
+         (
+		SELECT
+        projectId,
+        COUNT(RoomGUID) as 套数,
+        SUM(IFNULL(DjTotal,0)) AS 金额
+        FROM  VS_XSGL_ORDER
+        WHERE
+		YwgsDate &lt;= DATE_ADD(#{end_time},INTERVAL 1 DAY)
+        AND YwgsDate &gt;= #{start_time}
+AND projectId in (
+select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{project_id} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID )
+)
+      GROUP BY projectname
+        UNION ALL
+        SELECT
+        projectId,
+        -1 * COUNT(RoomGUID) as 套数,
+        -1 * SUM(IFNULL(DjTotal,0)) AS 金额
+        FROM   VS_XSGL_ORDER
+        WHERE  projectId  in (
+
+select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{project_id} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID )
+        )
+        AND  CloseReason IN ( '退房', '换房','撤销认购' )
+        AND CloseDate &lt;=DATE_ADD(#{end_time},INTERVAL 1 DAY)
+        AND CloseDate &gt;=#{start_time}
+				AND YwgsDate &lt;= DATE_ADD(#{end_time},INTERVAL 1 DAY)
+        AND YwgsDate &gt;= #{start_time}
+        GROUP BY  projectname
+) tb
+    </select>
+
+
+    <select id="getOrderByProjectIdAvg" parameterType="java.util.Map" resultType="map">
+SELECT SUM(tb.price)/SUM(tb.count) as numPrice,ROUND(SUM(tb.price)/SUM(tb.bldArea),2) as priceavg from
+        (SELECT
+        projectId,
+        COUNT(RoomGUID) as count,
+        sum(IFNULL(DjTotal,0)) AS price,
+        sum(bldArea) as bldArea
+        FROM  VS_XSGL_ORDER
+        WHERE
+		x_productCode=#{productCode}
+        AND YwgsDate &gt;= #{start_time}
+        AND YwgsDate &lt;= DATE_ADD(#{end_time},INTERVAL 1 DAY)
+		AND	projectId  in (
+select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{project_id} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID )
+        )
+		GROUP BY projectID
+        UNION ALL
+        SELECT
+        projectId,
+        -1 * COUNT(RoomGUID) as count,
+        -1 * SUM(IFNULL(DjTotal,0)) AS price,
+        -1 * SUM(bldArea) as bldArea
+        FROM   VS_XSGL_ORDER
+        WHERE
+		x_productCode=#{productCode}
+		AND  CloseReason IN ( '退房', '换房','撤销认购' )
+        AND CloseDate &lt;=DATE_ADD(#{end_time},INTERVAL 1 DAY)
+        AND CloseDate &gt;=#{start_time}
+		AND YwgsDate &lt;= DATE_ADD(#{end_time},INTERVAL 1 DAY)
+        AND YwgsDate &gt;= #{start_time}
+		AND projectId  in (
+
+select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{project_id} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID )
+									)
+		GROUP BY projectID
+) tb
+    </select>
+
+    <select id="getProductTypeCode" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT Remark as pcode,
+        (SELECT DictName from s_dictionary where DictCode=b.Remark ) pname,DictCode,DictName
+        FROM s_dictionary b WHERE Ext1 ='FP_OPERATION_TYPE' and  DictName=#{product_type} ORDER BY pcode  limit 1
+    </select>
+    <insert id="insertOpenMorrowBroadcast" parameterType="java.util.Map">
+        -- 次日播报
+        insert into fp_open_morrow_broadcast
+        (id,plan_node_id,plan_id,invest_xreal_type,invest_take_card_value,invest_open_node,invest_push_value,invest_selling_value,invest_take_card_per,invest_open_avg_price,invest_create_per,invest_all_per,invest_irr,invest_payback,rules_xreal_type,rules_take_card_value,rules_open_node,rules_push_value,rules_selling_value,rules_take_card_per,rules_open_avg_price,rules_create_per,rules_all_per,rules_irr,rules_payback,estimate_xreal_type,estimate_take_card_value,estimate_open_node,estimate_push_value,estimate_selling_value,estimate_take_card_per,estimate_open_avg_price,estimate_create_per,estimate_all_per,estimate_irr,estimate_payback,cash_xreal_type,cash_take_card_value,cash_open_node,cash_push_value,cash_selling_value,cash_take_card_per,cash_open_avg_price,cash_create_per,cash_all_per,cash_irr,cash_payback,bias_xreal_type,bias_take_card_value,bias_open_node,bias_push_value,bias_selling_value,bias_take_card_per,bias_open_avg_price,bias_create_per,bias_all_per,bias_irr,bias_payback,biasper_xreal_type,biasper_take_card_value,biasper_open_node,biasper_push_value,biasper_selling_value,biasper_take_card_per,biasper_open_avg_price,biasper_create_per,biasper_all_per,biasper_irr,biasper_payback,content_bazaar,content_team,content_product,
+        content_policy,version,create_time
+        ) values
+           (#{id},#{plan_node_id},#{plan_id},#{invest_xreal_type},#{invest_take_card_value},#{invest_open_node},#{invest_push_value},#{invest_selling_value},#{invest_take_card_per},#{invest_open_avg_price},#{invest_create_per},#{invest_all_per},#{invest_irr},#{invest_payback},#{rules_xreal_type},#{rules_take_card_value},#{rules_open_node},#{rules_push_value},#{rules_selling_value},#{rules_take_card_per},#{rules_open_avg_price},#{rules_create_per},#{rules_all_per},#{rules_irr},#{rules_payback},#{estimate_xreal_type},#{estimate_take_card_value},#{estimate_open_node},#{estimate_push_value},#{estimate_selling_value},#{estimate_take_card_per},#{estimate_open_avg_price},#{estimate_create_per},#{estimate_all_per},#{estimate_irr},#{estimate_payback},#{cash_xreal_type},#{cash_take_card_value},#{cash_open_node},#{cash_push_value},#{cash_selling_value},#{cash_take_card_per},#{cash_open_avg_price},#{cash_create_per},#{cash_all_per},#{cash_irr},#{cash_payback},#{bias_xreal_type},#{bias_take_card_value},#{bias_open_node},#{bias_push_value},#{bias_selling_value},#{bias_take_card_per},#{bias_open_avg_price},#{bias_create_per},#{bias_all_per},#{bias_irr},#{bias_payback},#{biasper_xreal_type},#{biasper_take_card_value},#{biasper_open_node},#{biasper_push_value},#{biasper_selling_value},#{biasper_take_card_per},#{biasper_open_avg_price},
+           #{biasper_create_per},#{biasper_all_per},#{biasper_irr},#{biasper_payback},#{content_bazaar},#{content_team},#{content_product},
+           #{content_policy},#{version},now())
+    </insert>
+    <update id="updateOpenMorrowBroadcast">
+        update fp_open_morrow_broadcast set
+        plan_node_id=#{plan_node_id},plan_id=#{plan_id},invest_xreal_type=#{invest_xreal_type},invest_take_card_value=#{invest_take_card_value},
+        invest_open_node=#{invest_open_node},invest_push_value=#{invest_push_value},invest_selling_value=#{invest_selling_value},
+        invest_take_card_per=#{invest_take_card_per},invest_open_avg_price=#{invest_open_avg_price},invest_create_per=#{invest_create_per},
+        invest_all_per=#{invest_all_per},invest_irr=#{invest_irr},invest_payback=#{invest_payback},rules_xreal_type=#{rules_xreal_type},
+        rules_take_card_value=#{rules_take_card_value},rules_open_node=#{rules_open_node},rules_push_value=#{rules_push_value},
+        rules_selling_value=#{rules_selling_value},rules_take_card_per=#{rules_take_card_per},rules_open_avg_price=#{rules_open_avg_price},
+        rules_create_per=#{rules_create_per},rules_all_per=#{rules_all_per},rules_irr=#{rules_irr},rules_payback=#{rules_payback},
+        estimate_xreal_type=#{estimate_xreal_type},
+        estimate_take_card_value=#{estimate_take_card_value},estimate_open_node=#{estimate_open_node},estimate_push_value=#{estimate_push_value},
+        estimate_selling_value=#{estimate_selling_value},estimate_take_card_per=#{estimate_take_card_per},estimate_open_avg_price=#{estimate_open_avg_price},
+        estimate_create_per=#{estimate_create_per},estimate_all_per=#{estimate_all_per},estimate_irr=#{estimate_irr},
+        estimate_payback=#{estimate_payback},cash_xreal_type=#{cash_xreal_type},
+        cash_take_card_value=#{cash_take_card_value},cash_open_node=#{cash_open_node},cash_push_value=#{cash_push_value},
+        cash_selling_value=#{cash_selling_value},cash_take_card_per=#{cash_take_card_per},
+        cash_open_avg_price=#{cash_open_avg_price},cash_create_per=#{cash_create_per},cash_all_per=#{cash_all_per},cash_irr=#{cash_irr},
+        cash_payback=#{cash_payback},bias_xreal_type=#{bias_xreal_type},
+        bias_take_card_value=#{bias_take_card_value},bias_open_node=#{bias_open_node},bias_push_value=#{bias_push_value},bias_selling_value=#{bias_selling_value},
+        bias_take_card_per=#{bias_take_card_per},
+        bias_open_avg_price=#{bias_open_avg_price},bias_create_per=#{bias_create_per},bias_all_per=#{bias_all_per},bias_irr=#{bias_irr},
+        bias_payback=#{bias_payback},biasper_xreal_type=#{biasper_xreal_type},biasper_take_card_value=#{biasper_take_card_value},biasper_open_node=#{biasper_open_node},
+        biasper_push_value=#{biasper_push_value},biasper_selling_value=#{biasper_selling_value},biasper_take_card_per=#{biasper_take_card_per},biasper_open_avg_price=#{biasper_open_avg_price},
+        biasper_create_per=#{biasper_create_per},biasper_all_per=#{biasper_all_per},biasper_irr=#{biasper_irr},biasper_payback=#{biasper_payback},content_bazaar=#{content_bazaar},
+        content_team=#{content_team},content_product=#{content_product},content_policy=#{content_policy}
+        where id=#{id}
+    </update>
+
+    <insert id="insertOpenMorrowAvg" parameterType="java.util.Map">
+        insert  into fp_open_morrow_broadcast_avg (id,plan_id,plan_node_id,product_type_code,product_type,invest_avg,rules_avg,
+        estimate_price,cash_price,bias_price,bias_per,morrow_id
+        ) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{plan_id},#{plan_node_id},#{item.product_type_code},#{item.product_type},
+            #{item.invest_avg},#{item.rules_avg},#{item.estimate_price},#{item.cash_price},#{item.bias_price},#{item.bias_per},#{morrow_id})
+        </foreach>
+    </insert>
+
+    <delete id="delOpenMorrowByPlanNodeId">
+        DELETE from fp_open_morrow_broadcast_avg where morrow_id=#{morrow_id}
+    </delete>
+
+    <select id="selectSevenDayIndex" parameterType="String" resultType="java.util.Map">
+            SELECT seven.id as dayId,node.id as sevenId,invest_open_node,invest_product_type as invest_xreal_type,invest_take_card_value,invest_push_value
+            ,invest_selling_value,invest_take_card_per,invest_this_per as invest_create_per,invest_all_per,invest_irr,
+            invest_payback,rules_open_node,rules_product_type as rules_xreal_type,rules_take_card_value,rules_push_value
+            ,rules_selling_value,rules_take_card_per,rules_this_per as rules_create_per,rules_all_per,rules_irr,
+            rules_payback,estimate_open_node,estimate_product_type as estimate_xreal_type,estimate_take_card_value,estimate_push_value
+            ,estimate_selling_value,estimate_take_card_per,estimate_this_per as estimate_create_per,estimate_all_per,estimate_irr,
+            estimate_payback
+            from fp_seven_day_index seven INNER JOIN fp_plan_node node
+            on seven.plan_node_id=node.id
+            where node.plan_id=#{plan_id} and node.plan_approval=4 ORDER BY seven.version desc,seven.create_time desc limit 1
+    </select>
+
+    <select id="selectSevenDayAvg"  parameterType="String" resultType="java.util.Map" >
+           select id,plan_id,plan_node_id,product_type_code,product_type,IFNULL(invest_avg,0) invest_avg,IFNULL(rules_avg,0) rules_avg,0 as cash_price,
+           IFNULL(designtwo_avg,0) designtwo_avg,IFNULL(open_estimate,0) as estimate_price,bias_price,bias_per,bias_cause from fp_seven_day_open_avg
+           where day_id=#{dayId}
+    </select>
+
+    <select id="getAddVisit"  parameterType="java.util.Map"  resultType="int">
+        SELECT ifnull(sum(visitCnt),0) as total from fp_comm_guest_storage
+        where  project_id=#{project_id} and  total_time &gt;=#{sgetGuestSumtartTime} and total_time &lt;=#{endTime}
+    </select>
+
+    <select id="getGuestSum"  parameterType="java.util.Map"  resultType="Map">
+           SELECT visitCnt,rgnum,ifnull((rgnum/visitCnt),0) zhper from
+      (SELECT ifnull(sum(visitCnt),0) as visitCnt,ifnull(sum(subscribe_num),0) rgnum,project_id,total_time from
+       fp_comm_guest_storage  where  project_id
+         in (
+
+select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{project_id} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID )
+        )
+        and  total_time &gt;=#{startTime} and total_time &lt;=#{endTime}) tb
+
+    </select>
+
+
+    <select id="selectPlanByIdInfo" parameterType="string"  resultType="map">
+           select * from fp_plan where id=#{plan_id}
+    </select>
+
+    <insert id="insertPlanNodeOpen">
+        insert into fp_plan_node(send_post_code,send_post_name,warning_day,id,node_order,template_node_id,plan_id,node_name,
+        plan_start_time,plan_end_time,offset,node_level,
+        creator,create_time,is_del,is_effective,version
+        )
+        SELECT send_post_code,send_post_name,warning_day,#{id},node.node_order,node.id as nodeid,plan.id as planid,node.node_name,
+        DATE_ADD(plan.open_time,interval -node.warning_day day) as plan_start_time,plan.open_time,
+        node.`offset`,node.node_level,
+        #{creator},NOW(),0,1,CONCAT(node.node_name,'v',DATE_FORMAT(NOW(),'%Y%m%d'),'-',(SELECT count(1)+1 from fp_plan_node
+        where plan_id=#{plan_id}
+        and node_level=#{node_level})) name
+         from fp_plan plan
+        INNER JOIN fp_template_node node on
+        plan.template_id=node.template_id and node.node_level=#{node_level}
+        where plan.id=#{plan_id}
+    </insert>
+
+
+    <update id="updatePlanNodeFlowApproval">
+        update fp_plan_node unode,
+        (select * from fp_plan_node where id=#{id}) node
+        set unode.is_effective=1 where
+        node.node_level=unode.node_level and node.plan_id=unode.plan_id;
+        update fp_plan_node set plan_approval=4,is_effective=0,
+        update_time=now(),actual_finish_time=NOW(),
+        light_stuat=case when plan_end_time &gt;=CURDATE() then 3
+        when plan_end_time &lt; CURDATE() then 4 end,
+        overday_num=case when plan_end_time &lt; CURDATE() then
+        DATEDIFF(CURDATE(),plan_end_time) end
+        where id=#{id}
+    </update>
+
+
+    <update id="updatePlanNodeFlowApprovalStatus" parameterType="java.util.Map" >
+        update fp_plan_node set plan_approval=#{plan_approval},
+        update_time=now()
+        where id=#{id}
+    </update>
+
+    <update id="updateMorrowFlowApproval" parameterType="string">
+        update fp_open_morrow_broadcast set plan_approval=4,
+        update_time=now(),approval_time=NOW() where id=#{id}
+    </update>
+
+    <update id="updateMorrowFlowApprovalStatus" parameterType="java.util.Map" >
+        update fp_open_morrow_broadcast set plan_approval=#{plan_approval},
+        update_time=now() where id=#{id}
+    </update>
+
+   <select id="selectProductTypeByPlanId"  parameterType="string"  resultType="java.util.Map">
+        SELECT product_type from (SELECT id from fp_plan_node
+        where plan_id=#{plan_id}
+        and node_level=3 and is_del=0
+        and is_effective=0 and plan_approval=4
+        ORDER BY create_time desc limit 1)tb LEFT JOIN
+        fp_designtwo_code_index_price pri on tb.id=pri.plan_node_id
+   </select>
+
+    <update id="updatePlanNodeOpenTotal">
+        update fp_plan_node plnode,(select node.* from fp_guest_storage_flow tb
+        LEFT JOIN fp_guest_storage_node_plan node on tb.id=node.flow_id where tb.id=#{id}
+        ORDER BY node_time desc LIMIT 1) snode
+        set plnode.visit_total=snode.visit_num,
+        plnode.card_total=snode.big_num,
+        plnode.card_big_per=snode.big_per,
+        plnode.make_per=snode.make_per
+        where plnode.plan_id=snode.plan_id and plnode.node_level=snode.node_level
+    </update>
+
+    <select id="selectPlanNodeByPlanId"  parameterType="java.util.Map" resultType="map">
+        SELECT * from fp_plan_node where plan_id=#{plan_id}
+        and node_level=#{node_level} and plan_approval=4 and is_del=0 ORDER BY CREATE_time desc limit 1
+    </select>
+
+    <select id="selectPlanNodeByPlanIdAndNodeLevle"  parameterType="String" resultType="map">
+       SELECT id,CONCAT(version,case when plan_approval=3 then '-审批中' when  plan_approval=4 then ''
+        ELSE '-编制中'
+         end) as name,plan_approval from fp_plan_node where plan_id=#{plan_id} and node_level=8
+        ORDER BY create_time desc
+    </select>
+
+    <!--查询次日播报是否已完成-->
+    <select id="getMorryDaydataInfo" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	*
+FROM
+	fp_open_morrow_broadcast
+WHERE
+	plan_id = #{plan_id}
+    </select>
+
+
+    <insert id="insertGuestStorageNodePlan" parameterType="java.util.Map">
+        INSERT INTO fp_guest_storage_node_plan(id,plan_id,plan_node_id,nide_name,node_time,report_num,visit_num,
+        little_num,little_per,big_num,big_per,sub_num,make_per,level,line_name,little_way,big_way,node_level,flow_id)
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{plan_id},#{plan_node_id},#{item.nide_name},
+            #{item.node_time},#{item.report_num},
+            #{item.visit_num},#{item.little_num},#{item.little_per},#{item.big_num},#{item.big_per},
+            #{item.sub_num},#{item.make_per},#{item.level},#{item.line_name},#{item.little_way},
+            #{item.big_way},#{node_level},#{flow_id})
+        </foreach>
+    </insert>
+
+    <select id="getGuestStorageNodePlanByFlowId"  parameterType="string"  resultType="map" >
+        SELECT id,plan_id,plan_node_id,nide_name,DATE_FORMAT(node_time,'%Y-%m-%d') as node_time,report_num,visit_num,little_num,little_per,big_num,
+        big_per,sub_num,make_per,level,line_name,little_way,big_way,
+        node_level,version,flow_id,create_time from fp_guest_storage_node_plan
+        where flow_id=#{flow_id} order by node_time
+    </select>
+
+    <select id="getGuestStorageWeekByFlowId"  parameterType="string"  resultType="map" >
+        SELECT id,plan_id,plan_node_id,week,DATE_FORMAT(start_time,'%Y-%m-%d') as start_time,DATE_FORMAT(end_time,'%Y-%m-%d') as end_time,day_date,
+        plan_add,plan_total,plan_task_per,actual_add,actual_total,actual_task_per
+        ,bias_value,week_bais_value,bias_per,bias_cause,node_level,version,create_time,flow_id
+         from fp_guest_storage_week
+        where flow_id=#{flow_id}
+    </select>
+
+    <select id="getGuestStorageFlowById"  parameterType="string"  resultType="map" >
+        SELECT * from fp_guest_storage_flow where id=#{id}
+    </select>
+
+
+    <select id="viewGuestStorageNodePlan"  parameterType="string"  resultType="map" >
+        SELECT * from fp_guest_storage_node_plan
+        where plan_node_id=#{plan_node_id}
+    </select>
+
+    <select id="getGuestStorageNodeByPlanId"  parameterType="string"  resultType="map" >
+        SELECT * from fp_guest_storage_node_plan
+        where plan_id=#{plan_id}
+        and node_level=#{node_level} and version=(select version from fp_guest_storage_node_plan
+        where plan_id=#{plan_id}
+        and node_level=#{node_level} ORDER BY version desc limit 1)
+    </select>
+
+    <select id="getGuestStorageFlowByPlanId"  parameterType="string"  resultType="map" >
+            select * from fp_guest_storage_flow
+            WHERE plan_id=#{plan_id}
+            and node_level=#{node_level} and version=(SELECT version from fp_guest_storage_flow where
+            plan_id=#{plan_id}
+            and node_level=#{node_level} ORDER BY version desc limit 1)
+    </select>
+
+    <select id="getGuestStorageFlowByPlanIdVersion"  parameterType="string"  resultType="map" >
+            select id,CONCAT('开盘','v',DATE_FORMAT(create_time,'%Y%m%d'),'-',version) name
+            from fp_guest_storage_flow
+            WHERE plan_id=#{plan_id}
+            and node_level=8 order by version DESC
+    </select>
+
+    <insert id="insertGuestStorageFlow">
+        insert into fp_guest_storage_flow(id,plan_id,plan_node_id,approval_stuat,node_level,create_time,version,approval_stuat) values(
+            #{id},#{plan_id},#{plan_node_id},0,#{node_level},now(),#{version},#{approval_stuat}
+        )
+    </insert>
+    <update id="updateGuestStorageFlowApprovalStuat">
+        update fp_guest_storage_flow set approval_stuat=#{approval_stuat} where id=#{id}
+    </update>
+
+    <update id="updatePlanThisNodeById" parameterType="java.util.Map">
+        update fp_plan set this_node=#{node_level} where id=#{plan_id}
+    </update>
+
+    <update id="updatePlanThisNodeByProjectId" parameterType="java.util.Map">
+        update fp_plan set this_node=#{node_level} where project_id=#{project_id}
+    </update>
+    <update id="updatePlanThisNodeByPlanId" parameterType="java.util.Map">
+        update fp_plan set this_node=#{node_level} where id=#{plan_id}
+    </update>
+
+
+    <delete id="deleteNodeOrWeek">
+        DELETE from fp_guest_storage_node_plan where flow_id=#{flow_id};
+        DELETE from fp_guest_storage_week where flow_id=#{flow_id}
+    </delete>
+
+    <select id="getStorageWeekByPlanNodeByPlanId"  parameterType="string"  resultType="map" >
+        select * from fp_guest_storage_week where plan_id=#{plan_id}
+        ORDER BY end_time
+    </select>
+
+    <select id="getGuestStorageFlowByPlanIdVersionNum"  parameterType="string"  resultType="int" >
+            select count(*) num
+            from fp_guest_storage_flow
+            WHERE plan_id=#{plan_id}
+            and node_level=8
+    </select>
+
+    <select id="getOpenMorrowBroadcastByPlanIdVersionNum"  parameterType="string"  resultType="int" >
+            select count(*) num
+            from fp_open_morrow_broadcast
+            WHERE plan_id=#{plan_id}
+    </select>
+
+    <select id="getGuestStorageSum" parameterType="java.util.Map"  resultType="map">
+          SELECT tb.*,ifnull(ROUND((tb.lesser_card/tb.visitCnt)*100,2),0) as lesserPer,ifnull(ROUND((big_card/tb.lesser_card)*100,2),0) as bigPer,
+          ifnull(ROUND((subscribe_num/visitCnt)*100,2),0) as cjper
+          from (SELECT ifnull(sum(reportCnt),0) reportCnt,ifnull(sum(visitCnt),0) visitCnt,ifnull(sum(lesser_card),0) lesser_card,ifnull(sum(big_card),0) big_card,ifnull(sum(subscribe_num),0) subscribe_num
+          from fp_comm_guest_storage where project_id
+           in (
+
+select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{project_id} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID )
+        )
+           and total_time &lt;=#{endTime})tb
+    </select>
+
+
+
+    <select id="getStorageWeekByPlanNodeId"  parameterType="string"  resultType="map" >
+        select * from fp_guest_storage_week where plan_node_id=#{plan_node_id}
+        ORDER BY end_time
+    </select>
+    <insert id="insertGuestStorageWeek">
+        INSERT INTO fp_guest_storage_week(id,plan_id,plan_node_id,week,start_time,end_time,
+        day_date,plan_add,plan_total,plan_task_per,actual_add,actual_total,actual_task_per,
+        week_bais_value,bias_value,bias_per,bias_cause,node_level,flow_id)
+        VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (UUID(),#{plan_id},#{plan_node_id},#{item.week},
+            #{item.start_time},#{item.end_time},
+            #{item.day_date},#{item.plan_add},#{item.plan_total},#{item.plan_task_per},#{item.actual_add},
+            #{item.actual_total},#{item.actual_task_per},#{item.week_bais_value},#{item.bias_value},#{item.bias_per},
+            #{item.bias_cause},#{node_level},#{flow_id})
+        </foreach>
+    </insert>
+
+    <select id="selectGuestStorageNodePlanByPlanId">
+        SELECT * from fp_guest_storage_node_plan
+        where plan_id=#{plan_id}
+    </select>
+
+    <select id="getOpenMorrowBroadcastByPlanId" parameterType="String" resultType="java.util.Map">
+         SELECT id,CONCAT('开盘次日','v',DATE_FORMAT(create_time,'%Y%m%d'),'-',version,
+         case when plan_approval=3 then '-审批中' when  plan_approval=4 then ''
+        ELSE '-编制中' end) as name,plan_approval from
+         fp_open_morrow_broadcast
+         where plan_id=#{plan_id} ORDER BY create_time desc
+    </select>
+
+    <select id="selectPlanNodeVersionByPlanId" parameterType="java.util.Map" resultType="map">
+       SELECT id,CONCAT(version,case when plan_approval=3 then '-审批中' when  plan_approval=4 then ''
+        ELSE '-编制中'
+         end) as name,plan_approval from fp_plan_node where plan_id=#{plan_id} and node_level=#{node_level} order by create_time desc
+    </select>
+
+    <select id="selectBuildingName" parameterType="String" resultType="java.util.Map">
+        SELECT gr.projectID,projectName,gr.bldPrdID,des.buildingName
+        from t_mm_group gr LEFT JOIN
+        t_mm_designbuild des on gr.bldPrdID=des.bldPrdID
+        where gr.projectID=#{project_id} group by buildingName ORDER BY buildingName
+    </select>
+
+    <select id="selectOpenFileFlow" parameterType="String" resultType="java.util.Map">
+        select  proj.projectName,ba.EmployeeName,flow.post_name,DATE_FORMAT(IFNULL(flow.zddate,SYSDATE()),'%Y-%m-%d') as zddate
+        from mm_ap_flow_info flow
+        LEFT JOIN b_account ba on ba.UserName=flow.creator
+        LEFT JOIN t_mm_project proj on proj.projectID=flow.project_id
+        where json_id=#{plan_node_id}
+    </select>
+
+    <select id="selectDesignoneValueByPlanId" parameterType="String" resultType="java.util.Map">
+        select operation_type_code,operation_type,product_type_code,product_type
+        from fp_plan_node node
+        INNER JOIN fp_designone_value va
+        on node.id=va.plan_node_id where
+        node.plan_id=#{plan_id}
+        and node.is_effective=0
+        GROUP BY product_type_code
+    </select>
+
+    <select id="selectFlowMove" parameterType="String" resultType="java.util.Map">
+        select
+        IFNULL(ROUND((rules_all_per-cash_all_per),2),0) as profit_all,
+        IFNULL(ROUND((((rules_selling_value-cash_selling_value)/rules_selling_value)*100),2),0) as profit_value
+        from fp_open_morrow_broadcast where plan_approval=4
+        and plan_id=#{plan_id}
+        ORDER BY version desc limit 1
+    </select>
+
+    <select id="selectProjectNameById" parameterType="java.lang.String" resultType="java.lang.String">
+        select projectName from t_mm_project where projectID=#{projectId}
+    </select>
+
+
+    <select id="selectLastOpening"  parameterType="java.lang.String" resultType="java.util.Map">
+        select a.version,
+            DATE_FORMAT(b.take_card_time,'%Y-%m-%d') as take_card_time, #取证时间
+            DATE_FORMAT(b.open_time,'%Y-%m-%d') as open_time, #首开时间
+            b.take_card_type, #取证产品类型
+            b.push_real_type, #推售产品类型
+            b.take_num, #取证楼栋/套数
+            b.push_num, #推售楼栋/套数
+            b.take_value, #取证货值(万元)
+            b.push_value, #推售货值(万元)
+            b.take_avg_price, #取证均价
+            b.push_avg_price #推售均价
+        from fp_plan_node a
+        LEFT JOIN fp_open_this_day b on a.id = b.plan_node_id
+        where a.plan_id=#{plan_id}  and a.node_level=8 ORDER BY a.create_time desc LIMIT 1
+    </select>
+    <select id="getThisDayData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+  actual_selling_takeper  as cash_take_card_per
+FROM fp_open_this_day  where plan_node_id=(
+SELECT
+	id
+FROM
+	fp_plan_node
+WHERE
+	node_level = 8
+		and  plan_id=#{plan_id}
+
+ORDER BY
+	create_time DESC
+	LIMIT 1
+)
+    </select>
+    
+    
+    <select id="queryOpenThisDayIsSubmit" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	*
+FROM
+	fp_plan_node
+WHERE
+	plan_id = #{plan_id} and node_level=8  and plan_approval>2 ORDER BY is_effective  limit 1
+    </select>
+
+
+    <!--修改数据状态-->
+    <update id="updateNodeStatus" parameterType="java.util.Map">
+UPDATE fp_plan_node
+SET id = #{new_plan_node_id},plan_approval=2
+WHERE
+	id = #{old_plan_node_id};
+UPDATE fp_open_this_day
+SET plan_node_id = #{new_plan_node_id}
+WHERE
+	plan_node_id = #{old_plan_node_id};
+
+UPDATE
+fp_open_this_day_avg
+SET
+plan_node_id=#{new_plan_node_id}
+WHERE
+	plan_node_id =#{old_plan_node_id};
+
+UPDATE
+	fp_open_morrow_broadcast_avg
+SET plan_node_id=#{new_plan_node_id}
+WHERE
+	plan_node_id =#{old_plan_node_id};
+    </update>
+</mapper>

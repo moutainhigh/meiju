@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.investment.mapper.DockingInvestmentMapper">
+
+    <!-- 根据项目id，获取项目编码 -->
+    <select id="getProjectNumByProjectId" resultType="java.util.Map">
+        SELECT projectCode FROM `t_mm_project` WHERE isDelete = 0 AND projectID = #{map.projectId} LIMIT 1
+    </select>
+
+    <!-- 获取业态名称 -->
+    <select id="getDictName" resultType="java.util.Map">
+        SELECT t1.DictCode,t1.DictName,t2.DictName AS fDictName FROM S_Dictionary AS t1 INNER JOIN
+        (SELECT ID,DictName,ListIndex FROM S_Dictionary d WHERE IsDel = 0 AND PID = 'f436dbfb-8325-4ed7-896d-308454f33267'
+        AND (d.`DictionaryLevel`=1 OR (d.`DictionaryLevel`=2 ))) AS t2
+        ON t1.PID = t2.ID WHERE t1.IsDel = 0 ORDER BY CAST(t2.ListIndex AS SIGNED),CAST(t1.ListIndex AS SIGNED);
+    </select>
+</mapper>

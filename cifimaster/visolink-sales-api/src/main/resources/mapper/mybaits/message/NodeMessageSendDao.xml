@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.message.dao.NodeMessageSendDao">
+    <select id="getSendData" parameterType="java.lang.String" resultType="java.util.Map">
+		select * from (SELECT node.id,node.plan_id,
+		plan.area_name as org_name,
+		plan.project_id,
+		node.plan_end_time,
+		plan.project_name,
+		node.node_name,
+		CONCAT_WS('-',node.plan_id,node.node_name) as che,
+TIMESTAMPDIFF(
+  DAY,
+  plan_end_time,
+DATE_FORMAT( NOW(), '%Y-%m-%d' )) extension_days
+		FROM
+		fp_plan plan
+		LEFT JOIN fp_plan_node node ON plan.id = node.plan_id
+		WHERE
+		node.is_effective = 1
+		AND node.plan_approval &lt;&gt; 4
+		AND actual_finish_time IS NULL
+		AND node.node_level &lt; 10
+		and node.plan_end_time is not null
+		and node.plan_end_time &lt;=#{date} and node.is_del=0 ) a where a.che not in(
+		SELECT
+		CONCAT_WS('-',node.plan_id,node.node_name) as c
+		FROM
+		fp_plan plan
+		LEFT JOIN fp_plan_node node ON plan.id = node.plan_id  where  node.plan_approval =4)
+	</select>
+</mapper>

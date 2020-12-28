@@ -1,0 +1,1288 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.datainterface.dao.DatainterfaceDao">
+    <!--删表-->
+    <delete id="deleteProject">
+      DELETE  FROM t_mm_project
+    </delete>
+    <!--删表-->
+    <delete id="deleteStaging">
+      DELETE  FROM t_mm_staging
+    </delete>
+    <!--删表-->
+    <delete id="deleteGroup">
+      DELETE  FROM t_mm_group
+    </delete>
+    <!--删表-->
+    <delete id="deleteDesignBuild">
+      DELETE  FROM t_mm_designBuild
+    </delete>
+    <!--新增数据t_mm_project-->
+    <insert id="insertSysProject" parameterType="java.util.Map">
+        INSERT INTO t_mm_project (projectID, projectCode, projectName, projectOldName, kingdeeProjectID, legalCompID,
+        legalCompName,
+        companyID, companyName, domeOver, orgID, orgName, projectType, tradeMode, isCoopProject, projectStatus,
+        productLine, caseName,
+        projectClassify, isDelete, createdTime, updatedTime, createdBy, updatedBy) VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectID},#{item.projectCode},#{item.projectName},#{item.projectOldName},#{item.kingdeeProjectID},#{item.legalCompID},
+            #{item.legalCompName},#{item.companyID},#{item.companyName},#{item.domeOver},#{item.orgID},
+            #{item.orgName},#{item.projectType},#{item.tradeMode},#{item.isCoopProject},#{item.projectStatus},
+            #{item.productLine},#{item.caseName},#{item.projectClassify},#{item.isDelete},#{item.createdTime},
+            #{item.updatedTime},#{item.createdBy},#{item.updatedBy} )
+        </foreach>
+    </insert>
+    <!--新增数据t_mm_staging-->
+    <insert id="insertSysStaging" parameterType="java.util.Map">
+        INSERT INTO t_mm_staging (projectID, kingdeeProjectID, projectFID, kingdeeProjectFID, stageCode, stageName,
+        taxType, remark,
+        stageOldName, stagesFlag, isDelete, createdTime, updatedTime, createdBy, updatedBy) VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectID},#{item.kingdeeProjectID},#{item.projectFID},#{item.kingdeeProjectFID},
+            #{item.stageCode},#{item.stageName},
+            #{item.taxType},#{item.remark},#{item.stageOldName},#{item.stagesFlag},#{item.isDelete},
+            #{item.createdTime},#{item.updatedTime},#{item.createdBy},#{item.updatedBy} )
+        </foreach>
+    </insert>
+    <!--新增数据t_mm_group-->
+    <insert id="insertSysGroup" parameterType="java.util.Map">
+        INSERT INTO t_mm_group (projectID, kingdeeProjectID, projectCode, projectName, projectFID, kingdeeProjectFID,
+        stageCode, stageName, groupID, groupCode, groupName, productCode, productName, bldPrdID,approvalTime,
+        designBuildID
+        ,isDelete) VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.projectID},#{item.kingdeeProjectID},#{item.projectCode},#{item.projectName},#{item.projectFID},
+            #{item.kingdeeProjectFID},#{item.stageCode},#{item.stageName},#{item.groupID},#{item.groupCode},#{item.groupName},
+            #{item.productCode},#{item.productName},#{item.bldPrdID},#{item.approvalTime},#{item.designBuildID},
+            #{item.isDelete} )
+        </foreach>
+    </insert>
+    <!--新增数据t_mm_designbuild-->
+    <insert id="insertSysDesignBuild" parameterType="java.util.Map">
+        INSERT INTO t_mm_designbuild (designBuildID, bldPrdID, formatBuildingCode, formatBuildingName, buildID,
+        buildingCode,
+        buildingName, projectFID, kingdeeProjectFId, stageCode, versionStage, versionNum, productCode, productType,
+        businessType, businessTypeName, freeType, freeTypeName, proType, proTypeName,
+        createdTime, updatedTime, createdBy, updatedBy, isDelete) VALUES
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.designBuildID},#{item.bldPrdID},#{item.formatBuildingCode},#{item.formatBuildingName},
+            #{item.buildID},#{item.buildingCode},
+            #{item.buildingName},#{item.projectFID},#{item.kingdeeProjectFId},#{item.stageCode},#{item.versionStage},
+            #{item.versionNum},#{item.productCode},#{item.productType},#{item.businessType},#{item.businessTypeName},
+            #{item.freeType},#{item.freeTypeName},#{item.proType},
+            #{item.proTypeName},#{item.createdTime},
+            #{item.updatedTime},#{item.createdBy},#{item.updatedBy},#{item.isDelete}
+            )
+        </foreach>
+    </insert>
+    <select id="seleteSysorg">
+       SELECT * FROM t_sys_org so WHERE  so.`parentOrgid` =  '00000001'
+AND ( so.`orgname` LIKE '%事业部%' OR so.`orgname` LIKE '%区域%'  )
+ORDER BY orgdepid ASC
+    </select>
+    <select id="seleteCity">
+SELECT
+  `id`,
+  `orgtype`,
+  `orgnamefullpath`,
+  `objectclassOrg`,
+  `creator`,
+  `orgSuperid`,
+  `parentOrgid`,
+  `orgLunid`,
+  `orgname`,
+  `orgnofullpath`,
+  `orgshortname`,
+  `orgstatus`,
+  `orgdepid`,
+  `orgstate`,
+  `orgsource`,
+  `createTime`,
+  `createUser`,
+  `editTime`,
+  `editUser`,
+  `isDel`
+FROM
+ `t_sys_org` WHERE `parentOrgid` =  '10010000'    AND  `orgname` LIKE '%城市%' AND orgnamefullpath LIKE #{City}
+    </select>
+    <select id="selectProject" resultType="list">
+        select projectID,projectName,companyID,companyName,orgID,orgName from t_mm_project
+        <where>
+            1=1
+            <if test="clueStatus!=null">
+                AND companyID = #{clueStatus}
+            </if>
+            <if test="reportUserName!=null">
+                AND orgID = #{reportUserName}
+            </if>
+        </where>
+    </select>
+    <select id="selectStaging" parameterType="string">
+        select projectID,projectFID,stageCode,stageName from t_mm_staging where projectID=#{projectID}
+    </select>
+
+    <select id="selectGroup" resultType="list">
+        select projectID,projectCode,projectName,projectFID,stageName,groupID,
+        groupCode,
+        groupName
+        from t_mm_group where projectID=#{projectid} and projectFID=#{projectfid}
+    </select>
+    <select id="selectDesignBuild" resultType="java.util.Map">
+        select designBuildID,formatBuildingCode,formatBuildingName,projectFID
+        from t_mm_designbuild where designBuildID=#{designbuildid}
+    </select>
+
+    <delete id="deletecontract" parameterType="string">
+          DELETE FROM vs_xsgl_contract WHERE(
+            DATE_FORMAT(AuditDate,"%Y") = #{time} or
+            DATE_FORMAT(CloseDate,"%Y") = #{time} or
+            DATE_FORMAT(YwgsDate,"%Y") = #{time}
+            ) and datatype=1
+    </delete>
+
+    <insert id="insrtconrtact" parameterType="java.util.Map">
+        insert into vs_xsgl_contract (roominfo,roomguId,x_bldprdId,x_buildingCode,x_buildingName,x_productCode,
+        x_productType,projectid,kingdeeProjectid,projectName,projectCode,
+        projectFid,kingdeeProjectfid,stageCode,stageName,qsDate,
+        ywgsDate,closeDate,closeReason,bidArea,cjRmbTotal,
+        auditDate,bcTotal,bcArea,status,group_id,group_name,dataType,contractGUID,modifiedTime,totalArea
+        ) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.roominfo},#{item.roomguId},#{item.bldprdId},#{item.buildingCode},#{item.buildingName},#{item.productCode},
+            #{item.productType},#{item.projectid},#{item.kingdeeProjectid},#{item.projectName},#{item.projectCode},
+            #{item.projectFid},#{item.kingdeeProjectfid},#{item.stageCode},#{item.stageName},#{item.qsDate},
+            #{item.ywgsDate},#{item.closeDate},#{item.closeReason},#{item.BldArea},#{item.cjRmbTotal},
+            #{item.auditDate},#{item.bcTotal},#{item.bcArea},#{item.status},#{item.group_id},#{item.group_name},1,#{item.contractGUID},#{item.modifiedTime},#{item.ScBldArea})
+        </foreach>
+    </insert>
+
+    <update id="updateOrderByID" parameterType="java.util.Map">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update vs_xsgl_order
+            <set>
+                roominfo=#{item.roominfo},roomguid=#{item.roomguid},x_bldprdid=#{item.bldprdid},
+                x_buildingCode=#{item.buildingCode},x_buildingName=#{item.buildingName},
+                x_productCode=#{item.productCode},x_productType=#{item.productType},
+                kingdeeProjectId=#{item.kingdeeProjectId},projectName=#{item.projectName},projectCode=#{item.projectCode},
+                projectFid=#{item.projectFid},kingdeeProjectFid=#{item.kingdeeProjectFid},
+                stageName=#{item.stageName},stageCode=#{item.stageCode},qsDate=#{item.qsDate},ywgsDate=#{item.ywgsDate},
+                closeDate=#{item.closeDate},closeReason=#{item.closeReason},
+                bldArea=#{item.BldArea},cjRoomTotal=#{item.cjRoomTotal},TradeGuid=#{item.TradeGuid},
+                qyCloseReason=#{item.qyCloseReason},qyCloseDate=#{item.qyCloseDate},status=#{item.status},
+                mainMediaName=#{item.mainMediaName},mainMediaGuid=#{item.mainMediaGuid},
+                subMediaName=#{item.subMediaName},subMediaGuid=#{item.subMediaGuid},modifiedTime=#{item.modifiedTime}
+                ,DjTotal=#{item.DjTotal}
+            </set>
+            <where>
+                orderGuid=#{item.orderguid}
+            </where>
+        </foreach>
+    </update>
+
+
+    <update id="updateConrtactByID" parameterType="java.util.Map">
+        <foreach collection="list" item="item" index="index" open="" close="" separator=";">
+            update vs_xsgl_contract
+            <set>
+                roominfo=#{item.roominfo},roomguId=#{item.roomguId},
+                x_bldprdId=#{item.bldprdId},x_buildingCode=#{item.buildingCode},x_buildingName=#{item.buildingName}
+                ,x_productCode=#{item.productCode},x_productType=#{item.productType},
+                kingdeeProjectid=#{item.kingdeeProjectid},projectName=#{item.projectName},
+                kingdeeProjectfid=#{item.kingdeeProjectfid},stageName=#{item.stageName},qsDate=#{item.qsDate},
+                ywgsDate=#{item.ywgsDate},closeDate=#{item.closeDate},closeReason=#{item.closeReason},bidArea=#{item.BldArea},cjRmbTotal=#{item.cjRmbTotal},
+                auditDate=#{item.auditDate},bcTotal=#{item.bcTotal},bcArea=#{item.bcArea},status=#{item.status},modifiedTime=#{item.modifiedTime},totalArea=#{item.ScBldArea}
+            </set>
+            <where>
+                contractGUID=#{item.contractGUID}
+            </where>
+        </foreach>
+    </update>
+
+    <select id="selectContractBycontractGUID" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT contractGUID from vs_xsgl_contract where contractGUID=#{contractGUID} limit 1
+    </select>
+
+    <select id="selectOrderByorderGuid" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT orderGuid from vs_xsgl_order where orderGuid=#{orderGuid} limit 1
+    </select>
+
+    <update id="updateconrtactByStartTime" parameterType="String">
+    #修改组团签约面积加补差面积等于实际面积
+    update
+    vs_xsgl_contract a,t_mm_group b
+    set a.group_id=b.groupid,a.group_name=b.groupname
+    where a.x_bldprdId=b.bldPrdID and a.ModifiedTime>=#{startTime};
+    -- update VS_XSGL_CONTRACT set totalArea=ifnull(bidArea,0)+ifnull(bcArea,0)
+    -- where dataType=1 and auditDate is not null and ModifiedTime>=#{startTime};
+    -- update VS_XSGL_CONTRACT set totalArea=ifnull(bidArea,0)
+    -- where dataType=1 and totalArea is null  and ModifiedTime>=#{startTime};
+    </update>
+
+    <update id="updateconrtact">
+    #修改组团签约面积加补差面积等于实际面积
+    update
+    vs_xsgl_contract a,t_mm_group b
+    set a.group_id=b.groupid,a.group_name=b.groupname
+    where a.x_bldprdId=b.bldPrdID;
+    -- update VS_XSGL_CONTRACT set totalArea=ifnull(bidArea,0)+ifnull(bcArea,0)
+    -- where dataType=1 and auditDate is not null;
+    -- update VS_XSGL_CONTRACT set totalArea=ifnull(bidArea,0)
+    -- where dataType=1 and totalArea is null;
+    </update>
+
+    <delete id="deleteorder" parameterType="string">
+           DELETE FROM vs_xsgl_order WHERE
+            DATE_FORMAT(CloseDate,"%Y") = #{time} or
+            DATE_FORMAT(YwgsDate,"%Y") = #{time}
+    </delete>
+    <delete id="deleteordertwo">
+           DELETE FROM vs_xsgl_order;
+
+    </delete>
+
+
+    <delete id="deleteOrderByUpdateTime" parameterType="string">
+ DELETE FROM  vs_xsgl_order WHERE ModifiedTime &gt;= #{startTime} and ModifiedTime &lt;= #{endTime}
+    </delete>
+    <delete id="deleteOrderByTime" parameterType="string">
+       DELETE
+        FROM
+            vs_xsgl_order
+        WHERE
+            (
+                CloseDate &gt;= #{startTime}
+                AND CloseDate &lt;= #{endTime}
+            )
+        OR (
+            YwgsDate &gt;= #{startTime}
+            AND YwgsDate &lt;= #{endTime}
+        )
+
+    </delete>
+    <delete id="deleteContractByUpdateDate" parameterType="string">
+        DELETE FROM  VS_XSGL_CONTRACT WHERE  datatype=1 and ModifiedTime  &gt;= #{startTime} and ModifiedTime &lt;= #{endTime}
+    </delete>
+    <delete id="deleteContractByTime" parameterType="string">
+       DELETE
+        FROM
+            VS_XSGL_CONTRACT
+        WHERE(
+            (
+                CloseDate &gt;= #{startTime}
+                AND CloseDate &lt;= #{endTime}
+            )
+        OR (
+            YwgsDate &gt;= #{startTime}
+            AND YwgsDate &lt;= #{endTime}
+        )
+        OR (
+            auditDate &gt;= #{startTime}
+            AND auditDate &lt;= #{endTime}
+        )) and  datatype=1
+    </delete>
+
+    <insert id="insrtorder" parameterType="java.util.Map">
+        insert into vs_xsgl_order (roominfo,roomguid,x_bldprdid,x_buildingCode,x_buildingName,
+        x_productCode,x_productType,projectId,kingdeeProjectId,projectName,projectCode,
+        projectFid,kingdeeProjectFid,stageName,stageCode,qsDate,ywgsDate,closeDate,closeReason,
+        bldArea,cjRoomTotal,TradeGuid,qyCloseReason,qyCloseDate,status,
+        mainMediaName,mainMediaGuid,subMediaName,subMediaGuid,orderGuid,modifiedTime,DjTotal
+        ) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.roominfo},#{item.roomguid},#{item.bldprdid},#{item.buildingCode},#{item.buildingName},
+            #{item.productCode},
+            #{item.productType},#{item.projectId},#{item.kingdeeProjectId},#{item.projectName},#{item.projectCode},
+            #{item.projectFid},#{item.kingdeeProjectFid},#{item.stageName},#{item.stageCode},#{item.qsDate},
+            #{item.ywgsDate},#{item.closeDate},#{item.closeReason},#{item.BldArea},#{item.cjRoomTotal},
+            #{item.TradeGuid},#{item.qyCloseReason},#{item.qyCloseDate},#{item.status}
+            ,#{item.mainMediaName},#{item.mainMediaGuid},
+            #{item.subMediaName},#{item.subMediaGuid},#{item.orderguid},#{item.modifiedTime},#{item.DjTotal})
+        </foreach>
+    </insert>
+
+
+    <delete id="deleteOrderByTimeSD" parameterType="java.lang.String">
+        delete from  vs_xsgl_order where  modifiedTime &gt;=#{startTime} and modifiedTime &lt;=#{endTime}
+    </delete>
+    <select id="getProjectId" parameterType="java.lang.String" resultType="java.util.Map">
+         select fpr.project_id from  fp_project_relationship fpr,
+(SELECT ID FROM fp_project_relationship WHERE project_id=#{projectId} ) PID
+WHERE
+ (fpr.id=PID.ID or  fpr.pid=PID.ID )
+    </select>
+
+    <update id="updateorderByStartTime" parameterType="string">
+    update
+    vs_xsgl_order a,t_mm_group b
+    set a.group_id=b.groupid,a.group_name=b.groupname
+    where a.x_bldprdId=b.bldPrdID and  a.ModifiedTime>=#{startTime};
+    update vs_xsgl_order set channel_type=(
+    case
+    when mainMediaGuid='85163219-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='11B9407A-6FE6-E911-80BB-005056A37AFB' then 'ORDERZQ'
+    when mainMediaGuid='21B9407A-6FE6-E911-80BB-005056A37AFC' then 'ORDERZQ'
+    when mainMediaGuid='CEB0421F-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='36ADC711-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='D0B0421F-C75B-E711-80BB-005056A27FB0' then 'ORDERZJ'
+    when mainMediaGuid='DD91DA2E-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='DDD7AC28-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='52AA3722-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='3574F634-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+   /* when mainMediaGuid='41B9407A-6FE6-E911-80BB-005056A37AF4' then 'ORDERSYMJ'
+    when mainMediaGuid='33D3B527-C75B-E711-80BB-005056A27FB0' then 'ORDERSYMJ'
+    when mainMediaGuid='51B9407A-6FE6-E911-80BB-005056A37AFA' then 'ORDERSYMJ'*/
+    else mainMediaGuid
+    end
+    ) where  ModifiedTime>=#{startTime}
+    </update>
+
+    <update id="updateorderByStartTimeSD" parameterType="string">
+    update
+    vs_xsgl_order a,t_mm_group b
+    set a.group_id=b.groupid,a.group_name=b.groupname
+    where a.x_bldprdId=b.bldPrdID and  a.ModifiedTime>=#{startTime};
+    update vs_xsgl_order set channel_type=(
+    case
+    when mainMediaGuid='85163219-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='11B9407A-6FE6-E911-80BB-005056A37AFB' then 'ORDERZQ'
+    when mainMediaGuid='21B9407A-6FE6-E911-80BB-005056A37AFC' then 'ORDERZQ'
+    when mainMediaGuid='CEB0421F-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='36ADC711-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='D0B0421F-C75B-E711-80BB-005056A27FB0' then 'ORDERZJ'
+    when mainMediaGuid='DD91DA2E-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='DDD7AC28-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='52AA3722-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='3574F634-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+   /* when mainMediaGuid='41B9407A-6FE6-E911-80BB-005056A37AF4' then 'ORDERSYMJ'
+    when mainMediaGuid='33D3B527-C75B-E711-80BB-005056A27FB0' then 'ORDERSYMJ'
+    when mainMediaGuid='51B9407A-6FE6-E911-80BB-005056A37AFA' then 'ORDERSYMJ'*/
+    else mainMediaGuid
+    end
+    ) where  ModifiedTime &gt;=#{startTime} and ModifiedTime &lt;=#{endTime}
+    </update>
+
+    <update id="updateorder">
+    update
+    vs_xsgl_order a,t_mm_group b
+    set a.group_id=b.groupid,a.group_name=b.groupname
+    where a.x_bldprdId=b.bldPrdID;
+    update vs_xsgl_order set channel_type=(
+    case
+    when mainMediaGuid='85163219-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='11B9407A-6FE6-E911-80BB-005056A37AFB' then 'ORDERZQ'
+    when mainMediaGuid='21B9407A-6FE6-E911-80BB-005056A37AFC' then 'ORDERZQ'
+    when mainMediaGuid='CEB0421F-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='36ADC711-C75B-E711-80BB-005056A27FB0' then 'ORDERZQ'
+    when mainMediaGuid='D0B0421F-C75B-E711-80BB-005056A27FB0' then 'ORDERZJ'
+    when mainMediaGuid='DD91DA2E-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='DDD7AC28-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='52AA3722-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    when mainMediaGuid='3574F634-B457-EA11-80BE-005056A21B76' then 'ORDERSYMJ'
+    else mainMediaGuid
+    end
+    )
+    </update>
+    <delete id="deletefyqzkl" parameterType="string">
+        	  DELETE FROM	vs_xsgl_fyqzkl WHERE ftYear = #{time}
+    </delete>
+    <insert id="insertfyqzkl" parameterType="arraylist">
+        insert into vs_xsgl_fyqzkl (projectName,projectCode,projectId,kingDeeprojectId,costCode,
+        costShortName,ftYear,ftMonth,isUserOtherFee,ftAmount,feeusetype
+        )values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.PROJECTNAME},#{item.PROJECTCODE },#{item.PROJECTID},#{item.KINGDEEPROJECTID},#{item.costCode},
+            #{item.costShortName},#{item.ftYear},#{item.ftMonth},#{item.IsUseOtherFee},#{item.ftAmount},#{item.feeusetype})
+        </foreach>
+    </insert>
+
+    <insert id="insertcstnum" parameterType="list">
+        insert into vs_yxgk_cstnums values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.ProjectID},#{item.HKBProjectID},#{item.KindeeProjectID},#{item.ProjectName},#{item.MainMediaGUID},
+            #{item.MainMediaName},
+            #{item.TheFirstVisitDate},#{item.cnt})
+        </foreach>
+    </insert>
+
+
+    <select id="selectquyu" resultType="map">
+	SELECT DISTINCT   org_name,orgdep_id,org_id  FROM mm_idm_main_rel     ORDER BY `business_unit_sort`  ASC
+    </select>
+
+    <select id="selectbusin" resultType="java.util.Map">
+        select guid,business_id,business_name from mm_business_unit
+    </select>
+
+    <update id="updatabusin" parameterType="int">
+        update mm_business_unit set Sort_code=Sort_code+1 where Sort_code &gt;= #{code}
+    </update>
+
+
+    <insert id="insertbusinessunit" parameterType="map">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,monthly_weekly_type) VALUES
+            (#{org_id},#{Sort_code},#{father_id},#{type},#{orgdep_id},#{org_name},0,#{monthly_weekly_type})
+    </insert>
+    <select id="selectProjectt" resultType="java.util.Map">
+ SELECT
+    mr.project_name,
+	mr.project_id,
+	mr.pro_id,
+	ml.flag,
+	ml.monthly_type
+    FROM
+    mm_idm_main_rel mr
+	INNER join mm_sell_project ml
+	on mr.project_code=ml.project_code
+    WHERE mr.orgdep_id = #{businessunitid}
+    group by mr.project_id
+    ORDER BY mr.project_name ASC
+    </select>
+    <insert id="insertprojects" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,monthly_weekly_type) VALUES
+            (#{pro_id},#{Sort_code},#{father_id},#{type},#{project_id},#{project_name},0,#{region_org_id},#{monthly_type})
+    </insert>
+
+    <insert id="insertstagings" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{stage_id},#{stage_name},0,#{region_org_id},#{project_org_id},#{monthly_weekly_type})
+
+    </insert>
+
+
+    <select id="selectGroupp" resultType="java.util.Map">
+        select  DISTINCT  group_id, group_name
+        from mm_idm_main_rel where stage_id=#{projectfid}
+    </select>
+
+    <insert id="insertgroups" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,stage_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{group_id},#{group_name},0,#{region_org_id},#{project_org_id},#{stage_org_id},#{monthly_weekly_type})
+    </insert>
+
+    <select id="selectDesignBuildd" resultType="java.util.Map">
+select  DISTINCT  product_type, product_code
+        from mm_idm_main_rel WHERE group_id=#{group_code}
+
+    </select>
+
+    <select id="selectArea" resultType="java.util.Map">
+select  DISTINCT area_id,area_name
+        from mm_idm_main_rel WHERE product_code=#{productId}
+ORDER BY CAST(SUBSTRING_INDEX(area_name,'-',1) as SIGNED)  asc
+    </select>
+
+    <insert id="insertArea">
+     INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,stage_org_id,group_org_id,product_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{area_id},#{area_name},0,#{region_org_id},#{project_org_id},#{stage_org_id},#{group_org_id},#{product_org_id},#{monthly_weekly_type})
+
+    </insert>
+
+    <update id="updateBusinessUnit">
+        update mm_business_unit b,mm_sell_project a,mm_idm_business_unit_project_rel c
+        set b.monthly_weekly_type=1
+        where a.monthly_type=1 and a.project_code=c.project_code
+        and b.business_id=c.business_unit_id
+    </update>
+
+    <insert id="insertesignbuilds" parameterType="list">
+         INSERT INTO  mm_business_unit  (guid,Sort_code,father_id,type,business_id,business_name,is_delete_flag,region_org_id,project_org_id,stage_org_id,group_org_id,monthly_weekly_type) VALUES
+            (#{guid},#{Sort_code},#{father_id},#{type},#{product_code},#{product_type},0,#{region_org_id},#{project_org_id},#{stage_org_id},#{group_org_id},#{monthly_weekly_type})
+    </insert>
+    <insert id="insertvalueinput">
+        INSERT INTO v_mar_valueinput
+        (buildID,supplytime,formatBuildingName,amountforsale,setsforsale,planningsets,Planningamount,summount,sumsale,createtime)
+        values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.buildID},#{item.supplytime},#{item.formatBuildingName},#{item.amountforsale},#{item.setsforsale},
+            #{item.planningsets},
+            #{item.Planningamount},#{item.summount},#{item.sumsale},#{item.createtime})
+        </foreach>
+
+    </insert>
+    <select id="selectStagingg" parameterType="string" resultType="java.util.Map">
+        SELECT  DISTINCT stage_name ,stage_id  FROM mm_idm_main_rel WHERE Project_id=#{projectID}
+    </select>
+
+
+    <select id="insertcstnums" parameterType="list">
+        INSERT INTO vs_xsgl_visits(ProjectID,KingdeeProjectID,ProjectName,ProjectCode,ProjectFID,
+        KingdeeProjectFID,StageName,StageCode,GjDate,CstGJStatus,
+        MainMediaName,GJCount,SubMediaName,MediaTypeGUID,SubMediaGUID
+        ) values
+        <foreach collection="list" index="index" separator="," item="item">
+            (#{item.ProjectID},#{item.KingdeeProjectID},#{item.ProjectName},#{item.ProjectCode},#{item.ProjectFID},
+            #{item.KingdeeProjectFID},#{item.StageName},#{item.StageCode},#{item.GjDate},#{item.CstGJStatus},
+            #{item.MainMediaName},#{item.GJCount},#{item.SubMediaName},#{item.MainMediaGUID},#{item.SubMediaGUID})
+        </foreach>
+    </select>
+
+    <delete id="deletecstnums">
+        DELETE FROM vs_xsgl_visits WHERE GjDate &gt;=(concat(date_format(LAST_DAY(now() - interval 3 month),'%Y-%m-'),'01')) and
+now() &gt;= GjDate
+    </delete>
+
+    <delete id="deleteVisitsByGjDate">
+        DELETE FROM vs_xsgl_visits WHERE GjDate &gt;=#{startTime}
+    </delete>
+
+    <delete id="deletevalueinput">
+        delete from  v_mar_valueinput where date_format(createtime,'%Y%m')=date_format(now(), '%Y%m')
+    </delete>
+
+    <delete id="delprojectrel">
+           DELETE FROM mm_idm_business_unit_project_rel;
+    </delete>
+
+    <insert id="insertprojectrel">
+        INSERT INTO `saleman`.`mm_idm_business_unit_project_rel` (
+        `guid`,
+        `business_unit_id`,
+        `business_unit_name`,
+        `project_id`,
+        project_code,
+        `project_name`,project_status,trade_mode
+        )
+        -- 20区域31项目
+        select UUID(),project.arid business_unit_id,
+        project.projectname business_unit_name,project.projectID,
+        p.projectCode,
+        project.orgname projectName,p.projectStatus,p.tradeMode
+        from(
+        select
+        SUBSTRING_INDEX(jobfullCode, '-',-1) projectid,
+        orgnamefullpath
+           from s_jobs sj INNER JOIN
+        t_sys_org tso on tso.orgdepid=sj.JobOrgID
+        where tso.hrOrgTypeId='20'
+        GROUP BY projectid
+        ) temp INNER JOIN(
+        select SUBSTRING_INDEX(SUBSTRING_INDEX(orgnofullpath, '-',3),'-',-1) arid,
+        SUBSTRING_INDEX(SUBSTRING_INDEX(orgnamefullpath, '-',3),'-',-1) projectname,
+        orgdepid projectid,orgname
+         from t_sys_org where  orgnofullpath LIKE '00000000-00000001-%'
+        and ( hrOrgTypeId='31') and orgstatus='1'
+        ) project on project.arid=temp.projectid
+        INNER JOIN t_mm_project p on p.projectID=project.projectid;
+        -- 城市公司
+        update mm_idm_business_unit_project_rel project,
+        t_sys_org org set
+        project.city_id=SUBSTRING_INDEX(SUBSTRING_INDEX(orgnofullpath,'-',4),'-',-1) ,
+        project.city_name=SUBSTRING_INDEX(SUBSTRING_INDEX(orgnamefullpath,'-',4),'-',-1)
+        where project.project_id=org.orgdepid and  org.orgdepid=project.project_id
+    </insert>
+
+    <update id="updateprojectrel">
+        UPDATE
+ `mm_idm_business_unit_project_rel` burp , `mm_idm_region` r
+SET
+ burp.`business_unit_sort` = r.`region_sort`
+WHERE r.`region_id` = burp.`business_unit_id`
+    </update>
+
+
+    <delete id="deletestagerel">
+        DELETE
+            FROM
+    mm_idm_project_stage_rel
+    </delete>
+
+    <insert id="insertProjectStagerel">
+    DELETE FROM  mm_idm_project_stage_rel;
+    INSERT INTO  `mm_idm_project_stage_rel` (
+      `guid`,
+      `project_id`,
+      `project_code`,
+      `project_name`,
+       stage_id,
+      `stage_code`,
+      `stage_name`
+    )
+    SELECT
+    UUID()
+    ,sta.`projectID`
+    ,p.projectCode
+    ,p.`projectName`
+	,sta.projectFID
+    ,sta.stageCode
+    ,sta.stageName
+    FROM `t_mm_staging` sta
+    INNER JOIN `t_mm_project` p ON p.projectID = sta.`projectID`
+    WHERE  sta.`isDelete` &lt;&gt;1 or  sta.`isDelete` is null
+    GROUP BY sta.`stageCode`
+    </insert>
+
+    <insert id="insertGroupDesignbuildrel">
+    DELETE FROM mm_idm_designbuild_group_rel;
+    INSERT INTO  .`mm_idm_designbuild_group_rel` (
+      `guid`,
+      `designbuild_id`,
+      `designbuild_name`,
+	   group_id,
+      `group_code`,
+      `group_name`
+    )
+SELECT DISTINCT UUID()
+    , a.`bldPrdID`
+    ,db.buildingName
+	,a.groupID
+    ,a.`groupCode`
+    ,a.`groupName`
+     FROM `t_mm_group` a
+     INNER JOIN `t_mm_designbuild` db ON db.bldPrdID = a.`bldPrdID`
+where 1=1 and (db.isDelete &lt;&gt;1 or db.isDelete is null) and (a.isDelete &lt;&gt;1 or a.isDelete is null)
+    GROUP BY a.`bldPrdID`
+    </insert>
+
+    <insert id="insertStageGroup">
+        DELETE FROM mm_idm_group_stage_rel;
+        INSERT INTO `saleman`.`mm_idm_group_stage_rel` (
+  `guid`,
+  `group_id`,
+  `group_code`,
+  `group_name`,
+  `stage_name`,
+  `stage_code`,
+`stage_id`
+  ,version_stage
+)
+SELECT  UUID()
+,gro.`groupID`
+,gro.`groupCode`
+,gro.`groupName`
+,gro.stageName
+,gro.stageCode
+,gro.projectFID
+,gro.`versionStage`
+ FROM `t_mm_group` gro
+WHERE isDelete &lt;&gt;1 or isDelete is null
+GROUP BY gro.`stageCode`
+    </insert>
+
+    <insert id="insertproductgroup">
+ DELETE FROM mm_idm_product_group_rel;
+INSERT INTO mm_idm_product_group_rel (
+
+  `guid`,
+  `product_type`,
+   product_id,
+  `product_code`,
+   group_id,
+  `group_code`,
+  `group_name`
+)
+select UUID(),
+CONCAT(tmg.productName,'-',tmd.FREETYPENAME,'-',tmd.BUSINESSTYPENAME,'-',tmd.PROTYPENAME) as PROTYPENAME,
+CONCAT(tmg.groupID,tmg.productCode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE)
+PRODUCTID,
+CONCAT(tmg.groupCode,tmg.productCode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE) PRODUCTCODE,
+tmg.groupid,tmg.groupCode,tmg.groupname
+from t_mm_group tmg
+INNER JOIN t_mm_designbuild tmd
+on tmd.bldPrdID=tmg.bldPrdID
+where tmg.productCode is not null
+and tmd.BUSINESSTYPE &lt;&gt;'03'
+and tmg.groupID is not null
+and (tmg.isDelete &lt;&gt;1 or tmg.isDelete is null)
+GROUP BY tmg.groupID,tmg.productCode,tmd.BUSINESSTYPE,tmd.FREETYPE,tmd.PROTYPE
+    </insert>
+
+    <insert id="insertproductrel">
+DELETE FROM `mm_idm_designbuild_product_rel`;
+INSERT INTO  `mm_idm_designbuild_product_rel` (
+
+  `guid`,
+  `product_id`,
+  `product_type`,
+  `product_code`,
+  `building_ID`,
+  `building_name`
+)
+
+SELECT  DISTINCT  UUID(),
+CONCAT(dgr.group_id,bui.productCode,bui.FREETYPE,bui.BUSINESSTYPE,bui.PROTYPE)
+PRODUCTID,
+CONCAT(bui.productType,'-',bui.FREETYPENAME,'-',bui.BUSINESSTYPENAME,'-',bui.PROTYPENAME) as PROTYPENAME,
+CONCAT(dgr.group_id,bui.productCode,bui.FREETYPE,bui.BUSINESSTYPE,bui.PROTYPE) PRODUCTCODE
+,bui.`bldPrdID`
+,bui.`buildingName`
+FROM   `t_mm_designbuild` bui
+LEFT JOIN `mm_idm_designbuild_group_rel` dgr
+ON dgr.`designbuild_id` = bui.`bldPrdID`
+WHERE bui.`ISDELETE` &lt;&gt;1 and bui.bldPrdID is not null
+and bui.productCode is not null
+GROUP BY bui.bldPrdID
+    </insert>
+
+    <delete id="deletemainrel">
+        	DELETE
+	FROM
+	   `mm_idm_main_rel`
+    </delete>
+    <insert id="insertproducareatrel">
+        delete  from mm_idm_product_area_rel;
+             insert into mm_idm_product_area_rel(area_id,area_code,area_name,pro_product_id,
+        pro_product_code,product_code,pro_product_name,group_id
+        )
+    select vssp.area_id,vssp.area_id,org_name
+    ,temp.productid,temp.productid,
+        temp.productCode,vssp.product_name_info,temp.groupID
+         from(SELECT tmg.projectID,tmg.projectFID,tmg.groupID,tmg.productCode,tmg.groupCode,
+                        tmg.productName,tmg.bldPrdID,
+                        CONCAT(tmg.groupid,tmd.productCode,tmd.FREETYPE,tmd.BUSINESSTYPE,tmd.PROTYPE)
+                        productid
+                        from t_mm_group tmg INNER JOIN
+                        t_mm_designbuild tmd on tmg.bldPrdID=tmd.bldPrdID
+                GROUP BY tmg.groupID,tmg.productCode,
+                        tmd.BUSINESSTYPE,tmd.FREETYPE,tmd.PROTYPE
+        ) temp INNER JOIN v_sman_dynamic_value vssp
+        on vssp.product_id=temp.productid
+				where area_id is not null and vssp.area_id &lt;&gt;''
+        and org_name is not null and org_name &lt;&gt; ''
+        GROUP BY vssp.area_id
+    </insert>
+    <insert id="insertmainrel">
+    DELETE FROM `mm_idm_main_rel`;
+ INSERT INTO `saleman`.`mm_idm_main_rel` (
+      `guid`,
+      `group_company_name`,
+      `group_company_id`,
+       gro_id,
+      `org_name`,
+      `orgdep_id`,
+       org_id,
+      `project_name`,
+      `project_id`,
+      `project_code`,
+       pro_id,
+      `stage_name`,
+      `stage_code`,
+      `stage_id`,
+      `group_name`,
+      `group_code`,
+       `group_id`,
+      `product_type`,
+      `product_code`,
+      `building_name`,
+      `building_id`,project_status,trade_mode,area_id,area_code,area_name,business_unit_sort
+    )
+   select  UUID(),'旭辉集团','00000001','00000001' AS gro_id ,
+    a.business_unit_name,a.business_unit_id orgdep_id,
+    a.business_unit_id org_id,a.project_name,a.project_id,
+    a.project_code,a.project_id pro_id,b.stageName,b.stageCode,b.projectFID,b.groupName,
+    b.groupCode,b.groupID,mipgr.product_type,mipgr.product_id,
+    1,
+    1,a.project_status,a.trade_mode,mipar.area_id,mipar.area_code,mipar.area_name,
+    a.business_unit_sort
+    from mm_idm_business_unit_project_rel a
+    INNER JOIN mm_sell_project msp on msp.project_code=a.project_code
+    LEFT JOIN
+(select projectname,projectID,projectCode,groupCode,groupName,groupID,projectFID
+,stageName,stageCode,productName
+ from t_mm_group group BY groupID)
+ b on a.project_id=b.projectID
+ LEFT join mm_idm_product_group_rel mipgr on mipgr.group_id=b.groupID
+ LEFT JOIN mm_idm_product_area_rel mipar on mipar.pro_product_id=mipgr.product_id
+
+    </insert>
+
+    <delete id="deleterganization">
+        DELETE
+FROM
+  s_organization
+WHERE `OrgCode` != '00000001'
+    </delete>
+
+    <insert id="insertrganization">
+        INSERT INTO `saleman`.`s_organization` (
+      `ID`,
+      `PID`,
+      `OrgCode`,
+      `OrgName`,
+      `OrgShortName`,
+      `OrgCategory`,
+      `ListIndex`,
+      `Levels`,
+      `FullPath`,
+      `AuthCompanyID`,
+      `ProductID`,
+      `Creator`,
+      `CreateTime`,
+      `Editor`,
+      `EditTime`,
+      `Status`,
+      `IsDel`,
+      `CurrentPoint`,
+      `ProjectID`,
+      `OrgCompanyID`,
+      `OrgType`
+    )
+    SELECT DISTINCT
+    UUID(),
+    o.ID PID,
+    `business_unit_id` AS OrgCode,
+    `business_unit_name` AS  `OrgName`,
+    `business_unit_name` AS   OrgShortName,
+    '2',
+    `ListIndex`,
+    `Levels`,
+    `FullPath`,
+    `AuthCompanyID`,
+    `ProductID`,
+    `Creator`,
+    `CreateTime`,
+    `Editor`,
+    `EditTime`,
+    `Status`,
+    `IsDel`,
+    `CurrentPoint`,
+    `ProjectID`,
+    `OrgCompanyID`,
+    `OrgType`
+    FROM
+     `mm_idm_business_unit_project_rel` bupr
+    LEFT JOIN  `s_organization` o ON 0=0
+    WHERE bupr.`business_unit_name` NOT IN ( SELECT   `OrgName` FROM  `s_organization` WHERE   `OrgCategory` = 2  )
+     AND o.`OrgName` = '旭辉集团'
+    </insert>
+    <insert id="insertorganizations">
+
+     INSERT INTO `saleman`.`s_organization` (
+      `ID`,
+      `PID`,
+      `OrgCode`,
+      `OrgName`,
+      `OrgShortName`,
+      `OrgCategory`,
+      `ListIndex`,
+      `Levels`,
+      `FullPath`,
+      `AuthCompanyID`,
+      `ProductID`,
+      `Creator`,
+      `CreateTime`,
+      `Editor`,
+      `EditTime`,
+      `Status`,
+      `IsDel`,
+      `CurrentPoint`,
+      `ProjectID`,
+      `OrgCompanyID`,
+      `OrgType`
+    )
+    SELECT DISTINCT
+    UUID(),
+    o.`ID` AS PID,
+    `project_id` AS OrgCode,
+    `project_name`AS  `OrgName`,
+    `project_name` AS   OrgShortName,
+    4,
+    `ListIndex`,
+    `Levels`,
+    `FullPath`,
+    `AuthCompanyID`,
+    `ProductID`,
+    `Creator`,
+    `CreateTime`,
+    `Editor`,
+    `EditTime`,
+    `Status`,
+    `IsDel`,
+    `CurrentPoint`,
+    `ProjectID`,
+    `OrgCompanyID`,
+    `OrgType`
+    FROM
+    `saleman`.`mm_idm_business_unit_project_rel` bupr
+    LEFT JOIN `saleman`.`s_organization` o ON 0=0
+    WHERE bupr.`project_name`   NOT IN ( SELECT   `OrgName` FROM  `s_organization` WHERE   `OrgCategory` = 4  )
+    AND  o.`OrgCategory` = 2 AND o.`OrgName` = bupr.`business_unit_name`
+
+    </insert>
+
+
+    <delete id="deletebu">
+        delete  from  mm_business_unit
+    </delete>
+
+    <select id="selectsignse" parameterType="string" resultType="java.util.Map">
+	 select b.reserve_can_sell_funds,b.new_reserve_funds,
+	 a.total_sign_funds,a.new_sign_funds,a.reserve_sign_funds,p.projectCode,a.*
+	 from mm_monthly_plan_index a
+     left join mm_monthly_plan_basis b
+		on  a.monthly_plan_basis_id=b.guid
+		LEFT JOIN t_mm_project p
+		on a.prepared_by_unit_org_id=p.projectID
+	where a.prepared_by_unit_type=4 and a.prepared_by_level=3
+and a.months=#{time}
+    </select>
+
+    <!--发送GXC esb接口数据查询  #  WHERE a.prepared_by_unit_type=4 AND a.prepared_by_level=7 AND months=#{time}-->
+    <select id="selectSendGXC" resultType="java.util.Map" parameterType="java.util.Map">
+         SELECT tt.project_id,tt.project_code,tt.project_name,tt.stage_id,tt.stage_name,
+         tt.group_id,tt.group_name,tt.product_id,tt.product_name_info,
+         tt.house_package_name,tt.new_sign_funds,tt.reserve_sign_funds,
+         tt.new_sign_set,tt.reserve_sign_set,tt.version_id,tt.months,
+         tt.is_parking,tt.product_code_sale  from (
+         select 0,productCode,vsdv.projectid project_id,vsdv.projectcode project_code,vsdv.projectname project_name,vsdv.stageid stage_id,vsdv.stagename stage_name,
+         vsdv.groupid group_id,vsdv.groupname group_name,vsdv.product_id,vsdv.product_name_info,
+         vsdv.org_name house_package_name,mmpi.new_sign_funds,mmpi.reserve_sign_funds,
+         mmpi.new_sign_set,mmpi.reserve_sign_set,mmpi.version_id,mmpi.months,
+         mmpi.is_parking,vsdv.product_code_sale from
+         mm_monthly_plan_index mmpi INNER JOIN
+         v_sman_dynamic_value vsdv
+         on mmpi.prepared_by_unit_org_id=vsdv.area_id
+         INNER JOIN mm_monthly_plan_basis mmpb on mmpb.months=mmpi.months
+         and mmpb.prepared_by_unit_org_id=mmpi.prepared_by_unit_org_id
+         INNER JOIN mm_idm_business_unit_project_rel mibupr on
+         mibupr.project_id=vsdv.projectId
+         where mmpi.months  &gt;= #{months} AND mmpi.months &lt; DATE_ADD(#{months}, INTERVAL 1 MONTH)
+         and mibupr.business_unit_id=#{areaId}
+         and mmpi.prepared_by_unit_type=4 AND mmpi.prepared_by_level=7 and mmpb.plan_status>=2
+         GROUP BY mmpi.prepared_by_unit_org_id
+         UNION ALL
+select msp.flag,productCode,vsdv.projectid project_id,vsdv.projectcode project_code,vsdv.projectname project_name,vsdv.stageid stage_id,vsdv.stagename stage_name,
+         vsdv.groupid group_id,vsdv.groupname group_name,vsdv.product_id,vsdv.product_name_info,
+         vsdv.org_name house_package_name,mmpi.new_sign_funds,mmpi.reserve_sign_funds,
+         mmpi.new_sign_set,mmpi.reserve_sign_set,mmpi.version_id,mmpi.months,
+         mmpi.is_parking,vsdv.product_code_sale
+FROM mm_monthly_plan_index mmpi
+ INNER JOIN (
+  SELECT projectid, projectcode,projectname,stageid,stagename,
+   groupid,groupname,product_id,productCode,product_code_sale,product_name_info,org_name
+  FROM v_sman_dynamic_value
+  GROUP BY product_id,org_name
+ ) vsdv    on mmpi.prepared_by_unit_org_id=vsdv.product_id
+  INNER JOIN mm_monthly_plan_basis mmpb on mmpb.months=mmpi.months
+         and mmpb.prepared_by_unit_org_id=mmpi.prepared_by_unit_org_id
+  INNER JOIN mm_idm_business_unit_project_rel mibupr ON mibupr.project_id=vsdv.projectId
+  INNER JOIN mm_sell_project msp on msp.project_id=mibupr.project_id
+where  mmpi.months  &gt;= #{months} AND mmpi.months &lt; DATE_ADD(#{months}, INTERVAL 1 MONTH)
+          and mibupr.business_unit_id=#{areaId}
+         and mmpi.prepared_by_unit_type=4 AND mmpi.prepared_by_level=6
+  and mmpb.plan_status>=2
+GROUP BY mmpi.prepared_by_unit_org_id
+HAVING (count(1)=1 or vsdv.productCode in('140','141','142') or msp.flag=1)
+
+         ) tt where house_package_name  &lt;&gt; '未推售车位'  or
+        house_package_name is null
+ GROUP BY product_id,house_package_name
+        ORDER BY project_id,product_code_sale
+     </select>
+
+    <delete id="deletevalueinputs" parameterType="string">
+      delete from  v_mar_valueinput where createtime=#{time}
+    </delete>
+
+    <select id="selectSysDesignBuild" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from t_mm_designbuild where bldPrdID = #{bldPrdID} limit 1
+    </select>
+
+    <!-- 批量查询数据 bql 2020.08.03 -->
+    <select id="selectSysDesignBuildBatch" parameterType="java.util.Map" resultType="java.lang.String">
+        select bldPrdID from t_mm_designbuild
+        where
+        bldPrdID in
+        <foreach collection="list" index="index"  open='(' separator=',' close=')'  item="item">
+            #{item.bldPrdID}
+        </foreach>
+    </select>
+
+    <select id="selectSysProject" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from t_mm_project where projectID = #{projectID} limit 1
+    </select>
+
+    <select id="selectSysStaging" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from t_mm_staging where kingdeeProjectFID = #{kingdeeProjectFID} limit 1
+    </select>
+
+    <select id="selectSysGroup" parameterType="java.util.Map" resultType="java.util.Map">
+        select * from t_mm_group where designBuildID = #{designBuildID} AND  bldPrdID =#{bldPrdID} AND groupID = #{groupID} limit 1
+    </select>
+
+
+    <update id="updateStaging" parameterType="java.util.Map">
+        update t_mm_staging
+        <trim prefix="set" suffixOverrides=",">
+            <if test="projectID!=null">projectID=#{projectID},</if>
+            <if test="kingdeeProjectID!=null">kingdeeProjectID=#{kingdeeProjectID},</if>
+            <if test="projectFID!=null">stageCode=#{stageCode},</if>
+            <if test="kingdeeProjectFID!=null">kingdeeProjectFID=#{kingdeeProjectFID},</if>
+
+            <if test="stageName!=null">stageName=#{stageName},</if>
+            <if test="taxType!=null">taxType=#{taxType},</if>
+            <if test="remark!=null">remark=#{remark},</if>
+            <if test="stageOldName!=null">stageOldName=#{stageOldName},</if>
+            <if test="stagesFlag!=null">stagesFlag=#{stagesFlag},</if>
+
+            <if test="isDelete!=null">isDelete=#{isDelete},</if>
+            <if test="createdTime!=null">createdTime=#{createdTime},</if>
+            <if test="updatedTime!=null">updatedTime=#{updatedTime},</if>
+            <if test="createdBy!=null">createdBy=#{createdBy},</if>
+            <if test="updatedBy!=null">updatedBy=#{updatedBy},</if>
+        </trim>
+        where kingdeeProjectFID=#{kingdeeProjectFID}
+    </update>
+
+
+    <update id="updateGroup" parameterType="java.util.Map">
+        update t_mm_group
+        <trim prefix="set" suffixOverrides=",">
+            <if test="projectID!=null">projectID=#{projectID},</if>
+            <if test="kingdeeProjectID!=null">kingdeeProjectID=#{kingdeeProjectID},</if>
+            <if test="projectCode!=null">projectCode=#{projectCode},</if>
+            <if test="projectName!=null">projectName=#{projectName},</if>
+
+            <if test="projectFID!=null">projectFID=#{projectFID},</if>
+            <if test="kingdeeProjectFID!=null">kingdeeProjectFID=#{kingdeeProjectFID},</if>
+            <if test="stageCode!=null">stageCode=#{stageCode},</if>
+            <if test="stageName!=null">stageName=#{stageName},</if>
+            <if test="groupID!=null">groupID=#{groupID},</if>
+
+            <if test="groupCode!=null">groupCode=#{groupCode},</if>
+            <if test="groupName!=null">groupName=#{groupName},</if>
+            <if test="productCode!=null">productCode=#{productCode},</if>
+            <if test="productName!=null">productName=#{productName},</if>
+            <if test="bldPrdID!=null">bldPrdID=#{bldPrdID},</if>
+
+            <if test="isDelete!=null">isDelete=#{isDelete},</if>
+            <if test="approvalTime!=null">approvalTime=#{approvalTime},</if>
+        </trim>
+        where designBuildID = #{designBuildID} AND bldPrdID =#{bldPrdID} AND groupID = #{groupID}
+    </update>
+
+    <update id="updateProject" parameterType="java.util.Map">
+        update t_mm_project
+        <trim prefix="set" suffixOverrides=",">
+            <if test="projectCode!=null">projectCode=#{projectCode},</if>
+            <if test="projectName!=null">projectName=#{projectName},</if>
+            <if test="projectOldName!=null">projectOldName=#{projectOldName},</if>
+            <if test="kingdeeProjectID!=null">kingdeeProjectID=#{kingdeeProjectID},</if>
+            <if test="legalCompID!=null">legalCompID=#{legalCompID},</if>
+            <if test="legalCompName!=null">legalCompName=#{legalCompName},</if>
+            <if test="companyID!=null">companyID=#{companyID},</if>
+            <if test="companyName!=null">companyName=#{companyName},</if>
+            <if test="domeOver!=null">domeOver=#{domeOver},</if>
+            <if test="orgID!=null">orgID=#{orgID},</if>
+            <if test="orgName!=null">orgName=#{orgName},</if>
+            <if test="projectType!=null">projectType=#{projectType},</if>
+            <if test="tradeMode!=null">tradeMode=#{tradeMode},</if>
+            <if test="isCoopProject!=null">isCoopProject=#{isCoopProject},</if>
+            <if test="projectStatus!=null">projectStatus=#{projectStatus},</if>
+            <if test="productLine!=null">productLine=#{productLine},</if>
+            <if test="caseName!=null">caseName=#{caseName},</if>
+            <if test="projectClassify!=null">projectClassify=#{projectClassify},</if>
+            <if test="createdTime!=null">createdTime=#{createdTime},</if>
+            <if test="isDelete!=null">isDelete=#{isDelete},</if>
+            <if test="updatedTime!=null">updatedTime=#{updatedTime},</if>
+            <if test="createdBy!=null">createdBy=#{createdBy},</if>
+            <if test="updatedBy!=null">updatedBy=#{updatedBy},</if>
+        </trim>
+
+        where projectID=#{projectID}
+    </update>
+
+    <update id="updateDesignBuild" parameterType="java.util.Map">
+        update t_mm_designbuild
+        <trim prefix="set" suffixOverrides=",">
+            <if test="designBuildID!=null">designBuildID=#{designBuildID},</if>
+            <if test="formatBuildingCode!=null">formatBuildingCode=#{formatBuildingCode},</if>
+            <if test="formatBuildingName!=null">formatBuildingName=#{formatBuildingName},</if>
+            <if test="buildID!=null">buildID=#{buildID},</if>
+            <if test="buildingCode!=null">buildingCode=#{buildingCode},</if>
+            <if test="buildingName!=null">buildingName=#{buildingName},</if>
+            <if test="projectFID!=null">projectFID=#{projectFID},</if>
+            <if test="kingdeeProjectFId!=null">kingdeeProjectFId=#{kingdeeProjectFId},</if>
+            <if test="stageCode!=null">stageCode=#{stageCode},</if>
+            <if test="versionStage!=null">versionStage=#{versionStage},</if>
+            <if test="versionNum!=null">versionNum=#{versionNum},</if>
+            <if test="productCode!=null">productCode=#{productCode},</if>
+            <if test="productType!=null">productType=#{productType},</if>
+            <if test="businessType!=null">businessType=#{businessType},</if>
+            <if test="businessTypeName!=null">businessTypeName=#{businessTypeName},</if>
+            <if test="freeType!=null">freeType=#{freeType},</if>
+            <if test="freeTypeName!=null">freeTypeName=#{freeTypeName},</if>
+            <if test="proType!=null">proType=#{proType},</if>
+            <if test="proTypeName!=null">proTypeName=#{proTypeName},</if>
+            <if test="createdTime!=null">createdTime=#{createdTime},</if>
+            <if test="updatedTime!=null">updatedTime=#{updatedTime},</if>
+            <if test="createdBy!=null">createdBy=#{createdBy},</if>
+            <if test="updatedBy!=null">updatedBy=#{updatedBy},</if>
+            <if test="isDelete!=null">isDelete=#{isDelete},</if>
+        </trim>
+        where bldPrdID=#{bldPrdID}
+    </update>
+
+    <!-- 批量更新楼栋已存在的数据 bql 2020.07.28 -->
+    <update id="updateDesignBuildBatch" parameterType="java.util.Map">
+        <foreach collection="list"  index="index" item="item" separator=";">
+            update t_mm_designbuild
+            <trim prefix="set" suffixOverrides=",">
+                <if test="item.designBuildID!=null">designBuildID=#{item.designBuildID},</if>
+                <if test="item.formatBuildingCode!=null">formatBuildingCode=#{item.formatBuildingCode},</if>
+                <if test="item.formatBuildingName!=null">formatBuildingName=#{item.formatBuildingName},</if>
+                <if test="item.buildID!=null">buildID=#{item.buildID},</if>
+                <if test="item.buildingCode!=null">buildingCode=#{item.buildingCode},</if>
+                <if test="item.buildingName!=null">buildingName=#{item.buildingName},</if>
+                <if test="item.projectFID!=null">projectFID=#{item.projectFID},</if>
+                <if test="item.kingdeeProjectFId!=null">kingdeeProjectFId=#{item.kingdeeProjectFId},</if>
+                <if test="item.stageCode!=null">stageCode=#{item.stageCode},</if>
+                <if test="item.versionStage!=null">versionStage=#{item.versionStage},</if>
+                <if test="item.versionNum!=null">versionNum=#{item.versionNum},</if>
+                <if test="item.productCode!=null">productCode=#{item.productCode},</if>
+                <if test="item.productType!=null">productType=#{item.productType},</if>
+                <if test="item.businessType!=null">businessType=#{item.businessType},</if>
+                <if test="item.businessTypeName!=null">businessTypeName=#{item.businessTypeName},</if>
+                <if test="item.freeType!=null">freeType=#{item.freeType},</if>
+                <if test="item.freeTypeName!=null">freeTypeName=#{item.freeTypeName},</if>
+                <if test="item.proType!=null">proType=#{item.proType},</if>
+                <if test="item.proTypeName!=null">proTypeName=#{item.proTypeName},</if>
+                <if test="item.createdTime!=null">createdTime=#{item.createdTime},</if>
+                <if test="item.updatedTime!=null">updatedTime=#{item.updatedTime},</if>
+                <if test="item.createdBy!=null">createdBy=#{item.createdBy},</if>
+                <if test="item.updatedBy!=null">updatedBy=#{item.updatedBy},</if>
+                <if test="item.isDelete!=null">isDelete=#{item.isDelete},</if>
+            </trim>
+            where bldPrdID=#{item.bldPrdID}
+        </foreach>
+    </update>
+
+
+    <!--初始化签约数据-->
+    <insert id="initializationSingingData" parameterType="java.util.Map">
+delete from mm_month_sign_price
+ where start_time  &gt;=#{monthStartTime}
+  and end_time   &lt;= #{monthSendTime};
+        INSERT    INTO    mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT    3,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM    (SELECT    tb.ProjectID    project_id,sum(ifnull(tb.套数,0))    AS    套数,sum(ifnull(tb.金额,0))    AS    金额    FROM    (SELECT    ProjectID,COUNT(RoomGUID)    AS    套数,sum(ifnull(CjRmbTotal,0))    AS    金额    FROM        vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id
+        WHERE    IFNULL(CloseReason,'')      &lt;&gt;     '撤销签约'  and IFNULL(CloseReason,'') &lt;&gt; 'nos退房' and IFNULL(CloseReason,'')  &lt;&gt; '补差'   AND    YwgsDate   &lt;= #{monthSendTime}    AND    YwgsDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY        ProjectID    UNION    ALL    SELECT        ProjectID,-1    *    COUNT(ifnull(RoomGUID,0))    as    套数,
+        -1    *    SUM(ifnull(CjRmbTotal,0))    AS    金额    FROM            vs_xsgl_contract  a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE        IFNULL(CloseReason,    '')    IN    ( 'nos退房',   '退房',    '换房'    )    AND    CloseDate   &lt;= #{monthSendTime}    AND    CloseDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    ProjectID
+        UNION    ALL    SELECT        ProjectID,0    AS    套数,SUM(ifnull(BcTotal,    0))        AS    金额    FROM        vs_xsgl_contract  a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE    Status   =    '激活'    AND    AuditDate   &lt;= #{monthSendTime}    AND    AuditDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    ProjectID)    tb
+        GROUP    BY    tb.ProjectID)    n ;
+        #组团
+        INSERT    INTO    mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT    5,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM    (SELECT    tb.group_id    project_id,sum(ifnull(tb.套数,0))    AS    套数,sum(ifnull(tb.金额,0))    AS    金额    FROM    (SELECT        group_id,COUNT(RoomGUID)    AS    套数,sum(ifnull(CjRmbTotal,0))    AS    金额        FROM        vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id
+        WHERE        ifnull(CloseReason,    '')      &lt;&gt;     '撤销签约'  and IFNULL(CloseReason,'')  &lt;&gt; 'nos退房' and IFNULL(CloseReason,'')  &lt;&gt;  '补差'    AND    YwgsDate   &lt;= #{monthSendTime}    AND    YwgsDate  &gt;=#{monthStartTime}   and b.monthly_weekly_type=1 GROUP    BY    group_id    UNION    ALL    SELECT    group_id,-1    *    COUNT(RoomGUID)    as    套数,
+        -1    *    SUM(ifnull(CjRmbTotal,0))    AS    金额    FROM            vs_xsgl_contract  a INNER JOIN mm_business_unit b on a.projectid=b.business_id  WHERE    ifnull(CloseReason,    '')    IN    (    '退房',    '换房' ,'nos退房'   )    AND    CloseDate   &lt;= #{monthSendTime}    AND    CloseDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    group_id
+        UNION    ALL    SELECT        group_id,0        AS    套数,SUM(ifnull(BcTotal,    0))        AS    金额    FROM    vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id   WHERE    Status   =    '激活'    AND    AuditDate   &lt;= #{monthSendTime}    AND    AuditDate  &gt;=#{monthStartTime}  and b.monthly_weekly_type=1  GROUP    BY    group_id)    tb
+        GROUP    BY    tb.group_id)    n  ;
+        #分期
+        INSERT  INTO  mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT  4,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM  (SELECT  tb.projectFid  project_id,sum(tb.套数)  AS  套数,sum(tb.金额)  AS  金额  FROM  (SELECT  projectFid,COUNT(RoomGUID)  AS  套数,sum(ifnull(CjRmbTotal,0))  AS 金额
+        FROM  vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id WHERE  ifnull(CloseReason, '')   &lt;&gt;  '撤销签约' and IFNULL(CloseReason,'') &lt;&gt;  'nos退房' and IFNULL(CloseReason,'')  &lt;&gt;  '补差'  AND YwgsDate   &lt;= #{monthSendTime} AND YwgsDate  &gt;=#{monthStartTime} and b.monthly_weekly_type=1 GROUP BY projectFid UNION ALL SELECT projectFid,-1 * COUNT(RoomGUID) AS 套数,
+        -1 * SUM(ifnull(CjRmbTotal, 0)) AS 金额 FROM   vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id WHERE  ifnull(CloseReason, '') IN ( '退房', '换房','nos退房' ) AND CloseDate   &lt;= #{monthSendTime} AND CloseDate  &gt;=#{monthStartTime} and b.monthly_weekly_type=1 GROUP BY projectFid
+        UNION ALL SELECT projectFid,0 AS 套数,SUM(ifnull(BcTotal, 0))  AS 金额 FROM  vs_xsgl_contract a INNER JOIN mm_business_unit b on a.projectid=b.business_id WHERE Status= '激活' AND AuditDate   &lt;= #{monthSendTime} AND AuditDate  &gt;=#{monthStartTime} and b.monthly_weekly_type=1 GROUP BY projectFid) tb
+        GROUP BY tb.projectFid) n;
+        #业态
+INSERT INTO mm_month_sign_price (type,sign_num, sign_price, project_id, create_time, start_time, end_time, year_months )
+SELECT 6,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7) FROM ( SELECT tb.productcode project_id,
+sum( tb.套数 ) AS 套数,sum( tb.金额 ) AS 金额 FROM(SELECT(SELECT CONCAT(
+		vs.group_id,
+		tmd.productCode,
+		tmd.FREETYPE,
+		tmd.BUSINESSTYPE,
+		tmd.PROTYPE )
+	FROM t_mm_designbuild tmd WHERE vs.x_bldprdId = tmd.bldPrdID limit 1) productcode,COUNT( RoomGUID ) AS 套数,sum(ifnull( CjRmbTotal, 0 )) AS 金额
+	FROM vs_xsgl_contract vs WHERE ifnull( CloseReason, '' ) &lt;&gt; '撤销签约' and IFNULL(CloseReason,'')  &lt;&gt;  'nos退房' and IFNULL(CloseReason,'')  &lt;&gt; '补差'
+    AND YwgsDate &lt;=#{monthSendTime} AND YwgsDate  &gt;=#{monthStartTime}
+	GROUP BY productcode
+	UNION ALL
+	SELECT (SELECT CONCAT(
+		vs.group_id,
+		tmd.productCode,
+		tmd.FREETYPE,
+		tmd.BUSINESSTYPE,
+		tmd.PROTYPE )
+	FROM t_mm_designbuild tmd WHERE vs.x_bldprdId = tmd.bldPrdID limit 1) productcode,- 1 * COUNT( RoomGUID ) AS 套数,- 1 * SUM(ifnull( CjRmbTotal, 0 )) AS 金额
+	FROM vs_xsgl_contract vs WHERE ifnull( CloseReason, '' ) IN ( '退房', '换房' ,'nos退房')
+	AND CloseDate &lt;=#{monthSendTime} AND CloseDate  &gt;=#{monthStartTime} GROUP BY productcode UNION ALL
+	SELECT (SELECT CONCAT(
+		vs.group_id,
+		tmd.productCode,
+		tmd.FREETYPE,
+		tmd.BUSINESSTYPE,
+		tmd.PROTYPE )
+	FROM
+		t_mm_designbuild tmd WHERE vs.x_bldprdId = tmd.bldPrdID limit 1) productcode ,0 AS 套数,
+		SUM(ifnull( BcTotal, 0 )) AS 金额 FROM vs_xsgl_contract vs
+	WHERE STATUS = '激活'
+	AND AuditDate &lt;= #{monthSendTime} AND AuditDate  &gt;=#{monthStartTime} GROUP BY productcode) tb GROUP BY tb.productcode) n where n.project_id is not null;
+        #面地段 非车位
+        INSERT INTO mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT 7,套数,金额,project_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM ( SELECT tb.house_package_id project_id,sum(tb.套数) AS 套数,sum(tb.金额) AS 金额 FROM (SELECT house_package_id,S1.group_id ,S1.x_productCode,COUNT(RoomGUID) AS 套数,
+        sum(ifnull(CjRmbTotal,0)) AS 金额 FROM  vs_xsgl_contract S1 INNER JOIN v_sman_supply_plan vs ON S1.group_id= vs.group_id
+         AND S1.x_productCode= vs.product_code
+        and s1.x_bldprdId=vs.bld_prd_id WHERE ifnull(CloseReason, '')   &lt;&gt;  '撤销签约' and IFNULL(CloseReason,'') &lt;&gt; 'nos退房' and IFNULL(CloseReason,'')  &lt;&gt;  '补差'
+        AND totalArea &gt;= CAST(SUBSTRING_INDEX(house_package_name, '-',1) AS SIGNED) AND totalArea   &lt;  CAST(SUBSTRING_INDEX (vs.house_package_name, '-',-1 ) AS SIGNED) AND  is_parking= 0 AND YwgsDate   &lt;= #{monthSendTime} AND YwgsDate  &gt;=#{monthStartTime}
+        GROUP BY house_package_id UNION ALL SELECT house_package_id,S2.group_id ,S2.x_productCode,-1 * COUNT(RoomGUID) AS 套数,-1 * SUM(ifnull(CjRmbTotal, 0)) AS 金额 FROM vs_xsgl_contract S2
+        INNER JOIN v_sman_supply_plan vs ON S2.group_id= vs.group_id
+        -- AND S2.x_productCode= vs.product_code
+        and s2.x_bldprdId=vs.bld_prd_id
+        WHERE ifnull(CloseReason, '') IN ( '退房', '换房','nos退房') AND totalArea   &gt;= CAST(SUBSTRING_INDEX(house_package_name, '-',1) AS SIGNED) AND totalArea  &lt;  CAST(SUBSTRING_INDEX (vs.house_package_name, '-',-1 )AS SIGNED) AND  is_parking= 0
+        AND CloseDate   &lt;= #{monthSendTime} AND CloseDate  &gt;=#{monthStartTime} GROUP BY house_package_id UNION ALL SELECT house_package_id,S3.group_id ,S3.x_productCode,0 AS 套数,SUM(ifnull(BcTotal, 0))  AS 金额
+        FROM   vs_xsgl_contract S3 INNER JOIN v_sman_supply_plan vs ON S3.group_id= vs.group_id
+        -- AND S3.x_productCode= vs.product_code
+        and s3.x_bldprdId=vs.bld_prd_id
+        WHERE Status= '激活'AND totalArea    &gt;= CAST(SUBSTRING_INDEX(house_package_name, '-',1) AS SIGNED)
+        AND totalArea    &lt;  CAST(SUBSTRING_INDEX (vs.house_package_name, '-',-1 ) AS SIGNED) AND  is_parking= 0
+        AND AuditDate   &lt;= #{monthSendTime} AND AuditDate  &gt;=#{monthStartTime} GROUP BY house_package_id) tb GROUP BY tb.house_package_id) n where n.project_id is not null;
+        -- 面地段 车位车位只到业态
+        #签约数据月度区域汇总
+        INSERT INTO mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+        SELECT 2,sign_num,sign_price,business_unit_id,NOW(),#{monthStartTime},#{monthSendTime},SUBSTR(#{monthStartTime},1,7)
+        FROM (SELECT SUM(sign_num) sign_num,SUM(sign_price) sign_price,business_unit_id FROM mm_month_sign_price a  INNER JOIN mm_idm_business_unit_project_rel b
+        ON a.project_id= b.project_id
+        where a.year_months=DATE_FORMAT(#{monthStartTime},'%Y-%m')
+        GROUP BY business_unit_id ) n ;
+        #签约数据月度集团汇总
+         INSERT INTO mm_month_sign_price(type,sign_num,sign_price,project_id,create_time,start_time,end_time,year_months)
+         SELECT 1,SUM(sign_num),SUM(sign_price),'00000001',NOW(),
+         #{monthStartTime},#{monthSendTime},
+         SUBSTR(#{monthSendTime},1,7) FROM  mm_month_sign_price
+         where type=2 and year_months=SUBSTR(#{monthStartTime},1,7)
+    </insert>
+
+    <select id="getGXCData" resultType="java.util.Map">
+        select * from temp_gong_index
+    </select>
+
+    <update id="initMonthProjectType">
+     UPDATE mm_sell_project
+SET monthly_type = 1
+WHERE
+	project_id IN ( SELECT project_id FROM v_sman_supply_plan GROUP BY project_id )
+    </update>
+
+    <delete id="delRepeatDataBusiness">
+        delete from mm_business_unit where id not in (select * FROM (select id from mm_business_unit group by business_id) AB)
+    </delete>
+    <delete id="delRepeatDataBusinessRel">
+        delete from mm_idm_business_unit_project_rel where guid not in (select * FROM (select guid from mm_idm_business_unit_project_rel group by project_id) AB)
+    </delete>
+    <update id="initFirstPlanProjectType">
+UPDATE mm_sell_project
+SET first_plan_type = 1
+WHERE
+	project_id IN ( SELECT project_id FROM fp_project_relationship GROUP BY project_id )
+    </update>
+
+
+    <update id="initProjectCpType">
+update mm_sell_project a,(select projectID,
+case tradeMode
+when 'DULICP' then 0
+when '独立操盘' then 0
+when 'LIANHECP' then 1
+when '联合操盘' then 1
+when '不操盘' then 2
+when 'BUCP' then 2 end trader_type
+from t_mm_project) b set a.trader_type=b.trader_type  where b.projectID=a.project_id
+    </update>
+
+    <update id="initProjectYxzc">
+update mm_sell_project set sales_master_type=null where trader_type=0 or trader_type=2
+    </update>
+</mapper>

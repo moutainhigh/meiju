@@ -1,0 +1,497 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.salesmanage.fileexport.dao.ExportDao">
+
+
+
+
+
+    <select id="selectMonthPlanUpByGuid" resultType="cn.visolink.salesmanage.fileexport.model.MonthPlan"   >
+        SELECT
+        IFNULL(p.projectCode,'') projectCode,
+        bu.father_id,
+        bu.business_name,
+        bu.business_id,
+        bu.`type`,
+        bu.`guid`,
+        mpb.guid basisGuid,
+        IFNULL(mpb.reserve_can_sell_set,0) reserve_can_sell_set,
+        IFNULL(mpb.reserve_can_sell_funds,0) reserve_can_sell_funds,
+        IFNULL(mpb.new_reserve_set,0) new_reserve_set,
+        IFNULL(mpb.new_reserve_funds,0) new_reserve_funds,
+        IFNULL(mpb.total_reserve_set,0) total_reserve_set,
+        IFNULL(mpb.total_reserve_funds,0) total_reserve_funds,
+        IFNULL(mpb.year_plan_sign,0) year_plan_sign,
+        IFNULL(mpb.year_grand_total_sign,0) year_grand_total_sign,
+        IFNULL(mpb.top_three_month_average_sign_set,0) top_three_month_average_sign_set,
+        IFNULL(mpb.upper_moon_sign_set,0) upper_moon_sign_set,
+        IFNULL(mpb.upper_moon_sign_funds,0) upper_moon_sign_funds,
+        IFNULL(mpb.top_three_month_average_sign_funds,0) top_three_month_average_sign_funds,
+
+        IFNULL(mpi.reserve_sign_funds,0) reserve_sign_funds,
+        IFNULL(mpi.new_sign_funds,0) new_sign_funds,
+        IFNULL(mpi.total_sign_funds,0) total_sign_funds,
+        IFNULL(mpi.marketing_promotion_cost,0) marketing_promotion_cost,
+        DATE_FORMAT(mp.months,'%Y-%m-%d') months,
+        mpi.prepared_by_unit_type,
+        IFNULL(mpi.plan_subscription_set,0) plan_subscription_set,
+        IFNULL(mpi.plan_subscription_funds,0) plan_subscription_funds,
+        mpi.plan_turnover_rate,
+        mpb.top_three_month_average_turnover_rate,
+        IFNULL(mpb.last_month_turnover_rate,0) last_month_turnover_rate
+        FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid` and mp.months = mpb.months
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` and mpb.months = mpi.months
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        LEFT JOIN t_mm_project p on p.projectID=bu.business_id
+        WHERE
+        mp.`months` = #{month}
+        AND  mpi.prepared_by_unit_type=3
+        <if test="businessId!=null">AND bu.`business_id` = #{businessId}</if>
+        -- ORDER BY
+        -- bu.type
+        LIMIT 0,1
+    </select>
+
+    <select id="selectAllMonthPlanUpByFatherId" resultType="cn.visolink.salesmanage.fileexport.model.MonthPlan"   >
+        SELECT
+        IFNULL(p.projectCode,'') projectCode,
+        bu.father_id,
+        bu.business_name,
+        bu.business_id,
+        bu.`type`,
+        bu.`guid`,
+        mpb.guid basisGuid,
+       IFNULL(mpb.reserve_can_sell_set,0) reserve_can_sell_set,
+        IFNULL(mpb.reserve_can_sell_funds,0) reserve_can_sell_funds,
+        IFNULL(mpb.new_reserve_set,0) new_reserve_set,
+        IFNULL(mpb.new_reserve_funds,0) new_reserve_funds,
+        IFNULL(mpb.total_reserve_set,0) total_reserve_set,
+        IFNULL(mpb.total_reserve_funds,0) total_reserve_funds,
+        IFNULL(mpb.year_plan_sign,0) year_plan_sign,
+        IFNULL(mpb.year_grand_total_sign,0) year_grand_total_sign,
+        IFNULL(mpb.top_three_month_average_sign_set,0) top_three_month_average_sign_set,
+        IFNULL(mpb.upper_moon_sign_set,0) upper_moon_sign_set,
+        IFNULL(mpb.upper_moon_sign_funds,0) upper_moon_sign_funds,
+        IFNULL(mpb.top_three_month_average_sign_funds,0) top_three_month_average_sign_funds,
+
+        IFNULL(mpi.reserve_sign_funds,0) reserve_sign_funds,
+        IFNULL(mpi.new_sign_funds,0) new_sign_funds,
+        IFNULL(mpi.total_sign_funds,0) total_sign_funds,
+        IFNULL(mpi.marketing_promotion_cost,0) marketing_promotion_cost,
+        DATE_FORMAT(mp.months,'%Y-%m-%d') months,
+        mpi.prepared_by_unit_type,
+        IFNULL(mpi.plan_subscription_set,0) plan_subscription_set,
+        IFNULL(mpi.plan_subscription_funds,0) plan_subscription_funds,
+        mpi.plan_turnover_rate,
+        mpb.top_three_month_average_turnover_rate,
+        IFNULL(mpb.last_month_turnover_rate,0) last_month_turnover_rate
+        FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        LEFT JOIN t_mm_project p on p.projectID=bu.business_id
+        WHERE
+        bu.father_id = #{guid}
+        AND  mpi.prepared_by_unit_type=3
+        AND
+        DATE_FORMAT(mp.months,'%Y-%m-%d') = #{months}
+            AND  mpi.prepared_by_level IN
+        <foreach collection="preparedByLevels" index="index" item="preparedByLevel" separator="," close=")" open="(">
+            #{preparedByLevel}
+        </foreach>
+        ORDER BY     bu.Sort_code
+    </select>
+
+    <select id="selectMonthPlanByGuid" resultType="cn.visolink.salesmanage.fileexport.model.MonthPlan"   >
+        SELECT
+        IFNULL(p.projectCode,'') projectCode,
+        bu.father_id,
+        bu.business_name,
+        bu.business_id,
+        bu.`type`,
+        bu.`guid`,
+        mpb.guid basisGuid,
+        IFNULL(mpb.reserve_can_sell_set,0) reserve_can_sell_set,
+        IFNULL(mpb.reserve_can_sell_funds,0) reserve_can_sell_funds,
+        IFNULL(mpb.new_reserve_set,0) new_reserve_set,
+        IFNULL(mpb.new_reserve_funds,0) new_reserve_funds,
+        IFNULL(mpb.total_reserve_set,0) total_reserve_set,
+        IFNULL(mpb.total_reserve_funds,0) total_reserve_funds,
+        IFNULL(mpb.year_plan_sign,0) year_plan_sign,
+        IFNULL(mpb.year_grand_total_sign,0) year_grand_total_sign,
+        IFNULL(mpb.top_three_month_average_sign_set,0) top_three_month_average_sign_set,
+        IFNULL(mpb.upper_moon_sign_set,0) upper_moon_sign_set,
+        IFNULL(mpb.upper_moon_sign_funds,0) upper_moon_sign_funds,
+        IFNULL(mpb.top_three_month_average_sign_funds,0) top_three_month_average_sign_funds,
+
+        IFNULL(mpi.reserve_sign_funds,0) reserve_sign_funds,
+        IFNULL(mpi.new_sign_funds,0) new_sign_funds,
+        IFNULL(mpi.total_sign_funds,0) total_sign_funds,
+        IFNULL(mpi.marketing_promotion_cost,0) marketing_promotion_cost,
+        DATE_FORMAT(mp.months,'%Y-%m-%d') months,
+        mpi.prepared_by_unit_type,
+        IFNULL(mpi.plan_subscription_set,0) plan_subscription_set,
+        IFNULL(mpi.plan_subscription_funds,0) plan_subscription_funds,
+        mpi.plan_turnover_rate,
+        mpb.top_three_month_average_turnover_rate,
+        IFNULL(mpb.last_month_turnover_rate,0) last_month_turnover_rate
+        FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid` and mp.months = mpb.months
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` and mpb.months = mpi.months
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        LEFT JOIN t_mm_project p on p.projectID=bu.business_id
+        WHERE
+        mp.`months` = #{month}
+        AND  mpi.prepared_by_unit_type=#{prepared_by_unit_type}
+        <if test="businessId!=null">AND bu.`business_id` = #{businessId}</if>
+        -- ORDER BY
+        -- bu.type
+        LIMIT 0,1
+    </select>
+
+
+    <!--  -->
+    <select id="selectAllMonthPlanByFatherId" resultType="cn.visolink.salesmanage.fileexport.model.MonthPlan"   >
+        SELECT
+        IFNULL(p.projectCode,'') projectCode,
+        bu.father_id,
+        bu.business_name,
+        bu.business_id,
+        bu.`type`,
+        bu.`guid`,
+        mpb.guid basisGuid,
+        IFNULL(mpb.reserve_can_sell_set,0) reserve_can_sell_set,
+        IFNULL(mpb.reserve_can_sell_funds,0) reserve_can_sell_funds,
+        IFNULL(mpb.new_reserve_set,0) new_reserve_set,
+        IFNULL(mpb.new_reserve_funds,0) new_reserve_funds,
+        IFNULL(mpb.total_reserve_set,0) total_reserve_set,
+        IFNULL(mpb.total_reserve_funds,0) total_reserve_funds,
+        IFNULL(mpb.year_plan_sign,0) year_plan_sign,
+        IFNULL(mpb.year_grand_total_sign,0) year_grand_total_sign,
+        IFNULL(mpb.top_three_month_average_sign_set,0) top_three_month_average_sign_set,
+        IFNULL(mpb.upper_moon_sign_set,0) upper_moon_sign_set,
+        IFNULL(mpb.upper_moon_sign_funds,0) upper_moon_sign_funds,
+        IFNULL(mpb.top_three_month_average_sign_funds,0) top_three_month_average_sign_funds,
+
+        IFNULL(mpi.reserve_sign_funds,0) reserve_sign_funds,
+        IFNULL(mpi.new_sign_funds,0) new_sign_funds,
+        IFNULL(mpi.total_sign_funds,0) total_sign_funds,
+        IFNULL(mpi.marketing_promotion_cost,0) marketing_promotion_cost,
+        DATE_FORMAT(mp.months,'%Y-%m-%d') months,
+        mpi.prepared_by_unit_type,
+        IFNULL(mpi.plan_subscription_set,0) plan_subscription_set,
+        IFNULL(mpi.plan_subscription_funds,0) plan_subscription_funds,
+        mpi.plan_turnover_rate,
+        mpb.top_three_month_average_turnover_rate,
+        IFNULL(mpb.last_month_turnover_rate,0) last_month_turnover_rate
+        FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        LEFT JOIN t_mm_project p on p.projectID=bu.business_id
+        WHERE
+        bu.father_id = #{guid}
+        AND  mpi.prepared_by_unit_type=#{prepared_by_unit_type}
+        AND
+        DATE_FORMAT(mp.months,'%Y-%m-%d') = #{months}
+        AND  mpi.prepared_by_level IN
+        <foreach collection="preparedByLevels" index="index" item="preparedByLevel" separator="," close=")" open="(">
+            #{preparedByLevel}
+        </foreach>
+        ORDER BY     bu.Sort_code
+    </select>
+
+
+    <select id="selectAllMonthPlanByFatherIdAll" resultType="cn.visolink.salesmanage.fileexport.model.MonthPlan"   >
+        select v.*,(@i:=@i+1) as row from (
+        SELECT
+        IFNULL(p.projectCode,'') projectCode,
+        bu.father_id,
+        bu.business_name,
+        bu.business_id,
+        bu.`type`,
+        bu.`guid`,
+        mpb.guid basisGuid,
+        IFNULL(mpb.reserve_can_sell_set,0) reserve_can_sell_set,
+        IFNULL(mpb.reserve_can_sell_funds,0) reserve_can_sell_funds,
+        IFNULL(mpb.new_reserve_set,0) new_reserve_set,
+        IFNULL(mpb.new_reserve_funds,0) new_reserve_funds,
+        IFNULL(mpb.total_reserve_set,0) total_reserve_set,
+        IFNULL(mpb.total_reserve_funds,0) total_reserve_funds,
+        IFNULL(mpb.year_plan_sign,0) year_plan_sign,
+        IFNULL(mpb.year_grand_total_sign,0) year_grand_total_sign,
+        IFNULL(mpb.top_three_month_average_sign_set,0) top_three_month_average_sign_set,
+        IFNULL(mpb.upper_moon_sign_set,0) upper_moon_sign_set,
+        IFNULL(mpb.upper_moon_sign_funds,0) upper_moon_sign_funds,
+        IFNULL(mpb.top_three_month_average_sign_funds,0) top_three_month_average_sign_funds,
+
+        IFNULL(mpi.reserve_sign_funds,0) reserve_sign_funds,
+        IFNULL(mpi.new_sign_funds,0) new_sign_funds,
+        IFNULL(mpi.total_sign_funds,0) total_sign_funds,
+        IFNULL(mpi.marketing_promotion_cost,0) marketing_promotion_cost,
+        DATE_FORMAT(mp.months,'%Y-%m-%d') months,
+        mpi.prepared_by_unit_type,
+        IFNULL(mpi.plan_subscription_set,0) plan_subscription_set,
+        IFNULL(mpi.plan_subscription_funds,0) plan_subscription_funds,
+        mpi.plan_turnover_rate,
+        mpb.top_three_month_average_turnover_rate,
+        IFNULL(mpb.last_month_turnover_rate,0) last_month_turnover_rate
+        FROM
+        `mm_monthly_plan` mp
+        LEFT JOIN `mm_monthly_plan_basis` mpb ON mpb.`monthly_plan_id` = mp.`guid`
+        LEFT JOIN `mm_monthly_plan_index` mpi ON mpi.`monthly_plan_basis_id` = mpb.`guid` -- and mpi.`prepared_by_unit_type` = 1
+        LEFT JOIN `mm_business_unit` bu ON bu.`business_id` = mpb.`prepared_by_unit_org_id`
+        LEFT JOIN t_mm_project p on p.projectID=bu.business_id
+        WHERE mpi.prepared_by_unit_type=#{prepared_by_unit_type}
+        AND DATE_FORMAT(mp.months,'%Y-%m-%d') = #{months}
+        <if test="business_id!=null">AND bu.`father_id` = #{business_id}</if>
+        AND mpi.prepared_by_level IN
+        <foreach collection="preparedByLevels" index="index" item="preparedByLevel" separator="," close=")" open="(">
+            #{preparedByLevel}
+        </foreach>
+        ORDER BY     bu.Sort_code
+        ) v ,(select  @i:=
+        <choose>
+            <when test="row != null and row != ''" >
+                ${row}
+            </when>
+            <otherwise>
+                4
+            </otherwise>
+        </choose>
+        ) as it
+    </select>
+
+    <!--通过项目ID和月份来查找项目渠道费用等明细-->
+    <select id="selectMouthChannelDetail" parameterType="java.util.Map" resultType="cn.visolink.salesmanage.fileexport.model.ListThree">
+
+SELECT
+    guid,
+  creator,
+  DATE_FORMAT(create_time,'%Y-%m-%d') create_time,
+
+  is_delete_flag,
+  editor,
+   DATE_FORMAT(update_time,'%Y-%m-%d') update_time,
+
+ DATE_FORMAT(months,'%Y-%m-%d') months,
+  monthly_plan_id,
+  version,
+  monthly_plan_index_id,
+  compiler_account_id,
+  matter,
+  action,
+  subscription_number,
+  subscription_amount,
+  first_three_months_average_monthly_turnover,
+  come_client_quantity,
+  first_three_months_monthly_average_coming_proportion,
+  coming_proportion,
+  first_three_months_monthly_average_turnover_rate,
+  turnover_rate,
+  contract_amount,
+  contract_cost_rate,
+  right_responsibility_amount,
+  right_responsibility_cost_rate,
+  first_three_months_average_monthly_transaction_cost,
+  transaction_cost,
+  first_three_months_monthly_average_coming_cost,
+  coming_cost,
+  first_three_months_average_monthly_sets,
+  first_three_months_monthly_average_monthly_coming_amount,
+  project_id,
+  channel_id,
+  is_effective
+FROM
+  mm_monthly_plan_index_channel_cost_detail
+  where
+  project_id=#{projectId} AND months=#{months}
+</select>
+
+    <!--求出表三的合计-->
+    <select id="listThreeSum"  parameterType="java.util.Map" resultType="java.util.Map"  >
+     SELECT
+
+        SUM(subscription_number) subscription_number,
+        SUM(subscription_amount) subscription_amount,
+        SUM(first_three_months_average_monthly_turnover) first_three_months_average_monthly_turnover,
+        SUM(come_client_quantity) come_client_quantity,
+        SUM(first_three_months_monthly_average_coming_proportion) first_three_months_monthly_average_coming_proportion,
+        SUM(coming_proportion) coming_proportion,
+        SUM(first_three_months_monthly_average_turnover_rate) first_three_months_monthly_average_turnover_rate,
+        SUM(turnover_rate) turnover_rate,
+        SUM(contract_amount) contract_amount,
+        SUM(contract_cost_rate) contract_cost_rate,
+        SUM(right_responsibility_amount) right_responsibility_amount,
+        SUM(right_responsibility_cost_rate) right_responsibility_cost_rate,
+        SUM(first_three_months_average_monthly_transaction_cost) first_three_months_average_monthly_transaction_cost,
+        SUM(transaction_cost) transaction_cost,
+        SUM(first_three_months_monthly_average_coming_cost) first_three_months_monthly_average_coming_cost,
+        SUM(coming_cost) coming_cost,
+        SUM(first_three_months_average_monthly_sets) first_three_months_average_monthly_sets,
+        SUM(first_three_months_monthly_average_monthly_coming_amount) first_three_months_monthly_average_monthly_coming_amount
+
+        FROM
+        mm_monthly_plan_index_channel_cost_detail
+        WHERE project_id=#{projectId} AND months=#{month}
+
+ </select>
+
+
+    <select id="timeRangeSelect" parameterType="java.util.Map" resultType="java.util.Map"   >
+     SELECT
+
+ DATE_FORMAT(this_time,'%Y-%m-%d') this_time,
+  `how_week`,
+ DATE_FORMAT(start_time,'%Y-%m-%d')  start_time,
+ DATE_FORMAT(end_time,'%Y-%m-%d') end_time,
+  `day_num`
+FROM
+`mm_common_week_rule`
+WHERE DATE_FORMAT(start_time,'%Y-%m')=#{start_time} AND how_week=#{how_week}
+
+ </select>
+
+    <select id="selectMonthWeek" parameterType="java.util.Map" resultType="java.util.Map"   >
+     SELECT
+ DATE_FORMAT(end_time,'%Y-%m-%d') this_time,
+  week_serial_number `how_week`,
+ DATE_FORMAT(start_time,'%Y-%m-%d')  start_time,
+ DATE_FORMAT(end_time,'%Y-%m-%d') end_time,
+  `day_num`
+FROM
+`mm_monthly_plan_weekly_plan`
+WHERE DATE_FORMAT(start_time,'%Y-%m')=#{start_time} AND week_serial_number=#{how_week}
+limit 1
+ </select>
+
+
+    <!--表四导出周计划部分-->
+    <select id="selectWeeklyPlan" parameterType="java.util.Map" resultType="cn.visolink.salesmanage.fileexport.model.MonthFour">
+        SELECT
+        id,
+        CONCAT('第',(
+        CASE
+        week_serial_number
+        WHEN '1' THEN '一'
+        WHEN '2' THEN '二'
+        WHEN '3' THEN '三'
+        WHEN '4' THEN '四'
+        WHEN '5' THEN '五'
+        ELSE     '六'       END
+        )
+        ,'周' ) howWeek,
+        guid,
+        creator,
+        DATE_FORMAT(create_time,'%Y-%m-%d') create_time,
+
+        is_delete_flag,
+        editor,
+        DATE_FORMAT(update_time,'%Y-%m-%d') update_time,
+
+        DATE_FORMAT(months,'%Y-%m-%d') months,
+        monthly_plan_id,
+        version,
+        monthly_plan_index_id,
+        compiler_account_id,
+        sign_target,
+        sign_number_set,
+        visit_quantity,
+        subscription_number_set,
+        small_card,
+        big_card,
+        core_action,
+        week_serial_number,
+        project_id,
+        is_effective,
+         DATE_FORMAT(start_time,'%Y-%m-%d')  start_time,
+         DATE_FORMAT(end_time,'%Y-%m-%d')  end_time,
+        day_num
+        FROM
+        mm_monthly_plan_weekly_plan
+        WHERE project_id=#{projectId} AND months=#{months}
+
+    </select>
+
+
+
+    <!--表四导出月计划部分-->
+    <select id="mouthPlanSelect" parameterType="java.util.Map" resultType="cn.visolink.salesmanage.fileexport.model.MonthFour">
+      SELECT
+        mpid. guid,
+        mpid.creator,
+        DATE_FORMAT(mpid.create_time,'%Y-%m-%d') create_time,
+        mpid.is_delete_flag,
+        mpid.editor,
+        DATE_FORMAT(mpid.update_time,'%Y-%m-%d') update_time,
+
+        DATE_FORMAT(mpid.months,'%Y-%m-%d') months,
+        monthly_plan_id,
+        mpid.version,
+        mpid.monthly_plan_index_id,
+        mpid.compiler_account_id,
+        mpid.big_card,
+        mpid.come_client_quantity,
+        mpid.small_card,
+        mpid.come_client_cost,
+        mpid.cost,
+        mpid.turnover_rate,
+        mpid.rate,
+        mpid.transaction_cost,
+        mpid.subscription_number,
+        mpid.subscription_funds,
+        mpid.sign_number_set,
+        mpid.sign_funds,
+        mpid.risk_point,
+        mpid.countermeasures,
+        mpid.policy_use,
+        mpid.core_action,
+        mpid.project_id,
+        mpid.channel_id,
+        mpid.is_effective,
+     IFNULL( mpi.marketing_promotion_cost,0) marketing_promotion_cost,
+        IFNULL( mpi2.total_sign_funds,0) total_sign_funds
+, IFNULL( mpi2.total_sign_set ,0) total_sign_set
+, IFNULL( mpi2.plan_subscription_set ,0) plan_subscription_set
+, IFNULL( mpi2.plan_subscription_funds ,0) plan_subscription_funds
+
+
+        FROM mm_monthly_plan_index_detail  mpid
+        LEFT JOIN   `mm_business_unit` bu ON bu.`business_id` = mpid.project_id
+        LEFT JOIN (
+        SELECT
+        marketing_promotion_cost,
+         prepared_by_unit_org_id,
+	 months
+        FROM
+         mm_monthly_plan_index
+         WHERE prepared_by_unit_type = 2
+         ) mpi   ON mpid.project_id = mpi.`prepared_by_unit_org_id`  AND mpi.`months` = mpid.months
+	LEFT JOIN(
+	 SELECT
+	 total_sign_funds,
+	 total_sign_set,
+	 plan_subscription_set ,
+	 plan_subscription_funds,
+	 prepared_by_unit_org_id,
+	 months
+	 FROM
+   mm_monthly_plan_index
+     WHERE prepared_by_unit_type = 3
+    ) mpi2 ON
+    mpid.project_id = mpi2.`prepared_by_unit_org_id`  AND mpi2.`months` = mpid.months
+        WHERE mpid.project_id = #{projectId}
+        AND mpid.months = #{months}
+        LIMIT 0,1
+
+    </select>
+
+
+
+</mapper>
+

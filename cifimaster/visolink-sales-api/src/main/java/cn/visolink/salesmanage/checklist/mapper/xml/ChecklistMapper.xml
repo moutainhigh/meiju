@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="cn.visolink.salesmanage.checklist.mapper.ChecklistMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="cn.visolink.salesmanage.checklist.entity.Checklist">
+        <id column="id" property="id" />
+        <result column="fid" property="fid" />
+        <result column="fcode" property="fcode" />
+        <result column="main_data_project_id" property="mainDataProjectId" />
+        <result column="checklist_code" property="checklistCode" />
+        <result column="deal_type" property="dealType" />
+        <result column="channel_name" property="channelName" />
+        <result column="project_code" property="projectCode" />
+        <result column="project_time" property="projectTime" />
+        <result column="project_status" property="projectStatus" />
+        <result column="project_amount" property="projectAmount" />
+        <result column="payment_closed" property="paymentClosed" />
+        <result column="auditor" property="auditor" />
+        <result column="is_father" property="isFather" />
+        <result column="division" property="division" />
+        <result column="city_company" property="cityCompany" />
+        <result column="project_name" property="projectName" />
+        <result column="creator_name" property="creatorName" />
+        <result column="is_abnormal" property="isAbnormal" />
+        <result column="status" property="status" />
+        <result column="isdel" property="isdel" />
+        <result column="create_time" property="createTime" />
+        <result column="creator" property="creator" />
+        <result column="edit_time" property="editTime" />
+        <result column="editor" property="editor" />
+    </resultMap>
+
+    <!-- 通用查询结果列 -->
+    <sql id="Base_Column_List">
+        id, fid, fcode, main_data_project_id, checklist_code, deal_type, channel_name, project_code, project_time, project_status, project_amount, payment_closed, auditor, is_father, division, city_company, project_name, creator_name, is_abnormal, status, isdel, create_time, creator, edit_time, editor
+    </sql>
+
+</mapper>

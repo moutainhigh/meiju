@@ -1,0 +1,977 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="cn.visolink.firstplan.message.dao.TemplateEnginedao">
+<select id="getTemplateInfo" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	*
+FROM
+	ms_template_info
+WHERE
+	template_name like concat('%',#{template_name},'%')
+	AND isdel =0 LIMIT 1
+</select>
+	<!--获取前2月，前3月的计划id-->
+	<select id="getPlanDataBeforeMonth" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+    fpn.id plan_node_id,
+    fpn.plan_id
+    FROM
+    fp_plan_node fpn
+    INNER JOIN
+    fp_guest_storage_flow fgsf
+    ON fgsf.plan_node_id=fpn.id
+    WHERE fgsf.id=#{json_id} limit 1
+	</select>
+    <!--查询延期开盘的计划id-->
+    <select id="getDelayOpenApplayPlanid" resultType="java.util.Map" parameterType="java.lang.String">
+       SELECT plan_id,plan_node_id FROM  fp_delay_apply WHERE id=#{json_id}
+    </select>
+    <!--查询首开前7天计划id-->
+    <select id="getSevenOpenApplayPlanid" resultType="java.util.Map" parameterType="java.lang.String">
+       SELECT plan_id,plan_node_id FROM  fp_seven_day_index WHERE id=#{json_id}
+    </select>
+    <!--查询计划的详细数据-->
+    <select id="getPlanInfo" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT *FROM fp_plan WHERE ID=#{plan_id}
+    </select>
+    <!--查询对应计划的详细信息-->
+    <select id="getPlanNodeInfo" resultType="java.util.Map" parameterType="java.lang.String">
+        SELECT *FROM fp_plan_node WHERE id=#{plan_node_id};
+    </select>
+    <!--生成消息后保存消息-->
+    <insert id="saveMessage" parameterType="java.util.Map">
+        insert into ms_message
+        <trim prefix="(" suffix=")" suffixOverrides="," >
+            <if test="id != null" >
+                id,
+            </if>
+            <if test="message_title != null" >
+                message_title,
+            </if>
+            <if test="message_send_type != null" >
+                message_send_type,
+            </if>
+            <if test="message_send_mode != null" >
+                message_send_mode,
+            </if>
+            <if test="message_send_status != null" >
+                message_send_status,
+            </if>
+            <if test="message_template_id != null" >
+                message_template_id,
+            </if>
+            <if test="message_send_time != null" >
+                message_send_time,
+            </if>
+            <if test="operator != null" >
+                operator,
+            </if>
+            <if test="message_info != null" >
+                message_info,
+            </if>
+            <if test="message_type_name != null" >
+                message_type_name,
+            </if>
+            <if test="project_id != null" >
+                project_id,
+            </if>
+            <if test="notice_type != null" >
+                notice_type,
+            </if>
+			<if test="is_del != null" >
+				is_del,
+			</if>
+                create_time,
+
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides="," >
+            <if test="id != null" >
+                #{id,jdbcType=VARCHAR},
+            </if>
+            <if test="message_title != null" >
+                #{message_title},
+            </if>
+            <if test="message_send_type != null" >
+                #{message_send_type,jdbcType=INTEGER},
+            </if>
+            <if test="message_send_mode != null" >
+                #{message_send_mode,jdbcType=INTEGER},
+            </if>
+            <if test="message_send_status != null" >
+                #{message_send_status,jdbcType=INTEGER},
+            </if>
+            <if test="message_template_id != null" >
+                #{message_template_id,jdbcType=VARCHAR},
+            </if>
+            <if test="message_send_time != null" >
+                #{message_send_time,jdbcType=TIMESTAMP},
+            </if>
+            <if test="operator != null" >
+                #{operator,jdbcType=VARCHAR},
+            </if>
+            <if test="message_info != null" >
+                #{message_info,jdbcType=LONGVARCHAR},
+            </if>
+            <if test="message_type_name != null" >
+                #{message_type_name},
+            </if>
+            <if test="project_id != null" >
+                #{project_id},
+            </if>
+            <if test="notice_type != null" >
+                #{notice_type},
+            </if>
+			<if test="is_del != null" >
+				#{is_del},
+			</if>
+                NOW(),
+        </trim>
+    </insert>
+    <!--查询系统下所有的计划-->
+    <select id="getAllPlan" resultType="java.util.Map" parameterType="java.util.Map">
+        SELECT *FROM fp_plan;
+    </select>
+    <!--查询顶设2的开盘时间-->
+    <select id="getOpenData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+DATE_FORMAT(open_time,'%Y-%m-%d') open_time,
+DATE_FORMAT(NOW(),'%Y-%m-%d') now_date,
+datediff(open_time,NOW()) open_countdown
+FROM
+	fp_plan_node  node
+	INNER JOIN fp_date_node d  on d.plan_node_id=node.id
+WHERE
+	node_level = 3
+	AND is_del = 0
+	AND is_effective = 0
+	AND node.plan_id =#{plan_id} ORDER BY create_time desc limit 1
+    </select>
+
+    <!--查询三大件截止到当前时间有没有未提报的项目-->
+    <select id="selectThreePiecesData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	node.id AS plan_node_id,
+	plan.id AS plan_id,
+	plan.project_id,
+	plan.area_name as org_name,
+	plan.project_name as project_name,
+	NOW() now_date,
+	plan_approval,
+	node_level,
+	node_name,
+	DATE_FORMAT( plan_end_time, '%Y-%m-%d' ) plan_end_time,
+	DATE_FORMAT( actual_finish_time, '%Y-%m-%d' ) actual_finish_time,
+	DATE_FORMAT( DATE_SUB( plan_end_time, INTERVAL - 5 DAY ), '%Y-%m-%d' ) detime,
+	TIMESTAMPDIFF(
+		DAY,
+		plan_end_time,
+	DATE_FORMAT( NOW(), '%Y-%m-%d' )) extension_days
+FROM
+	fp_plan_node node
+	INNER JOIN fp_plan plan ON plan.id = node.plan_id
+WHERE
+	 node_level IN ( 10, 11, 12 )
+	AND ( plan_approval = 2 OR plan_approval IS NULL )
+	AND DATE_FORMAT( DATE_SUB( plan_end_time, INTERVAL - 5 DAY ), '%Y-%m-%d' ) = DATE_FORMAT( NOW(), '%Y-%m-%d' )
+	<if test="plan_id!=null and plan_id!=''">
+		AND plan.id=#{plan_id}
+	</if>
+    </select>
+    <!--根据计划id查询三大件-->
+    <select id="getTthreepiecesNode" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+<if test="node_level==10||node_level=='10'.toString()">
+    node_name as sales_node_name,
+	DATE_FORMAT( plan_end_time, '%Y-%m-%d' ) sales_plan_end_time,
+	IFNULL(actual_finish_time,'未开放') as sales_finish_time,
+	datediff(plan_end_time,actual_finish_time) sales_extension_daynum
+</if>
+ <if test="node_level==11||node_level=='11'.toString()">
+     node_name as sample_node_name,
+	 DATE_FORMAT( plan_end_time, '%Y-%m-%d' ) sample_plan_end_time,
+	 IFNULL(actual_finish_time,'未开放') as sample_finish_time,
+	 datediff(plan_end_time,actual_finish_time) sample_extension_daynum
+ </if>
+<if test="node_level==12||node_level=='12'.toString()">
+     node_name as model_node_name,
+	DATE_FORMAT( plan_end_time, '%Y-%m-%d' ) model_plan_end_time,
+	IFNULL(actual_finish_time,'未开放') as model_finish_time,
+	datediff(plan_end_time,actual_finish_time) model_extension_daynum
+</if>
+     from fp_plan_node where node_level=#{node_level} and plan_id=#{plan_id} ORDER BY is_effective  limit 1
+    </select>
+
+
+
+    <!--获取计划数据-->
+    <select id="getPlanData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+IFNULL(visit_num,0) AS total_plan_visitNum,
+IFNULL(little_num,0) AS total_plan_littleNum,
+IFNULL(little_per,0) AS total_plan_littlePer,
+IFNULL(big_num,0) AS total_plan_bigNum,
+IFNULL(big_per,0) AS total_plan_bigPer
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id = #{plan_id}
+		AND version = ( SELECT version FROM fp_guest_storage_flow WHERE plan_id = #{plan_id} AND approval_stuat = 4  ORDER BY node_level DESC, version DESC LIMIT 1 )
+	ORDER BY
+		node_level DESC
+		LIMIT 1
+	)
+	AND node_level = #{node_level}
+	AND `level` = 1
+    </select>
+    <!--获取实际数据-->
+    <select id="getActualData" resultType="java.util.Map" parameterType="java.util.Map">
+ SELECT
+	IFNULL(visit_num,0) AS total_actual_visitNum,
+	IFNULL(little_num,0) AS total_actual_littleNum,
+	IFNULL(little_per,0) AS total_actual_littlePer,
+	IFNULL(big_num,0) AS total_actual_bigNum,
+	IFNULL(big_per,0) AS total_actual_bigPer
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id = #{plan_id}
+		AND version = ( SELECT version FROM fp_guest_storage_flow WHERE plan_id = #{plan_id} AND approval_stuat = 4  ORDER BY node_level DESC, version DESC LIMIT 1 )
+	ORDER BY
+		node_level DESC
+		LIMIT 1
+	)
+	AND node_level =#{node_level}
+	AND `level` = 2
+    </select>
+    
+    <!--获取首开计划数据-->
+    <select id="getOpenPlanData" resultType="java.util.Map" parameterType="java.util.Map">
+         SELECT
+	IFNULL(visit_num,0) AS open_plan_visitNum,
+	IFNULL(little_num,0) AS open_plan_littleNum,
+	IFNULL(little_per,0) AS open_plan_littlePer,
+	IFNULL(big_num,0) AS open_plan_bigNum,
+	IFNULL(big_per,0) AS open_plan_bigPer
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id = #{plan_id}
+		AND version = ( SELECT version FROM fp_guest_storage_flow WHERE plan_id = #{plan_id} AND approval_stuat = 4 ORDER BY node_level DESC, version DESC LIMIT 1 )
+	ORDER BY
+		node_level DESC
+		LIMIT 1
+	)
+	AND node_level =8
+	AND `level` = 1
+    </select>
+    <!--获取首开实际数据-->
+    <select id="getOpenActualData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	IFNULL(visit_num,0) AS open_actual_visitNum,
+	IFNULL(little_num,0) AS open_actual_littleNum,
+	IFNULL(little_per,0) AS open_actual_littlePer,
+	IFNULL(big_num,0) AS open_actual_bigNum,
+	IFNULL(big_per,0) AS open_actual_bigPer
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id =(
+	SELECT
+		id
+	FROM
+		fp_guest_storage_flow
+	WHERE
+		plan_id = #{plan_id}
+		AND version = ( SELECT version FROM fp_guest_storage_flow WHERE plan_id = #{plan_id} AND approval_stuat = 4 ORDER BY node_level DESC, version DESC LIMIT 1 )
+	ORDER BY
+		node_level DESC
+		LIMIT 1
+	)
+	AND node_level =8
+	AND `level` =2
+    </select>
+
+    <!--查询所有顶设2审批通过的项目-->
+    <select id="getDesignTwoApplayApproved" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	node.is_effective,
+	node.is_del,
+	plan.id AS plan_id,
+	node.id AS plan_node_id,
+	project_id,
+	node.node_name AS node_name,
+	DATE_FORMAT( node.plan_end_time, '%Y-%m-%d' ) AS plan_end_time,
+	DATE_FORMAT( node.actual_finish_time, '%Y-%m-%d' ) AS actual_finish_time,
+	plan.project_name,
+	plan.area_name AS org_name
+FROM
+	fp_plan_node node
+	INNER JOIN fp_plan plan ON plan.id = node.plan_id
+WHERE
+	( node.node_level = #{node_level} AND node.is_del = 0 AND node.is_effective = 0 )
+	<if test="plan_id!=null and plan_id!=''">
+		AND plan.id=#{plan_id}
+	</if>
+GROUP BY
+	plan_id
+    </select>
+	<!--查询首开前3月未审批通过的节点数据-->
+	<select id="getThreeMonthsNotApplayApproved" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	node.is_effective,
+	node.is_del,
+	plan.id AS plan_id,
+	node.node_level,
+	node.id AS plan_node_id,
+	node.node_name AS node_names,
+	DATE_FORMAT( node.plan_end_time, '%Y-%m-%d' ) AS plan_end_time,
+	DATE_FORMAT( node.actual_finish_time, '%Y-%m-%d' ) AS actual_finish_time,
+	plan.project_name,
+	plan.area_name AS org_name
+FROM
+	fp_plan_node node
+	INNER JOIN fp_plan plan ON plan.id = node.plan_id
+WHERE
+	 node.node_level = #{node_level} AND node.is_del = 0 AND node.is_effective = 1
+	AND plan_id=#{plan_id}
+GROUP BY
+	plan_id
+	</select>
+
+    <!--查询顶设2计划客储数据/平均到每天-->
+    <select id="getDesignTwoPlanDayNumData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	node_name,
+	node_time,
+	line_name,
+	day_num,
+	visit_num total_plan_visitNum,
+	little_num total_plan_littleNum,
+	big_num total_plan_bigNum,
+	plan_id,
+	FORMAT( IFNULL( visit_num-IFNULL(#{visit_num},0), 0 )/ day_num, 2 ) *day_now_num+IFNULL(#{visit_num},0) visit_day_num,
+	FORMAT( IFNULL( little_num-IFNULL(#{little_num},0), 0 )/ day_num, 2 ) *day_now_num+IFNULL(#{little_num},0) little_day_num,
+	FORMAT( IFNULL( big_num-IFNULL(#{big_num},0), 0 )/ day_num, 2 ) *day_now_num+IFNULL(#{big_num},0) big_day_num,
+	day_now_num,
+	little_per as total_plan_littlePer,
+	big_per as total_plan_bigPer
+FROM
+	(
+	SELECT
+		plan_id,
+		nide_name AS node_name,
+		line_name,
+		DATE_FORMAT( #{this_node_time}, '%Y-%m-%d' ) node_time,
+		TIMESTAMPDIFF(
+			DAY,
+			#{design_two_plan_end_time},
+		DATE_FORMAT( #{this_node_time}, '%Y-%m-%d' )) day_num,
+		TIMESTAMPDIFF(
+			DAY,
+			#{design_two_plan_end_time},
+		DATE_FORMAT(NOW(), '%Y-%m-%d' )) day_now_num,
+		report_num,
+		visit_num,
+		little_num,
+		big_num,
+		little_per,
+		big_per,
+		make_per,
+		sub_num
+	FROM
+		fp_guest_storage_node_plan
+	WHERE
+		flow_id =(
+SELECT
+	id
+FROM
+	fp_guest_storage_flow
+WHERE
+	plan_node_id =#{design_two_plan_node_id}
+	AND approval_stuat = 4
+ORDER BY
+	version DESC
+	LIMIT 1
+		)
+		AND node_level=#{node_level}
+	ORDER BY
+	node_time
+	) s
+    </select>
+	
+	<!--获取上一个节点的计划数据-->
+	<select id="getPreviousPlanData" resultType="java.util.Map" parameterType="java.util.Map">
+		SELECT
+	report_num,
+	visit_num,
+	little_num,
+	big_num,
+	little_per,
+	big_per,
+	make_per,
+	sub_num
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	flow_id=(
+select id from fp_guest_storage_flow where plan_node_id=#{design_two_plan_node_id} and approval_stuat=4 ORDER BY version desc limit  1
+)
+	AND node_level = #{node_level}
+ORDER BY
+	node_time limit 1
+	</select>
+
+	<!--查询昨天的实际来访、报备、认购、小卡、大卡数据-->
+	<select id="getActuerNumberForYesDay" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+		IFNULL(SUM(reportCnt),0) report_num,
+		IFNULL(SUM(visitCnt),0) visit_num,
+		IFNULL(SUM(lesser_card),0) little_num,
+		IFNULL(SUM(big_card),0) big_num,
+		DATE_FORMAT(total_time,'%Y-%m-%d') total_time
+		FROM
+		fp_comm_guest_storage
+	WHERE
+		project_id IN (
+		SELECT
+			fpr.project_id
+		FROM
+			fp_project_relationship fpr,
+			( SELECT ID FROM fp_project_relationship WHERE project_id =( SELECT project_id FROM fp_plan WHERE id =#{plan_id} ) ) PID
+	WHERE
+	( fpr.id = PID.ID OR fpr.pid = PID.ID ))
+	AND DATE_FORMAT(total_time,'%Y-%m-%d') &lt;=DATE_FORMAT(DATE_SUB(NOW(), INTERVAL + 1 DAY ), '%Y-%m-%d' )
+
+	</select>
+	<!--查询当前项目所有的的实际来访、报备、认购、小卡、大卡数据-->
+	<select id="getActuerTotalNumberForYesDay" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	CONVERT(IFNULL(((IFNULL(#{total_plan_visitNum},0)-total_actual_visitNum)/#{total_plan_visitNum} ),0.00)*100,DECIMAL(10,2)) count_plan_visitPer,
+	CONVERT(IFNULL(((IFNULL(#{total_plan_littleNum},0)-total_actual_littleNum)/#{total_plan_littleNum}   ),0.00)*100,DECIMAL(10,2)) count_plan_littlePer,
+	CONVERT(IFNULL(((IFNULL(#{total_plan_bigNum},0)-total_actual_bigNum) / #{total_plan_bigNum} ),0.00)*100,DECIMAL(10,2)) count_plan_bigPer,
+		report_num,
+		total_actual_visitNum,
+		total_actual_littleNum,
+		total_actual_bigNum,
+		total_time,
+		total_actual_littlePer,
+		total_actual_bigPer
+FROM (SELECT
+		IFNULL(SUM(reportCnt),0) report_num,
+		IFNULL(SUM(visitCnt),0) total_actual_visitNum,
+		IFNULL(SUM(lesser_card),0) total_actual_littleNum,
+		IFNULL(SUM(big_card),0) total_actual_bigNum,
+		DATE_FORMAT(total_time,'%Y-%m-%d') total_time,
+		CONVERT(IFNULL((SUM(lesser_card) / SUM(visitCnt) ),0.00)*100,DECIMAL(10,2)) total_actual_littlePer,
+		CONVERT(IFNULL((SUM(big_card) /SUM(visitCnt) ),0.00)*100,DECIMAL(10,2)) total_actual_bigPer
+		FROM
+		fp_comm_guest_storage
+	WHERE
+		project_id IN (
+		SELECT
+			fpr.project_id
+		FROM
+			fp_project_relationship fpr,
+			( SELECT ID FROM fp_project_relationship WHERE project_id =( SELECT project_id FROM fp_plan WHERE id =#{plan_id} ) ) PID
+	WHERE
+	( fpr.id = PID.ID OR fpr.pid = PID.ID ))
+		AND DATE_FORMAT(total_time,'%Y-%m-%d') &lt;=NOW()
+		)  S
+	</select>
+	<!--查询相应档位记录-->
+	<select id="getGearData" resultType="java.lang.String" parameterType="java.util.Map">
+SELECT
+	<if test="Gear==1||Gear=='1'">
+		top2_firstthree
+	</if>
+	<if test="Gear==2||Gear=='2'">
+		firstthree_firsttwo
+	</if>
+	<if test="Gear==3||Gear=='3'">
+		firsttwo_firstone
+	</if>
+	<if test="Gear==4||Gear=='4'">
+		firstone_firstseven
+	</if>
+FROM
+	ms_send_per
+WHERE
+	plan_id =#{plan_id} limit 1
+	</select>
+	
+	
+	<!--添加发送偏差记录-->
+	<insert id="saveSendPer" parameterType="java.util.Map">
+		insert into ms_send_per
+		<trim prefix="(" suffix=")" suffixOverrides="," >
+				id,
+			<if test="plan_id != null" >
+				plan_id,
+			</if>
+			<if test="top2_firstthree != null" >
+				top2_firstthree,
+			</if>
+			<if test="firstthree_firsttwo != null" >
+				firstthree_firsttwo,
+			</if>
+			<if test="firsttwo_firstone != null" >
+				firsttwo_firstone,
+			</if>
+			<if test="firstone_firstseven != null" >
+				firstone_firstseven,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides="," >
+		UUID(),
+			<if test="plan_id != null" >
+				#{plan_id,jdbcType=VARCHAR},
+			</if>
+			<if test="top2_firstthree != null" >
+				#{top2_firstthree,jdbcType=VARCHAR},
+			</if>
+			<if test="firstthree_firsttwo != null" >
+				#{firstthree_firsttwo,jdbcType=VARCHAR},
+			</if>
+			<if test="firsttwo_firstone != null" >
+				#{firsttwo_firstone,jdbcType=VARCHAR},
+			</if>
+			<if test="firstone_firstseven != null" >
+				#{firstone_firstseven,jdbcType=VARCHAR},
+			</if>
+		</trim>
+	</insert>
+	
+	<!--更新档位偏差记录-->
+	<update id="updateSendPer" parameterType="java.util.Map">
+		update ms_send_per
+		<set >
+			<if test="top2_firstthree != null" >
+				top2_firstthree = #{top2_firstthree,jdbcType=VARCHAR},
+			</if>
+			<if test="firstthree_firsttwo != null" >
+				firstthree_firsttwo = #{firstthree_firsttwo,jdbcType=VARCHAR},
+			</if>
+			<if test="firsttwo_firstone != null" >
+				firsttwo_firstone = #{firsttwo_firstone,jdbcType=VARCHAR},
+			</if>
+			<if test="firstone_firstseven != null" >
+				firstone_firstseven = #{firstone_firstseven,jdbcType=VARCHAR},
+			</if>
+		</set>
+		WHERE plan_id= #{plan_id}
+	</update>
+
+	<!--查询顶设2的计划id-->
+	<select id="getDesignTwoPlanNode" resultType="java.lang.String" parameterType="java.lang.String">
+
+
+	</select>
+	<!--九大节点延期提醒-->
+	<select id="getSendPlanData" parameterType="java.lang.String" resultType="java.util.Map">
+SELECT
+	ID AS plan_id,
+	project_id,
+	project_name,
+	area_name AS org_name
+FROM
+	fp_plan
+WHERE
+	is_del = 0
+	<if test="plan_id!=null and plan_id!=''">
+		AND ID=#{plan_id}
+	</if>
+	</select>
+	
+	<!--查询指定计划的逾期节点-->
+	<select id="queryOverdueNodeData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	id as plan_node_id,
+	node_name,
+	DATE_FORMAT(plan_end_time,'%Y年%m月%d日') plan_end_time,
+	node_level,
+	DATEDIFF(NOW(),plan_end_time) extension_days,
+	is_del,
+	is_effective
+FROM
+	fp_plan_node
+WHERE
+	plan_id=#{plan_id}
+	AND node_level=#{node_level}
+	<if test="complete!=null and complete!=''">
+		AND is_del=0
+		AND is_effective=0
+		AND plan_approval=4
+		ORDER BY create_time desc
+	</if>
+	<if test="notComplete!=null and notComplete!=''">
+		AND is_del=0 AND is_effective=1
+		AND DATE_FORMAT(DATE_ADD(plan_end_time,INTERVAL 1 DAY),'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-%d')
+		ORDER BY create_time desc
+	</if>
+	limit 1;
+	</select>
+	<!--根据plan_node_id获取节点详情-->
+	<select id="getPlanNodeInfoByPlanNodeId" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	plan.area_name AS org_name,
+	plan.project_name AS project_name,
+	plan.project_id,
+	DATE_FORMAT( node.plan_end_time, '%Y-%m-%d' ) plan_end_time,
+	DATE_FORMAT( node.actual_finish_time, '%Y-%m-%d' ) actual_finish_time,
+	DATE_FORMAT( plan.open_time, '%Y-%m-%d' ) open_time,
+	node.node_name,
+	plan.id AS plan_id,
+	datediff(node.plan_end_time,node.actual_finish_time) extension_days,
+	datediff(plan.open_time,NOW()) open_countdown
+FROM
+	fp_plan_node node
+	INNER JOIN fp_plan plan ON plan.id = node.plan_id
+	AND node.id =#{plan_node_id}
+	</select>
+	
+	<select id="queryPricingBaseId" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	*
+FROM
+	mm_ap_flow_info
+WHERE
+	json_id =#{json_id}
+ORDER BY
+	create_time DESC limit 1
+</select>
+
+	<!--查询定调价所需项目信息-->
+	<select id="queryPricingProjectInfo" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	kingdeeProjectID,
+	project_name,
+	business_unit_name AS org_name,
+	DATE_FORMAT( NOW(), '%Y-%m-%d' ) now_date
+FROM
+	t_mm_project mp
+	INNER JOIN mm_idm_business_unit_project_rel mb ON mb.project_id = mp.projectID
+WHERE
+	projectID = #{project_id}
+	</select>
+
+	<!--查询定调价消息的表格数据-->
+	<select id="queryPricingTableData" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	whole_plate_investment_value,
+	quiet_value,
+	act_value,
+	theprojected_value,
+	tzb_profit,
+	tzb_irr,
+	tzb_jths,
+	zgb_profit,
+	zgb_irr,
+	zgb_jths,
+	dtb_profit,
+	dtb_irr,
+	dtb_jths,
+	tzh_profit,
+	tzh_irr,
+	tzh_jths,
+	theprojected_value - quiet_value AS tzhcz_value,
+	tzh_profit - zgb_profit AS tzhcz_profit,
+	tzh_irr - zgb_irr AS tzhcz_irr,
+	tzh_jths - zgb_jths AS tzhcz_jths
+FROM
+	mm_ap_set_the_pricing
+WHERE
+	id = #{base_id}
+	</select>
+
+	<!--获取顶设2存储的首开计划数据-->
+	<select id="getDingsgTwoPlanData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	plan_id,
+	nide_name AS node_name,
+	line_name,
+	DATE_FORMAT( node_time, '%Y-%m-%d' ) node_time,
+	report_num,
+	visit_num open_plan_visitNum,
+	little_num open_plan_littleNum,
+	big_num open_plan_bigNum,
+	little_per open_plan_littlePer,
+	big_per open_plan_bigPer,
+	make_per,
+	sub_num
+FROM
+	fp_guest_storage_node_plan
+WHERE
+	plan_node_id = ( SELECT id FROM fp_plan_node WHERE plan_id = #{plan_id} AND node_level = 3 AND is_del = 0 AND is_effective = 0 LIMIT 1 )
+	AND node_level = 8
+ORDER BY
+	node_time
+	</select>
+
+	<!--获取中间表首开计划实际数据-->
+	<select id="getCustomerStorActualData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	IFNULL( SUM( reportCnt ), 0 ) report_num,
+	IFNULL( SUM( visitCnt ), 0 ) open_actual_visitNum,
+	IFNULL( SUM( lesser_card ), 0 ) open_actual_littleNum,
+	IFNULL( SUM( big_card ), 0 ) open_actual_bigNum,
+	DATE_FORMAT( total_time, '%Y-%m-%d' ) total_time
+FROM
+	fp_comm_guest_storage
+WHERE
+	project_id IN (
+	SELECT
+		fpr.project_id
+	FROM
+		fp_project_relationship fpr,
+		(
+		SELECT
+			ID
+		FROM
+			fp_project_relationship
+		WHERE
+			project_id =(
+			SELECT
+				project_id
+			FROM
+				fp_plan
+			WHERE
+				id = #{plan_id} ) ) PID
+
+			WHERE
+			( fpr.id = PID.ID OR fpr.pid = PID.ID ))
+	AND DATE_FORMAT( total_time, '%Y-%m-%d' ) &lt;= now()
+	</select>
+
+
+
+
+	<!--=================首开简报业务模块sql=====================-->
+	<!--查询节点and计划的详细信息-->
+	<select id="getFirstOpenInfo" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	DATE_FORMAT( node.plan_end_time, '%Y-%m-%d' ) plan_end_time,
+	DATE_FORMAT( NOW(), '%Y-%m-%d' ) now_date,
+	plan.id AS plan_id,
+	node.id AS plan_node_id,
+	node.node_name,
+	node.node_level,
+	plan.project_id,
+	plan.project_name,
+	plan.area_name AS org_name,
+	idm.city_id,
+	idm.business_unit_id,
+	invest_open_node,
+	invest_xreal_type,
+	IFNULL(openm.invest_take_card_area,0) invest_take_card_area,
+	IFNULL(invest_take_card_value,0) invest_take_card_value,
+	IFNULL(invest_push_area,0) invest_push_area,
+	IFNULL(invest_push_value,0) invest_push_value,
+	IFNULL(invest_selling_area,0) invest_selling_area,
+	IFNULL(invest_selling_value,0) invest_selling_value,
+	IFNULL(invest_take_card_per,0) invest_take_card_per,
+	IFNULL(invest_all_per,0) invest_all_per,
+	IFNULL(invest_irr,0) invest_irr,
+	IFNULL(invest_payback,0) invest_payback,
+	IFNULL(invest_create_per,0) invest_create_per,
+	IFNULL(designtwo_add_visit,0) designtwo_add_visit,
+	IFNULL(designtwo_finish,0) designtwo_finish,
+	IFNULL(designtwo_sales_generalize_price,0) designtwo_sales_generalize_price,
+
+
+	cash_open_node,
+	cash_xreal_type,
+	IFNULL(openm.cash_take_card_area,0) cash_take_card_area,
+	IFNULL(cash_take_card_value,0) cash_take_card_value,
+	IFNULL(cash_push_area,0) cash_push_area,
+	IFNULL(cash_push_value,0) cash_push_value,
+	IFNULL(cash_selling_area,0) cash_selling_area,
+	IFNULL(cash_selling_value,0) cash_selling_value,
+	IFNULL(cash_take_card_per,0) cash_take_card_per,
+	IFNULL(cash_all_per,0) cash_all_per,
+	IFNULL(cash_irr,0) cash_irr,
+	IFNULL(cash_payback,0) cash_payback,
+	IFNULL(cash_create_per,0) cash_create_per,
+  IFNULL(actual_add_visit,0) actual_add_visit,
+	IFNULL(actual_finish,0) actual_finish,
+	IFNULL(actual_sales_generalize_price,0) actual_sales_generalize_price
+FROM
+	fp_plan plan
+	INNER JOIN fp_plan_node node ON node.plan_id = plan.id
+	INNER JOIN mm_idm_business_unit_project_rel idm ON idm.project_id = plan.project_id
+	INNER JOIN fp_open_this_day this on this.plan_node_id=node.id
+	INNER JOIN fp_open_morrow_broadcast openm ON openm.plan_node_id = this.plan_node_id
+WHERE
+	node.id = #{json_id}
+	</select>
+
+
+	<!--查询首开播报主体数据-->
+	<select id="getFirstOpenSubjectData" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	s.invest_open_node,
+	s.invest_xreal_type,
+	s.invest_take_card_value,
+	s.invest_push_value,
+	s.invest_selling_value,
+	s.invest_take_card_per,
+
+	s.invest_all_per,
+	s.invest_irr,
+	s.invest_payback,
+
+
+
+	s.cash_open_node  cash_open_node,
+	s.cash_xreal_type,
+	s.cash_take_card_value,
+	s.cash_push_value,
+	s.cash_selling_value,
+	s.cash_take_card_per,
+
+	s.cash_create_per,
+	s.cash_all_per,
+	s.cash_irr,
+	s.cash_payback
+FROM
+	fp_open_morrow_broadcast s
+WHERE
+	id = #{json_id}
+	</select>
+	
+	<!--查询项目对应的城市负责人、项目总...-->
+	<select id="getLeaderUsers" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	ba.userName,
+	ba.OfficeMail,
+	ba.Mobile,
+	sc.JobDesc,
+	ba.EmployeeName,
+	sc.JobName,
+	su.CurrentJob
+FROM
+	s_jobs sj
+	INNER JOIN s_jobsuserrel su ON su.JobID = sj.id
+	INNER JOIN b_account ba ON ba.id = su.AccountID
+	INNER JOIN s_commonjobs sc ON sc.id = sj.CommonJobID
+WHERE
+	sj.id IN (
+	SELECT
+		id
+	FROM
+		s_jobs s
+	WHERE
+		( s.CommonJobID =( SELECT id FROM s_commonjobs WHERE JobName = '项目营销PM' ) AND s.jobfullCode LIKE concat( '%', #{project_id}, '%' ) )
+		OR ( s.CommonJobID =( SELECT id FROM s_commonjobs WHERE JobName = '城市负责人' ) AND s.jobfullCode LIKE concat( '%', #{city_id}, '%' ) )
+		OR ( s.CommonJobID =( SELECT id FROM s_commonjobs WHERE JobName = '项目总' ) AND s.jobfullCode LIKE concat( '%', #{project_id}, '%' ) )
+	)
+GROUP BY
+	userName
+	</select>
+
+
+	<!--查询当日播报数据-->
+	<select id="getFirstOpenThisDayInfo" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	IFNULL(ROUND(IFNULL(designtwo_selling_num,0)/IFNULL(#{push_num},0)*100,2) ,0) designtwo_push_per,
+	IFNULL(ROUND(IFNULL(actual_selling_num,0)/IFNULL(#{push_num},0)*100,2) ,0) actual_push_per,
+	designtwo_add_visit,
+	actual_add_visit,
+	designtwo_finish,
+	actual_finish
+FROM
+	fp_plan_node node
+	INNER JOIN fp_open_this_day opent ON opent.plan_node_id = node.id
+	WHERE node.id=#{plan_node_id}
+	</select>
+	<select id="getFirstOpenPushNumber" resultType="java.lang.String" parameterType="java.util.Map">
+SELECT
+	push_num
+FROM
+	fp_plan_node node
+	INNER JOIN fp_open_this_day opent ON opent.plan_node_id = node.id
+	WHERE node.id=#{plan_node_id}
+	</select>
+
+
+	<!--查询首开简报的均价数据-->
+	<select id="getFirstOpenAvgData" resultType="java.util.Map" parameterType="java.util.Map">
+
+SELECT
+	CONCAT( product_type, ':', invest_avg ) invest_avg,
+	CONCAT( product_type, ':', cash_price ) cash_price
+FROM
+	fp_open_morrow_broadcast_avg
+WHERE
+	plan_node_id = #{json_id}
+	</select>
+
+	<!--获取顶设2核心指标部分数据-->
+	<select id="getDesignTwoCoreIndex" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	IFNULL( ROUND( IFNULL( cost_sales_generalize_price, 0 )/ IFNULL( designtwo_selling_value, 0 ), 2 )* 100, 0 ) cost_sales_generalize_per
+FROM
+	fp_designtwo_code_index
+WHERE
+	plan_node_id =
+	(
+	SELECT
+	id
+FROM
+	fp_plan_node
+WHERE
+	is_effective = 0
+	AND is_del = 0
+	AND plan_id=#{plan_id}
+	and node_level=3 ORDER BY create_time desc limit 1
+	)
+</select>
+
+	<!--查询是否有延期行为-->
+	<select id="selectIsDelayOpen" resultType="java.util.Map" parameterType="java.lang.String">
+SELECT
+	*
+FROM
+	fp_delay_apply
+WHERE
+	plan_id =#{plan_id} LIMIT 1
+	</select>
+
+	<!--查询延期是否逾期一天-->
+	<select id="getDelayIsYq" resultType="java.util.Map" parameterType="java.util.Map">
+SELECT
+	id as plan_node_id,
+	node_name,
+	DATE_FORMAT(delay_open_time,'%Y年%m月%d日') plan_end_time,
+	node_level,
+	DATEDIFF(NOW(),delay_open_time) extension_days,
+	is_del,
+	is_effective
+FROM
+	fp_plan_node
+WHERE
+	id=#{plan_node_id}
+	AND node_level=#{node_level}
+	AND is_del=0 AND is_effective=1
+	AND DATE_FORMAT(DATE_ADD(delay_open_time,INTERVAL 1 DAY),'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-%d')
+	ORDER BY create_time desc
+	limit 1;
+	</select>
+</mapper>
