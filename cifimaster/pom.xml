@@ -36,7 +36,7 @@
         <mapstruct.version>1.2.0.Final</mapstruct.version>
         <mybatisSpringBoot.vsersion>2.1.0</mybatisSpringBoot.vsersion>
         <wicket.version>1.0.1</wicket.version>
-        <commons.io.version>2.5</commons.io.version>
+        <commons.io.version>2.7</commons.io.version>
         <commons.fileuploadio.version>1.3.3</commons.fileuploadio.version>
         <pagehelper.version>1.2.10</pagehelper.version>
         <swagger.ui.version>1.9.5</swagger.ui.version>
